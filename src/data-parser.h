@@ -2,16 +2,24 @@
 #define _DATA_PARSER_H_
 
 
+#include <bitset>
+#include <cstdio>
 #include <iostream>
 #include <fstream>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <cassert>
+#include "common.h"
 
 class dataParser {
 public:
 
-  uint32_t get_traces() {
+  uint32_t get_traces(char* filename, TRACE &trace) {
+    // Load filename
+    sprintf(this->filename, "%s", filename);
+    sprintf(this->path_to_file, "data/%s", filename);
+    
+    // Verify if the trace is present or needs to be downloaded
     if (!this->check_for_traces()) {
       int result = this->download_data_traces();
       if (result != 0) {
@@ -23,19 +31,29 @@ public:
     this->fin = fopen(this->path_to_file, "rb");
     assert(this->fin);
 
-    std::cout << "Opened, this->finding size..." << std::endl;
+    std::cout << "Opened, finding size..." << std::endl;
     fseek(this->fin, 0L, SEEK_END);
     std::cout << "Found end" << std::endl;
     uint32_t sz = ftell(this->fin);
     fseek(this->fin, 0L, SEEK_SET);
-    std::cout << "size of trace " << this->filename << ": " << sz << std::endl;
+    std::cout << "Size of trace " << this->filename << ": " << sz << std::endl;
+
+    // Create 5-tuple and trace 
+    FIVE_TUPLE tin;
+    // Load trace with 5-tuple
+    if (this->fin == NULL) {
+      std::cout << "ERROR: Input file is NULL" << std::endl;
+    }
+    while(fread(&tin, 1, sizeof(FIVE_TUPLE), this->fin)) {
+      trace.push_back(tin);
+    }
 
     return 0;
   }
 
 private:
-  char filename[100] = "data1.dat";
-  char path_to_file[200] = "data/data1.dat";
+  char filename[100];
+  char path_to_file[200];
   FILE *fin;
 
   uint32_t download_data_traces() {

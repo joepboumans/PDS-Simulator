@@ -33,3 +33,4 @@
 
 # Data set
 data/*.dat
+data/*.pcap

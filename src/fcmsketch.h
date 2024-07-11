@@ -2,12 +2,27 @@
 #define _FCM_SKETCH_H
 
 #include "common.h"
+#include "counter.h"
 #include "pds.h"
+#include <cstdint>
+#include <vector>
 class FCM_Sketch : public PDS {
 public:
-  FCM_Sketch();
-  ~FCM_Sketch();
-  int insert(FIVE_TUPLE tuple);
+  std::vector<vector<Counter>> stages;
+  FCM_Sketch(uint32_t n_roots, uint32_t n_stages = 3, uint32_t k = 8) {
+    // Check if structure is possible, max counter is 32bit
+
+    for (size_t i = 0; i < n_stages; i++) {
+    }
+  }
+  ~FCM_Sketch() {
+    for (auto v : this->stages) {
+      for (auto c : v) {
+        delete c;
+      }
+    }
+  }
+  int insert(FIVE_TUPLE tuple) { return 0; }
   int remove(FIVE_TUPLE tuple);
   int lookup(FIVE_TUPLE tuple);
 

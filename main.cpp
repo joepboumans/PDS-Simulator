@@ -1,5 +1,6 @@
 #include "src/common.h"
 #include "src/data-parser.h"
+#include "src/fcmsketch.h"
 #include <cstddef>
 #include <cstring>
 #include <glob.h>
@@ -25,6 +26,7 @@ int main() {
     data_parser.get_traces(f.data(), traces[i++]);
   }
 
+  FCM_Sketch fcmsketch(4);
   // Loop over traces
   for (auto trace : traces) {
     std::cout << "Trace data:" << std::endl;

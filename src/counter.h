@@ -2,15 +2,12 @@
 #define _COUNTER_H
 
 #include <cstdint>
-template <typename T> class Counter {
+class Counter {
 public:
-  T count;
+  uint32_t count = 0;
   uint32_t max_count;
   bool overflow = false;
-  Counter(uint32_t max) {
-    this->count = 0;
-    this->max_count = max;
-  }
+  Counter(uint32_t max) { this->max_count = max; }
 
   uint32_t increment(uint32_t c = 1) {
     if (this->overflow) {

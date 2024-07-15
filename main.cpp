@@ -26,7 +26,7 @@ int main() {
     data_parser.get_traces(f.data(), traces[i++]);
   }
 
-  FCM_Sketch fcmsketch(4);
+  // FCM_Sketch fcmsketch(4);
   // Loop over traces
   for (auto trace : traces) {
     std::cout << "Trace data:" << std::endl;

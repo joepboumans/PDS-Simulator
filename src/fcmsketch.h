@@ -13,12 +13,13 @@ public:
     // Check if structure is possible, max counter is 32bit
 
     for (size_t i = 0; i < n_stages; i++) {
+      int j = 0;
     }
   }
   ~FCM_Sketch() {
     for (auto v : this->stages) {
       for (auto c : v) {
-        delete c;
+        int j = 0;
       }
     }
   }

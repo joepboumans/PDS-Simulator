@@ -4,28 +4,54 @@
 #include "common.h"
 #include "counter.h"
 #include "pds.h"
+#include <algorithm>
+#include <cstddef>
 #include <cstdint>
+#include <iostream>
+#include <ostream>
 #include <vector>
+
 class FCM_Sketch : public PDS {
+  vector<Counter *> stages;
+
 public:
-  std::vector<vector<Counter>> stages;
   FCM_Sketch(uint32_t n_roots, uint32_t n_stages = 3, uint32_t k = 8) {
     // Check if structure is possible, max counter is 32bit
 
-    for (size_t i = 0; i < n_stages; i++) {
-      int j = 0;
+    // Maximum 32 bit counter
+    uint32_t max_counter = 32;
+    uint32_t sz_stages[n_stages];
+    std::cout << "Got settings " << n_roots << " " << max_counter << std::endl;
+    for (size_t i = n_stages - 1; i > 0; i--) {
+      sz_stages[i] = n_roots;
+      n_roots *= k;
+      std::cout << i << std::endl;
     }
-  }
-  ~FCM_Sketch() {
-    for (auto v : this->stages) {
-      for (auto c : v) {
-        int j = 0;
+
+    for (size_t i = 0; i < n_stages; i++) {
+      Counter *stage = new Counter[sz_stages[i]];
+      for (size_t j = 0; j < sz_stages[j]; j++) {
+        stage[j] = Counter(max_counter);
+        // std::cout << stage[j].count << std::endl;
+      }
+      stages.push_back(stage);
+    }
+    for (auto stage : stages) {
+      for (auto c : stage) {
+        std::cout << c.count << std::endl;
       }
     }
   }
+  //
+  // ~FCM_Sketch() {
+  //
+  //   for (auto v : this->stages) {
+  //     v.clear();
+  //   }
+  // }
   int insert(FIVE_TUPLE tuple) { return 0; }
-  int remove(FIVE_TUPLE tuple);
-  int lookup(FIVE_TUPLE tuple);
+  int remove(FIVE_TUPLE tuple) { return 0; }
+  int lookup(FIVE_TUPLE tuple) { return 0; }
 
 private:
 };

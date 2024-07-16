@@ -7,6 +7,7 @@ public:
   uint32_t count = 0;
   uint32_t max_count;
   bool overflow = false;
+  Counter() {}
   Counter(uint32_t max) { this->max_count = max; }
 
   uint32_t increment(uint32_t c = 1) {
@@ -31,5 +32,4 @@ public:
     return 1;
   }
 };
-
 #endif // !_COUNTER_H

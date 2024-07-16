@@ -1,6 +1,6 @@
 GCC= g++
-CFLAGS += -O3 -c -Wall
-TARGET= test
+CFLAGS += -O3 -Wall
+TARGET= main
 
 all: $(TARGET)
 

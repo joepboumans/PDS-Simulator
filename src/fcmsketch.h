@@ -22,10 +22,10 @@ public:
     uint32_t max_counter = 32;
     uint32_t sz_stages[n_stages];
     std::cout << "Got settings " << n_roots << " " << max_counter << std::endl;
-    for (size_t i = n_stages - 1; i > 0; i--) {
+    for (int i = n_stages - 1; i >= 0; --i) {
       sz_stages[i] = n_roots;
       n_roots *= k;
-      std::cout << i << std::endl;
+      std::cout << sz_stages[i] << std::endl;
     }
 
     for (size_t i = 0; i < n_stages; i++) {
@@ -36,11 +36,12 @@ public:
       }
       stages.push_back(stage);
     }
-    for (auto stage : stages) {
-      for (auto c : stage) {
-        std::cout << c.count << std::endl;
-      }
-    }
+    std::cout << sz_stages[0] << std::endl;
+    // for (auto stage : stages) {
+    //   for (size_t i = 0; i < sz_stages[0]; i++) {
+    //     std::cout << stage[i].count << std::endl;
+    //   }
+    // }
   }
   //
   // ~FCM_Sketch() {

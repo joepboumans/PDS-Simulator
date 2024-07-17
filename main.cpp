@@ -35,12 +35,15 @@ int main() {
     std::cout << "Trace loading with size: " << num_pkt << std::endl;
     for (int i = 0; i < num_pkt; i++) {
       // print_five_tuple(trace.at(i));
-      fcmsketch.insert(trace.at(i));
+      // fcmsketch.insert(trace.at(i));
       bfilter.insert(trace.at(i));
+      if (!bfilter.lookup(trace.at(i))) {
+        std::cout << "ERROR IN INSERTION!" << std::endl;
+      }
     }
     break;
   }
-  fcmsketch.print_sketch();
+  // fcmsketch.print_sketch();
   bfilter.print_sketch();
   return 0;
 }

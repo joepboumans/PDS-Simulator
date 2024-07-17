@@ -1,3 +1,4 @@
+#include "src/bloomfilter.h"
 #include "src/common.h"
 #include "src/data-parser.h"
 #include "src/fcmsketch.h"
@@ -27,6 +28,7 @@ int main() {
   }
 
   FCM_Sketch fcmsketch(4, 0);
+  BloomFilter bfilter(1 * 1024 * 1024, 0, 4);
   // Loop over traces
   for (auto trace : traces) {
     int num_pkt = (int)trace.size();
@@ -34,9 +36,11 @@ int main() {
     for (int i = 0; i < num_pkt; i++) {
       // print_five_tuple(trace.at(i));
       fcmsketch.insert(trace.at(i));
+      bfilter.insert(trace.at(i));
     }
     break;
   }
   fcmsketch.print_sketch();
+  bfilter.print_sketch();
   return 0;
 }

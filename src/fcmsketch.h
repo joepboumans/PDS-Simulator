@@ -78,10 +78,6 @@ public:
         continue;
       }
       this->stages[s][hash_idx].increment();
-      // char msg[30];
-      // sprintf(msg, "(%i:%i) : %i\n", (int)s, hash_idx,
-      //         this->stages[s][hash_idx].count);
-      // std::cout << msg;
       break;
     }
     return 0;
@@ -97,8 +93,6 @@ public:
       std::cout << std::endl;
     }
   }
-  // int remove(FIVE_TUPLE tuple) { return 0; }
-  // int lookup(FIVE_TUPLE tuple) { return 0; }
 };
 
 #endif // !_FCM_SKETCH_H

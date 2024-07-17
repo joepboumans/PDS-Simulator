@@ -29,11 +29,13 @@ int main() {
   FCM_Sketch fcmsketch(4, 0);
   // Loop over traces
   for (auto trace : traces) {
-    std::cout << "Trace data:" << std::endl;
-    for (int i = 0; i < 100; i++) {
+    int num_pkt = (int)trace.size();
+    std::cout << "Trace loading with size: " << num_pkt << std::endl;
+    for (int i = 0; i < num_pkt; i++) {
       // print_five_tuple(trace.at(i));
       fcmsketch.insert(trace.at(i));
     }
+    break;
   }
   fcmsketch.print_sketch();
   return 0;

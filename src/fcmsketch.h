@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <iostream>
+#include <limits>
 #include <ostream>
 #include <vector>
 
@@ -33,20 +34,25 @@ public:
     // Check if structure is possible, max counter is 32bit
 
     // Maximum 32 bit counter
-    uint32_t max_counter = 32;
+    uint32_t max_bits = 16;
+    uint32_t max_count = std::numeric_limits<uint32_t>::max();
+    uint32_t max_counter[n_stages];
     uint32_t *sz_stages = new uint32_t[n_stages];
     std::cout << "Got settings " << n_roots << " " << max_counter << std::endl;
     for (int i = n_stages - 1; i >= 0; --i) {
       sz_stages[i] = n_roots;
+      max_counter[i] = max_count;
       n_roots *= k;
-      std::cout << sz_stages[i] << std::endl;
+      max_count = max_count >> max_bits;
+      max_bits /= 2;
+      std::cout << sz_stages[i] << " " << max_counter[i] << std::endl;
     }
 
     // Setup stages with appropriate sizes
     for (size_t i = 0; i < n_stages; i++) {
       Counter *stage = new Counter[sz_stages[i]];
       for (size_t j = 0; j < sz_stages[j]; j++) {
-        stage[j] = Counter(max_counter);
+        stage[j] = Counter(max_counter[j]);
       }
       stages.push_back(stage);
     }
@@ -72,10 +78,10 @@ public:
         continue;
       }
       this->stages[s][hash_idx].increment();
-      char msg[30];
-      sprintf(msg, "(%i:%i) : %i\n", (int)s, hash_idx,
-              this->stages[s][hash_idx].count);
-      std::cout << msg;
+      // char msg[30];
+      // sprintf(msg, "(%i:%i) : %i\n", (int)s, hash_idx,
+      //         this->stages[s][hash_idx].count);
+      // std::cout << msg;
       break;
     }
     return 0;
@@ -83,8 +89,8 @@ public:
 
   void print_sketch() {
     for (size_t s = 0; s < n_stages; s++) {
-      std::cout << "Stage " << s << " with size " << this->stages_sz[s]
-                << std::endl;
+      std::cout << "Stage " << s << " with " << this->stages_sz[s]
+                << " counters" << std::endl;
       for (size_t i = 0; i < this->stages_sz[s]; i++) {
         std::cout << this->stages[s][i].count << " ";
       }

@@ -36,12 +36,13 @@ public:
       }
       stages.push_back(stage);
     }
-    std::cout << sz_stages[0] << std::endl;
-    // for (auto stage : stages) {
-    //   for (size_t i = 0; i < sz_stages[0]; i++) {
-    //     std::cout << stage[i].count << std::endl;
-    //   }
-    // }
+    for (size_t s = 0; s < n_stages; s++) {
+      for (size_t i = 0; i < sz_stages[s]; i++) {
+        stages[s][i].increment();
+        std::cout << stages[s][i].count;
+      }
+      std::cout << std::endl;
+    }
   }
   //
   // ~FCM_Sketch() {

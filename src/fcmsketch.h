@@ -9,13 +9,16 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <iostream>
 #include <limits>
 #include <ostream>
+#include <unordered_map>
 #include <vector>
 
 class FCM_Sketch : public PDS {
 private:
+  unordered_map<string, uint32_t> true_data;
   vector<Counter *> stages;
   BOBHash32 hash;
   uint32_t n_stages;
@@ -25,6 +28,8 @@ private:
   int hashing(FIVE_TUPLE key) {
     char c_ftuple[sizeof(FIVE_TUPLE)];
     memcpy(c_ftuple, &key, sizeof(FIVE_TUPLE));
+    string s_ftuple = c_ftuple;
+    this->true_data[s_ftuple]++;
     return hash.run(c_ftuple, 4) % stages_sz[0];
   }
 
@@ -38,7 +43,6 @@ public:
     uint32_t max_count = std::numeric_limits<uint32_t>::max();
     uint32_t max_counter[n_stages];
     uint32_t *sz_stages = new uint32_t[n_stages];
-    std::cout << "Got settings " << n_roots << " " << max_counter << std::endl;
     for (int i = n_stages - 1; i >= 0; --i) {
       sz_stages[i] = n_roots;
       max_counter[i] = max_count;
@@ -91,6 +95,13 @@ public:
         std::cout << this->stages[s][i].count << " ";
       }
       std::cout << std::endl;
+    }
+    for (const auto &n : this->true_data) {
+      char *c = n.first.data();
+      FIVE_TUPLE tuple;
+      memcpy(&tuple, n.first, sizeof(FIVE_TUPLE));
+      print_five_tuple(tuple);
+      std::cout << n.second << std::endl;
     }
   }
 };

@@ -1,9 +1,11 @@
 #ifndef _COMMON_H
 #define _COMMON_H
 
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <iostream>
+#include <iterator>
 #include <limits>
 #include <ostream>
 #include <vector>
@@ -31,43 +33,46 @@ struct FIVE_TUPLE {
     return os << srcIp << ":" << srcPort << "|" << destIp << ":" << dstPort
               << "|" << protocol;
   }
-};
 
-inline FIVE_TUPLE inc_tup(FIVE_TUPLE tuple) {
-  for (auto src : tuple.srcIp) {
-    if (src < std::numeric_limits<char>::max()) {
-      continue;
+  friend FIVE_TUPLE operator+(FIVE_TUPLE &tuple, uint32_t i) {
+    for (auto &src : tuple.srcIp) {
+      if (src >= std::numeric_limits<char>::max()) {
+        continue;
+      }
+      src += i;
+      std::cout << "Change srcIp" << std::endl;
+      std::cout << tuple << std::endl;
+      return tuple;
     }
-    src++;
-    return tuple;
-  }
-  for (auto dst : tuple.dstIp) {
-    if (dst < std::numeric_limits<char>::max()) {
-      continue;
+    std::cout << "Changing dstIp" << std::endl;
+    for (auto &dst : tuple.dstIp) {
+      if (dst >= std::numeric_limits<char>::max()) {
+        continue;
+      }
+      dst++;
+      return tuple;
     }
-    dst++;
-    return tuple;
-  }
-  for (auto src : tuple.srcPort) {
-    if (src < std::numeric_limits<char>::max()) {
-      continue;
+    for (auto &src : tuple.srcPort) {
+      if (src >= std::numeric_limits<char>::max()) {
+        continue;
+      }
+      src++;
+      return tuple;
     }
-    src++;
-    return tuple;
-  }
-  for (auto dst : tuple.dstPort) {
-    if (dst < std::numeric_limits<char>::max()) {
-      continue;
+    for (auto &dst : tuple.dstPort) {
+      if (dst >= std::numeric_limits<char>::max()) {
+        continue;
+      }
+      dst++;
+      return tuple;
     }
-    dst++;
+    if (tuple.protocol >= std::numeric_limits<char>::max()) {
+      return tuple;
+    }
+    tuple.protocol++;
     return tuple;
   }
-  if (tuple.protocol < std::numeric_limits<char>::max()) {
-    return tuple;
-  }
-  tuple.protocol++;
-  return tuple;
-}
+};
 
 using std::vector;
 typedef vector<FIVE_TUPLE> TRACE;

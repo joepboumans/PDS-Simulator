@@ -51,10 +51,15 @@ public:
   }
 
   void print_sketch() {
+    uint32_t count = 0;
     for (auto i : this->array) {
       std::cout << i << " ";
+      if (i) {
+        count++;
+      }
     }
     std::cout << std::endl;
+    std::cout << "Total filled indexes: " << count << std::endl;
   }
 
 private:

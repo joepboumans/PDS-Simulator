@@ -28,7 +28,7 @@ int main() {
   }
 
   FCM_Sketch fcmsketch(4, 0);
-  BloomFilter bfilter(1 * 1024 * 1024, 0, 4);
+  BloomFilter bfilter(1 * 1024, 0, 4);
   unordered_map<string, uint32_t> true_data;
   // Loop over traces
   for (auto trace : traces) {
@@ -41,10 +41,10 @@ int main() {
       memcpy(c_ftuple, &tuple, sizeof(FIVE_TUPLE));
       string s_ftuple;
       s_ftuple.assign(c_ftuple, sizeof(FIVE_TUPLE));
-      print_five_tuple(tuple);
+      std::cout << tuple << std::endl;
       true_data[s_ftuple]++;
       // Use Sketch insert
-      fcmsketch.insert(trace.at(i));
+      // fcmsketch.insert(trace.at(i));
       bfilter.insert(trace.at(i));
       if (!bfilter.lookup(trace.at(i))) {
         std::cout << "ERROR IN INSERTION!" << std::endl;
@@ -55,12 +55,16 @@ int main() {
   std::cout << "Finished insertions, printing results: " << std::endl;
   // Print results
   // fcmsketch.print_sketch();
-  for (const auto &n : true_data) {
-    const char *c = n.first.data();
-    FIVE_TUPLE tuple;
-    memcpy(&tuple, c, sizeof(FIVE_TUPLE));
-    print_five_tuple(tuple);
-  }
+  // for (const auto &n : true_data) {
+  //   const char *c = n.first.data();
+  //   FIVE_TUPLE tuple;
+  //   memcpy(&tuple, c, sizeof(FIVE_TUPLE));
+  //   print_five_tuple(tuple);
+  // }
+  FIVE_TUPLE tuple;
+  std::cout << tuple << std::endl;
+  inc_tup(tuple);
+  std::cout << tuple << std::endl;
   // bfilter.print_sketch();
   return 0;
 }

@@ -29,11 +29,21 @@ int main() {
 
   FCM_Sketch fcmsketch(4, 0);
   BloomFilter bfilter(1 * 1024 * 1024, 0, 4);
+  unordered_map<string, uint32_t> true_data;
   // Loop over traces
   for (auto trace : traces) {
     int num_pkt = (int)trace.size();
     std::cout << "Trace loading with size: " << num_pkt << std::endl;
-    for (int i = 0; i < num_pkt; i++) {
+    for (int i = 0; i < 10; i++) {
+      // Record true data
+      FIVE_TUPLE tuple = trace.at(i);
+      char c_ftuple[sizeof(FIVE_TUPLE)];
+      memcpy(c_ftuple, &tuple, sizeof(FIVE_TUPLE));
+      string s_ftuple;
+      s_ftuple.assign(c_ftuple, sizeof(FIVE_TUPLE));
+      print_five_tuple(tuple);
+      true_data[s_ftuple]++;
+      // Use Sketch insert
       fcmsketch.insert(trace.at(i));
       bfilter.insert(trace.at(i));
       if (!bfilter.lookup(trace.at(i))) {
@@ -42,7 +52,15 @@ int main() {
     }
     break;
   }
-  fcmsketch.print_sketch();
+  std::cout << "Finished insertions, printing results: " << std::endl;
+  // Print results
+  // fcmsketch.print_sketch();
+  for (const auto &n : true_data) {
+    const char *c = n.first.data();
+    FIVE_TUPLE tuple;
+    memcpy(&tuple, c, sizeof(FIVE_TUPLE));
+    print_five_tuple(tuple);
+  }
   // bfilter.print_sketch();
   return 0;
 }

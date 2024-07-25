@@ -10,14 +10,13 @@
 #include <iostream>
 #include <set>
 #include <vector>
-class BloomFilter : PDS {
+class BloomFilter : public PDS {
+public:
   vector<bool> array;
+  set<string> tuples;
   BOBHash32 *hash;
   uint32_t n_hash;
   uint32_t length;
-
-public:
-  set<string> tuples;
   BloomFilter(uint32_t sz, uint32_t n, uint32_t k) {
     for (size_t i = 0; i < sz; i++) {
       array.push_back(false);
@@ -61,7 +60,7 @@ public:
   void print_sketch() {
     uint32_t count = 0;
     for (auto i : this->array) {
-      std::cout << i;
+      // std::cout << i;
       if (i) {
         count++;
       }
@@ -70,7 +69,6 @@ public:
     std::cout << "Total filled indexes: " << count << std::endl;
   }
 
-private:
   int hashing(FIVE_TUPLE key, uint32_t k) {
     char c_ftuple[sizeof(FIVE_TUPLE)];
     memcpy(c_ftuple, &key, sizeof(FIVE_TUPLE));
@@ -78,4 +76,22 @@ private:
   }
 };
 
+class LazyBloomfilter : public BloomFilter {
+public:
+  using BloomFilter::BloomFilter;
+  // LazyBloomfilter(uint32_t sz, uint32_t n, uint32_t k)
+  //     : BloomFilter(sz, n, k) {}
+
+  int insert(FIVE_TUPLE tuple) {
+    for (size_t i = 0; i < this->n_hash; i++) {
+      int hash_idx = this->hashing(tuple, i);
+      if (!array[hash_idx]) {
+        array[hash_idx] = true;
+        tuples.insert((string)tuple);
+        return 0;
+      }
+    }
+    return 1;
+  }
+};
 #endif // !_BLOOMFILTER_H

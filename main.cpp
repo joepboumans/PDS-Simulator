@@ -3,10 +3,12 @@
 #include "src/data-parser.h"
 #include "src/fcmsketch.h"
 #include <cstddef>
+#include <cstdio>
 #include <cstring>
 #include <glob.h>
 #include <iostream>
 #include <iterator>
+#include <vector>
 
 int main() {
   dataParser data_parser;
@@ -28,20 +30,16 @@ int main() {
   }
 
   FCM_Sketch fcmsketch(4, 0);
-  BloomFilter bfilter(1 * 1024, 0, 4);
+  BloomFilter bfilter(1 * 512 * 1024, 0, 4);
   unordered_map<string, uint32_t> true_data;
   // Loop over traces
   for (auto trace : traces) {
-    int num_pkt = (int)trace.size();
+    int num_pkt = (int)trace.size() / 60;
     std::cout << "Trace loading with size: " << num_pkt << std::endl;
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < num_pkt; i++) {
       // Record true data
       FIVE_TUPLE tuple = trace.at(i);
-      char c_ftuple[sizeof(FIVE_TUPLE)];
-      memcpy(c_ftuple, &tuple, sizeof(FIVE_TUPLE));
-      string s_ftuple;
-      s_ftuple.assign(c_ftuple, sizeof(FIVE_TUPLE));
-      std::cout << tuple << std::endl;
+      string s_ftuple = (string)tuple;
       true_data[s_ftuple]++;
       // Use Sketch insert
       // fcmsketch.insert(trace.at(i));
@@ -61,12 +59,30 @@ int main() {
   //   memcpy(&tuple, c, sizeof(FIVE_TUPLE));
   //   print_five_tuple(tuple);
   // }
-  FIVE_TUPLE tuple;
-  std::cout << tuple << std::endl;
-  while (tuple.protocol != 255) {
-    tuple++;
+  int false_pos = 0;
+  int total_pkt = true_data.size();
+  std::cout << "Total found " << bfilter.tuples.size() << std::endl;
+  for (const auto &[s_tuple, count] : true_data) {
+    FIVE_TUPLE tup(s_tuple);
+    // std::cout << tup << std::endl;
+    if (auto search = bfilter.tuples.find((string)tup);
+        search != bfilter.tuples.end()) {
+      // Recorded correctly
+    } else {
+      false_pos++;
+    }
   }
-  std::cout << tuple << std::endl;
-  // bfilter.print_sketch();
+  bfilter.print_sketch();
+  std::cout << "False Positives: " << false_pos << std::endl;
+  std::cout << "Total num_pkt " << total_pkt << std::endl;
+  int true_pos = total_pkt - false_pos;
+  double recall = (double)true_pos / (true_pos + false_pos);
+  double precision = 1; // IN BF can never result in false negatives
+  double f1_score = 2 * ((recall * precision) / (precision + recall));
+  char msg[1000];
+  sprintf(msg, "Recall: %.3f\tPrecision: %.3f\nF1-Score: %.3f", recall,
+          precision, f1_score);
+  std::cout << msg << std::endl;
+
   return 0;
 }

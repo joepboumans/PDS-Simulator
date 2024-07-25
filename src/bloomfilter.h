@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
+#include <set>
 #include <vector>
 class BloomFilter : PDS {
   vector<bool> array;
@@ -16,6 +17,7 @@ class BloomFilter : PDS {
   uint32_t length;
 
 public:
+  set<string> tuples;
   BloomFilter(uint32_t sz, uint32_t n, uint32_t k) {
     for (size_t i = 0; i < sz; i++) {
       array.push_back(false);
@@ -31,11 +33,17 @@ public:
   ~BloomFilter() { this->array.clear(); }
 
   int insert(FIVE_TUPLE tuple) {
+    bool tuple_inserted = false;
     for (size_t i = 0; i < this->n_hash; i++) {
       int hash_idx = this->hashing(tuple, i);
       if (!array[hash_idx]) {
         array[hash_idx] = true;
+        tuple_inserted = true;
       }
+    }
+
+    if (tuple_inserted) {
+      tuples.insert((string)tuple);
     }
     return 0;
   }
@@ -53,7 +61,7 @@ public:
   void print_sketch() {
     uint32_t count = 0;
     for (auto i : this->array) {
-      std::cout << i << " ";
+      std::cout << i;
       if (i) {
         count++;
       }

@@ -1,11 +1,20 @@
 GCC= g++
 CFLAGS += -O3 -Wall
-TARGET= main
+TARGET := main
+
+SRCS := $(shell find . -name '*.cpp')
+OBJS := $(patsubst %.cpp,%.out,$(SRCS))
 
 all: $(TARGET)
 
-$(TARGET): $(TARGET).cpp
-	$(GCC) $(CFLAGS) -o $(TARGET).out $(TARGET).cpp
+$(TARGET): $(SRCS)
+	@echo "Building..."
+	$(GCC) -o $@.out $^
+
+%.out: %.cpp
+	$(GCC) $(CFLAGS) -c -o $@ $< 
 
 clean:
-	rm -f $(TARGET)
+	rm -f $(TARGET) *.o $(OBJS)
+
+.PHONY:all clean

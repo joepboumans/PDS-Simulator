@@ -63,10 +63,9 @@ int main() {
   // }
   FIVE_TUPLE tuple;
   std::cout << tuple << std::endl;
-  for (size_t i = 0; i < 100; i++) {
-    tuple = tuple + 1;
+  while (tuple.protocol != 255) {
+    tuple++;
   }
-  tuple = tuple + 5;
   std::cout << tuple << std::endl;
   // bfilter.print_sketch();
   return 0;

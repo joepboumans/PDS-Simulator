@@ -22,8 +22,8 @@ struct FIVE_TUPLE {
     sprintf(srcIp, "%i.%i.%i.%i", (int)tuple.srcIp[0], (int)tuple.srcIp[1],
             (int)tuple.srcIp[2], (int)tuple.srcIp[3]);
     char destIp[16];
-    sprintf(destIp, "%i.%i.%i.%i", (int)tuple.srcIp[0], (int)tuple.srcIp[1],
-            (int)tuple.srcIp[2], (int)tuple.srcIp[3]);
+    sprintf(destIp, "%i.%i.%i.%i", (int)tuple.dstIp[0], (int)tuple.dstIp[1],
+            (int)tuple.dstIp[2], (int)tuple.dstIp[3]);
     char srcPort[6];
     sprintf(srcPort, "%i", (int)((tuple.srcPort[0] << 8) | tuple.srcPort[1]));
     char dstPort[6];
@@ -34,43 +34,46 @@ struct FIVE_TUPLE {
               << "|" << protocol;
   }
 
-  friend FIVE_TUPLE operator+(FIVE_TUPLE &tuple, uint32_t i) {
-    for (auto &src : tuple.srcIp) {
-      if (src >= std::numeric_limits<char>::max()) {
-        continue;
-      }
-      src += i;
-      std::cout << "Change srcIp" << std::endl;
-      std::cout << tuple << std::endl;
-      return tuple;
-    }
-    std::cout << "Changing dstIp" << std::endl;
-    for (auto &dst : tuple.dstIp) {
-      if (dst >= std::numeric_limits<char>::max()) {
-        continue;
-      }
-      dst++;
-      return tuple;
-    }
-    for (auto &src : tuple.srcPort) {
-      if (src >= std::numeric_limits<char>::max()) {
+  FIVE_TUPLE &operator++() {
+    for (auto &src : this->srcIp) {
+      if (src >= std::numeric_limits<unsigned char>::max()) {
         continue;
       }
       src++;
-      return tuple;
+      return *this;
     }
-    for (auto &dst : tuple.dstPort) {
-      if (dst >= std::numeric_limits<char>::max()) {
+    for (auto &dst : this->dstIp) {
+      if (dst >= std::numeric_limits<unsigned char>::max()) {
         continue;
       }
       dst++;
-      return tuple;
+      return *this;
     }
-    if (tuple.protocol >= std::numeric_limits<char>::max()) {
-      return tuple;
+    for (auto &src : this->srcPort) {
+      if (src >= std::numeric_limits<unsigned char>::max()) {
+        continue;
+      }
+      src++;
+      return *this;
     }
-    tuple.protocol++;
-    return tuple;
+    for (auto &dst : this->dstPort) {
+      if (dst >= std::numeric_limits<unsigned char>::max()) {
+        continue;
+      }
+      dst++;
+      return *this;
+    }
+    if (this->protocol >= std::numeric_limits<unsigned char>::max()) {
+      return *this;
+    }
+    this->protocol++;
+    return *this;
+  }
+
+  FIVE_TUPLE operator++(int) {
+    FIVE_TUPLE old = *this;
+    operator++();
+    return old;
   }
 };
 

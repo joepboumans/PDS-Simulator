@@ -9,6 +9,7 @@
 #include <limits>
 #include <ostream>
 #include <vector>
+using std::string;
 
 struct FIVE_TUPLE {
   unsigned char srcIp[4] = {0, 0, 0, 0};
@@ -34,9 +35,24 @@ struct FIVE_TUPLE {
               << "|" << protocol;
   }
 
+  explicit operator string() {
+    char c_ftuple[sizeof(FIVE_TUPLE)];
+    memcpy(c_ftuple, this, sizeof(FIVE_TUPLE));
+    string s_ftuple;
+    s_ftuple.assign(c_ftuple, sizeof(FIVE_TUPLE));
+    return s_ftuple;
+  }
+
+  FIVE_TUPLE() {}
+  FIVE_TUPLE(string s_tuple) {
+    const char *c_tuple = s_tuple.c_str();
+    memcpy(this, c_tuple, sizeof(FIVE_TUPLE));
+  }
+
   FIVE_TUPLE &operator++() {
     for (auto &src : this->srcIp) {
       if (src >= std::numeric_limits<unsigned char>::max()) {
+        src++;
         continue;
       }
       src++;
@@ -44,6 +60,7 @@ struct FIVE_TUPLE {
     }
     for (auto &dst : this->dstIp) {
       if (dst >= std::numeric_limits<unsigned char>::max()) {
+        dst++;
         continue;
       }
       dst++;
@@ -51,6 +68,7 @@ struct FIVE_TUPLE {
     }
     for (auto &src : this->srcPort) {
       if (src >= std::numeric_limits<unsigned char>::max()) {
+        src++;
         continue;
       }
       src++;
@@ -58,6 +76,7 @@ struct FIVE_TUPLE {
     }
     for (auto &dst : this->dstPort) {
       if (dst >= std::numeric_limits<unsigned char>::max()) {
+        dst++;
         continue;
       }
       dst++;

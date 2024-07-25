@@ -5,6 +5,7 @@
 
 class PDS {
 public:
+  virtual ~PDS() = default;
   virtual int insert(FIVE_TUPLE tuple) {
     std::cout << "Not implemented!" << std::endl;
     return -1;
@@ -17,6 +18,7 @@ public:
     std::cout << "Not implemented!" << std::endl;
     return -1;
   }
+  virtual void print_sketch() { std::cout << "Not implemented!" << std::endl; }
 };
 
 #endif // !_PDS_H

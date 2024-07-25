@@ -1,15 +1,20 @@
 #ifndef _COMMON_H
 #define _COMMON_H
 
+#include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <glob.h>
 #include <iostream>
 #include <iterator>
 #include <limits>
 #include <ostream>
+#include <unordered_map>
 #include <vector>
 using std::string;
+using std::vector;
 
 struct FIVE_TUPLE {
   unsigned char srcIp[4] = {0, 0, 0, 0};
@@ -96,6 +101,5 @@ struct FIVE_TUPLE {
   }
 };
 
-using std::vector;
 typedef vector<FIVE_TUPLE> TRACE;
 #endif

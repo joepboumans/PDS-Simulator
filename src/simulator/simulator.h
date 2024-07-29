@@ -7,7 +7,7 @@
 
 class Simulator {
 public:
-  Simulator(vector<PDS> pds, int n_pds, float epoch) {
+  Simulator(vector<PDS *> pds, int n_pds, float epoch) {
     this->n_pds = n_pds;
     this->pds = pds;
     this->epoch = epoch;
@@ -16,14 +16,18 @@ public:
   Simulator(const Simulator &) = default;
   Simulator &operator=(Simulator &&) = default;
   Simulator &operator=(const Simulator &) = default;
-  ~Simulator() {}
+  // ~Simulator() {
+  //   for (auto p : pds) {
+  //     delete p;
+  //   }
+  // }
 
   std::unordered_map<string, uint32_t> true_data;
 
-  int run(const TRACE &trace);
+  int run(const TRACE &trace, unsigned int duration);
 
 private:
-  vector<PDS> pds;
+  vector<PDS *> pds;
   int n_pds;
   float epoch;
   int insert(const TRACE &trace, int start, int end);

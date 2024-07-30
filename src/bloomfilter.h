@@ -4,20 +4,32 @@
 #include "BOBHash32.h"
 #include "common.h"
 #include "pds.h"
+#include <algorithm>
 #include <bitset>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <fstream>
+#include <ios>
 #include <iostream>
 #include <set>
+#include <stdexcept>
+#include <sys/stat.h>
+#include <unordered_map>
 #include <vector>
+
 class BloomFilter : public PDS {
 public:
+  char name[200];
   vector<bool> array;
   set<string> tuples;
   BOBHash32 *hash;
   uint32_t n_hash;
   uint32_t length;
   BloomFilter(uint32_t sz, uint32_t n, uint32_t k) {
+    sprintf(this->name, "%s_%i", typeid(this).name(), n);
+    std::cout << this->name << std::endl;
     for (size_t i = 0; i < sz; i++) {
       array.push_back(false);
     }
@@ -57,6 +69,34 @@ public:
     return 1;
   }
 
+  void reset() { std::fill(this->array.begin(), this->array.end(), false); }
+
+  void analyze(unordered_map<string, uint32_t> true_data) {
+    int false_pos = 0;
+    int total_pkt = true_data.size();
+    std::cout << "Total found " << this->tuples.size() << std::endl;
+    for (const auto &[s_tuple, count] : true_data) {
+      FIVE_TUPLE tup(s_tuple);
+      // std::cout << tup << std::endl;
+      if (auto search = this->tuples.find((string)tup);
+          search != this->tuples.end()) {
+        // Recorded correctly
+      } else {
+        false_pos++;
+      }
+    }
+    std::cout << "False Positives: " << false_pos << std::endl;
+    std::cout << "Total num_pkt " << total_pkt << std::endl;
+    int true_pos = total_pkt - false_pos;
+    double recall = (double)true_pos / (true_pos + false_pos);
+    double precision = 1; // IN BF can never result in false negatives
+    double f1_score = 2 * ((recall * precision) / (precision + recall));
+    char msg[1000];
+    sprintf(msg, "Recall: %.3f\tPrecision: %.3f\nF1-Score: %.3f", recall,
+            precision, f1_score);
+    std::cout << msg << std::endl;
+  }
+
   void print_sketch() {
     uint32_t count = 0;
     for (auto i : this->array) {
@@ -73,6 +113,29 @@ public:
     char c_ftuple[sizeof(FIVE_TUPLE)];
     memcpy(c_ftuple, &key, sizeof(FIVE_TUPLE));
     return hash[k].run(c_ftuple, 4) % this->length;
+  }
+
+  void store_data(int epoch) {
+    char filename[200];
+    sprintf(filename, "results/%s.dat", this->name);
+    if (epoch == 0) {
+      std::remove(filename);
+    }
+    std::cout << "Opening file " << filename << std::endl;
+    ofstream fin(filename, ios::out | ios::binary | std::ios_base::app);
+
+    if (!fin) {
+      std::cout << "Cannot open file " << filename << std::endl;
+      throw;
+    }
+    fin << epoch << ":";
+    // Print data to file
+    for (auto i : this->array) {
+      fin << i;
+    }
+    fin << std::endl;
+    fin.close();
+    return;
   }
 };
 

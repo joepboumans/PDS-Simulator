@@ -32,15 +32,14 @@ int main() {
 
   vector<PDS *> stages;
 
-  BloomFilter bfilter(1 * 1024 * 1024, 0, 4);
+  BloomFilter bfilter(1 * 512 * 1024, 0, 4);
   stages.push_back(&bfilter);
-  // stages.push_back(&fcmsketch);
-  BloomFilter bfilter2(1 * 1024 * 1024, 1, 4);
-  stages.push_back(&bfilter2);
-  BloomFilter bfilter3(1 * 1024 * 1024, 2, 4);
-  stages.push_back(&bfilter3);
-  FCM_Sketch *fcmsketch = new FCM_Sketch(4, 0);
-  stages.push_back(fcmsketch);
+  // BloomFilter bfilter2(1 * 1024 * 1024, 1, 4);
+  // stages.push_back(&bfilter2);
+  // BloomFilter bfilter3(1 * 1024 * 1024, 2, 4);
+  // stages.push_back(&bfilter3);
+  // FCM_Sketch *fcmsketch = new FCM_Sketch(4, 0);
+  // stages.push_back(fcmsketch);
 
   Simulator sim(stages, stages.size(), 1);
   for (const TRACE &trace : traces) {
@@ -78,30 +77,5 @@ int main() {
   //   memcpy(&tuple, c, sizeof(FIVE_TUPLE));
   //   print_five_tuple(tuple);
   // }
-  // int false_pos = 0;
-  // int total_pkt = true_data.size();
-  // std::cout << "Total found " << bfilter.tuples.size() << std::endl;
-  // for (const auto &[s_tuple, count] : true_data) {
-  //   FIVE_TUPLE tup(s_tuple);
-  //   // std::cout << tup << std::endl;
-  //   if (auto search = bfilter.tuples.find((string)tup);
-  //       search != bfilter.tuples.end()) {
-  //     // Recorded correctly
-  //   } else {
-  //     false_pos++;
-  //   }
-  // }
-  // bfilter.print_sketch();
-  // std::cout << "False Positives: " << false_pos << std::endl;
-  // std::cout << "Total num_pkt " << total_pkt << std::endl;
-  // int true_pos = total_pkt - false_pos;
-  // double recall = (double)true_pos / (true_pos + false_pos);
-  // double precision = 1; // IN BF can never result in false negatives
-  // double f1_score = 2 * ((recall * precision) / (precision + recall));
-  // char msg[1000];
-  // sprintf(msg, "Recall: %.3f\tPrecision: %.3f\nF1-Score: %.3f", recall,
-  //         precision, f1_score);
-  // std::cout << msg << std::endl;
-  //
   return 0;
 }

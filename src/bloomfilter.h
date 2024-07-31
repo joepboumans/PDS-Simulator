@@ -10,10 +10,12 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <exception>
 #include <fstream>
 #include <ios>
 #include <iostream>
+#include <memory>
 #include <set>
 #include <stdexcept>
 #include <sys/stat.h>
@@ -21,20 +23,25 @@
 #include <unordered_map>
 #include <vector>
 
+#define BUF_SZ 1024 * 1024
+
 class BloomFilter : public PDS {
 public:
   char filename_dat[400];
   char filename_csv[400];
   vector<bool> array;
   set<string> tuples;
+
   BOBHash32 *hash;
   uint32_t n_hash;
   uint32_t length;
+
   double avg_f1 = 0.0;
   double avg_recall = 0.0;
 
-  FILE *fdata;
-  FILE *fcsv;
+  std::ofstream fdata;
+  std::ofstream fcsv;
+  char buf[BUF_SZ];
 
   BloomFilter(uint32_t sz, uint32_t n, uint32_t k) {
     sprintf(this->filename_dat, "results/%s_%i.dat", typeid(this).name(), n);
@@ -46,8 +53,10 @@ public:
 
     std::cout << "Removed files, opening new files..." << std::endl;
     std::cout << this->filename_dat << std::endl;
-    this->fdata = fopen(this->filename_dat, "wb");
-    this->fcsv = fopen(this->filename_csv, "wb");
+
+    this->fdata.open(this->filename_dat, ios::out | ios_base::app);
+    this->fdata.rdbuf()->pubsetbuf(this->buf, BUF_SZ);
+    this->fcsv.open(this->filename_csv, std::ios::out);
     std::cout << "Opened files" << std::endl;
 
     for (size_t i = 0; i < sz; i++) {
@@ -63,8 +72,8 @@ public:
   }
   ~BloomFilter() {
     this->array.clear();
-    fclose(this->fdata);
-    fclose(this->fcsv);
+    this->fdata.close();
+    this->fcsv.close();
   }
 
   int insert(FIVE_TUPLE tuple) {
@@ -101,9 +110,7 @@ public:
     std::cout << "Total found " << this->tuples.size() << std::endl;
     for (const auto &[s_tuple, count] : true_data) {
       FIVE_TUPLE tup(s_tuple);
-      // std::cout << tup << std::endl;
-      if (auto search = this->tuples.find((string)tup);
-          search != this->tuples.end()) {
+      if (this->lookup(s_tuple)) {
         // Recorded correctly
       } else {
         false_pos++;
@@ -115,7 +122,7 @@ public:
     double recall = (double)true_pos / (true_pos + false_pos);
     double precision = 1; // IN BF can never result in false negatives
     double f1_score = 2 * ((recall * precision) / (precision + recall));
-    char msg[1000];
+    char msg[100];
     sprintf(msg, "Recall: %.3f\tPrecision: %.3f\nF1-Score: %.3f", recall,
             precision, f1_score);
     std::cout << msg << std::endl;
@@ -140,14 +147,14 @@ public:
   }
 
   void store_data(int epoch) {
-    if (!this->fdata) {
+    if (!this->fdata.is_open()) {
       std::cout << "Cannot open file " << this->filename_dat << std::endl;
       throw;
     }
     try {
       char msg[3];
       sprintf(msg, "%i:", epoch);
-      fwrite(msg, sizeof(msg), 1, this->fdata);
+      this->fdata.write(msg, sizeof(msg));
     } catch (exception e) {
       std::cout << "Failed writing to file" << std::endl;
       std::cout << e.what() << std::endl;
@@ -155,11 +162,16 @@ public:
     }
 
     // Print data to file
-    vector<char> carray(this->array.begin(), this->array.end());
-    fwrite(reinterpret_cast<const char *>(&carray), sizeof(carray), 1,
-           this->fdata);
+    char buf[this->length];
+    std::copy(this->array.begin(), this->array.end(), buf);
+    this->fdata.write(buf, sizeof(buf));
+    // this->fdata.write(reinterpret_cast<const char *>(&carray),
+    // sizeof(carray));
+    // for (auto i : carray) {
+    //   this->fdata.write(&i, sizeof(i));
+    // }
     char endl = '\n';
-    fwrite(&endl, sizeof(endl), 1, this->fdata);
+    this->fdata.write(&endl, sizeof(endl));
     return;
   }
 };

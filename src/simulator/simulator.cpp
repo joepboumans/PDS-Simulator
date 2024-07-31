@@ -13,20 +13,21 @@ int Simulator::run(const TRACE &trace, unsigned int duration) {
   // Split into epochs for simulations
   for (size_t i = 0; i < num_pkts; i += (packets_per_epoch)) {
     int epoch = (int)i / packets_per_epoch;
-    std::cout << "\rEpoch: " << epoch << std::endl;
+    std::cout << "\rEpoch: " << epoch << std::flush;
     if (i + packets_per_epoch < num_pkts) {
       this->insert(trace, i, i + packets_per_epoch);
     } else {
-      this->insert(trace, i, num_pkts - i);
+      this->insert(trace, i, num_pkts);
     }
     // Store data, analyze data and reset the PDS
     for (auto p : this->pds) {
       p->store_data(epoch);
-      p->analyze(this->true_data);
+      p->analyze(this->true_data, epoch);
       p->reset();
     }
     this->true_data.clear();
   }
+  std::cout << std::endl;
 
   return 0;
 }

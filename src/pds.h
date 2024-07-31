@@ -22,7 +22,8 @@ public:
     std::cout << "Not implemented!" << std::endl;
     return;
   }
-  virtual void analyze(std::unordered_map<string, uint32_t> true_data) {
+  virtual void analyze(std::unordered_map<string, uint32_t> true_data,
+                       int epoch) {
     std::cout << "Not implemented!" << std::endl;
     return;
   }

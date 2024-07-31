@@ -41,7 +41,8 @@ public:
 
   std::ofstream fdata;
   std::ofstream fcsv;
-  char buf[BUF_SZ];
+  char data_buf[BUF_SZ];
+  char csv_buf[BUF_SZ];
 
   BloomFilter(uint32_t sz, uint32_t n, uint32_t k) {
     sprintf(this->filename_dat, "results/%s_%i.dat", typeid(this).name(), n);
@@ -55,9 +56,12 @@ public:
     std::cout << this->filename_dat << std::endl;
 
     this->fdata.open(this->filename_dat, ios::out | ios_base::app);
-    this->fdata.rdbuf()->pubsetbuf(this->buf, BUF_SZ);
+    this->fdata.rdbuf()->pubsetbuf(this->data_buf, BUF_SZ);
     this->fcsv.open(this->filename_csv, std::ios::out);
+    this->fcsv.rdbuf()->pubsetbuf(this->csv_buf, BUF_SZ);
     std::cout << "Opened files" << std::endl;
+    char msg[100] = "epoch,total,false_pos,recall,precision,f1";
+    this->fcsv << msg << std::endl;
 
     for (size_t i = 0; i < sz; i++) {
       array.push_back(false);
@@ -107,28 +111,31 @@ public:
     this->tuples.clear();
   }
 
-  void analyze(unordered_map<string, uint32_t> true_data) {
+  void analyze(unordered_map<string, uint32_t> true_data, int epoch) {
     int false_pos = 0;
     int total_pkt = true_data.size();
-    std::cout << "Total found " << this->tuples.size() << std::endl;
     for (const auto &[s_tuple, count] : true_data) {
       FIVE_TUPLE tup(s_tuple);
-      if (this->lookup(s_tuple)) {
+      if (auto search = this->tuples.find((string)tup);
+          search != this->tuples.end()) {
         // Recorded correctly
       } else {
         false_pos++;
       }
     }
-    std::cout << "False Positives: " << false_pos << std::endl;
-    std::cout << "Total num_pkt " << total_pkt << std::endl;
+    // std::cout << "Total found " << this->tuples.size() << std::endl;
+    // std::cout << "False Positives: " << false_pos << std::endl;
+    // std::cout << "Total num_pkt " << total_pkt << std::endl;
     int true_pos = total_pkt - false_pos;
     double recall = (double)true_pos / (true_pos + false_pos);
     double precision = 1; // IN BF can never result in false negatives
     double f1_score = 2 * ((recall * precision) / (precision + recall));
     char msg[100];
-    sprintf(msg, "Recall: %.3f\tPrecision: %.3f\nF1-Score: %.3f", recall,
-            precision, f1_score);
-    std::cout << msg << std::endl;
+    // sprintf(msg, "Recall: %.3f\tPrecision: %.3f\nF1-Score: %.3f", recall,
+    // std::cout << msg << std::endl;
+    sprintf(msg, "%i,%i,%zu,%i,%.3f,%.3f,%.3f", epoch, total_pkt,
+            this->tuples.size(), false_pos, recall, precision, f1_score);
+    this->fcsv << msg << std::endl;
   }
 
   void print_sketch() {
@@ -168,11 +175,6 @@ public:
     char buf[this->length];
     std::copy(this->array.begin(), this->array.end(), buf);
     this->fdata.write(buf, sizeof(buf));
-    // this->fdata.write(reinterpret_cast<const char *>(&carray),
-    // sizeof(carray));
-    // for (auto i : carray) {
-    //   this->fdata.write(&i, sizeof(i));
-    // }
     char endl = '\n';
     this->fdata.write(&endl, sizeof(endl));
     return;

@@ -10,26 +10,46 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <exception>
 #include <fstream>
 #include <ios>
 #include <iostream>
 #include <set>
 #include <stdexcept>
 #include <sys/stat.h>
+#include <unistd.h>
 #include <unordered_map>
 #include <vector>
 
 class BloomFilter : public PDS {
 public:
-  char name[200];
+  char filename_dat[400];
+  char filename_csv[400];
   vector<bool> array;
   set<string> tuples;
   BOBHash32 *hash;
   uint32_t n_hash;
   uint32_t length;
+  double avg_f1 = 0.0;
+  double avg_recall = 0.0;
+
+  std::ofstream fdata;
+  std::ofstream fcsv;
+
   BloomFilter(uint32_t sz, uint32_t n, uint32_t k) {
-    sprintf(this->name, "%s_%i", typeid(this).name(), n);
-    std::cout << this->name << std::endl;
+    sprintf(this->filename_dat, "results/%s_%i.dat", typeid(this).name(), n);
+    sprintf(this->filename_csv, "results/%s_%i.csv", typeid(this).name(), n);
+    // Remove previous data file
+    std::remove(filename_dat);
+    std::remove(filename_csv);
+    // Open files
+
+    std::cout << "Removed files, opening new files..." << std::endl;
+    std::cout << this->filename_dat << std::endl;
+    this->fdata.open(this->filename_dat, ios::out | ios_base::app);
+    this->fcsv.open(this->filename_csv, std::ios::out);
+    std::cout << "Opened files" << std::endl;
+
     for (size_t i = 0; i < sz; i++) {
       array.push_back(false);
     }
@@ -41,7 +61,11 @@ public:
     this->length = sz;
     this->n_hash = k;
   }
-  ~BloomFilter() { this->array.clear(); }
+  ~BloomFilter() {
+    this->array.clear();
+    this->fdata.close();
+    this->fcsv.close();
+  }
 
   int insert(FIVE_TUPLE tuple) {
     bool tuple_inserted = false;
@@ -116,25 +140,27 @@ public:
   }
 
   void store_data(int epoch) {
-    char filename[200];
-    sprintf(filename, "results/%s.dat", this->name);
-    if (epoch == 0) {
-      std::remove(filename);
-    }
-    std::cout << "Opening file " << filename << std::endl;
-    ofstream fin(filename, ios::out | ios::binary | std::ios_base::app);
-
-    if (!fin) {
-      std::cout << "Cannot open file " << filename << std::endl;
+    if (!this->fdata.is_open()) {
+      std::cout << "Cannot open file " << this->filename_dat << std::endl;
       throw;
     }
-    fin << epoch << ":";
+    try {
+      char msg[3];
+      sprintf(msg, "%i:", epoch);
+      this->fdata.write(msg, sizeof(msg));
+    } catch (exception e) {
+      std::cout << "Failed writing to file" << std::endl;
+      std::cout << e.what() << std::endl;
+      throw e;
+    }
+
     // Print data to file
     for (auto i : this->array) {
-      fin << i;
+      char x = i;
+      this->fdata.write(&x, sizeof(i));
     }
-    fin << std::endl;
-    fin.close();
+    char endl = '\n';
+    this->fdata.write(&endl, sizeof(endl));
     return;
   }
 };

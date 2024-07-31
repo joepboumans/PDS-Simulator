@@ -33,8 +33,8 @@ public:
   double avg_f1 = 0.0;
   double avg_recall = 0.0;
 
-  std::ofstream fdata;
-  std::ofstream fcsv;
+  FILE *fdata;
+  FILE *fcsv;
 
   BloomFilter(uint32_t sz, uint32_t n, uint32_t k) {
     sprintf(this->filename_dat, "results/%s_%i.dat", typeid(this).name(), n);
@@ -46,8 +46,8 @@ public:
 
     std::cout << "Removed files, opening new files..." << std::endl;
     std::cout << this->filename_dat << std::endl;
-    this->fdata.open(this->filename_dat, ios::out | ios_base::app);
-    this->fcsv.open(this->filename_csv, std::ios::out);
+    this->fdata = fopen(this->filename_dat, "wb");
+    this->fcsv = fopen(this->filename_csv, "wb");
     std::cout << "Opened files" << std::endl;
 
     for (size_t i = 0; i < sz; i++) {
@@ -63,8 +63,8 @@ public:
   }
   ~BloomFilter() {
     this->array.clear();
-    this->fdata.close();
-    this->fcsv.close();
+    fclose(this->fdata);
+    fclose(this->fcsv);
   }
 
   int insert(FIVE_TUPLE tuple) {
@@ -140,14 +140,14 @@ public:
   }
 
   void store_data(int epoch) {
-    if (!this->fdata.is_open()) {
+    if (!this->fdata) {
       std::cout << "Cannot open file " << this->filename_dat << std::endl;
       throw;
     }
     try {
       char msg[3];
       sprintf(msg, "%i:", epoch);
-      this->fdata.write(msg, sizeof(msg));
+      fwrite(msg, sizeof(msg), 1, this->fdata);
     } catch (exception e) {
       std::cout << "Failed writing to file" << std::endl;
       std::cout << e.what() << std::endl;
@@ -155,12 +155,11 @@ public:
     }
 
     // Print data to file
-    for (auto i : this->array) {
-      char x = i;
-      this->fdata.write(&x, sizeof(i));
-    }
+    vector<char> carray(this->array.begin(), this->array.end());
+    fwrite(reinterpret_cast<const char *>(&carray), sizeof(carray), 1,
+           this->fdata);
     char endl = '\n';
-    this->fdata.write(&endl, sizeof(endl));
+    fwrite(&endl, sizeof(endl), 1, this->fdata);
     return;
   }
 };

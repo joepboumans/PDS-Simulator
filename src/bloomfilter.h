@@ -102,7 +102,10 @@ public:
     return 1;
   }
 
-  void reset() { std::fill(this->array.begin(), this->array.end(), false); }
+  void reset() {
+    std::fill(this->array.begin(), this->array.end(), false);
+    this->tuples.clear();
+  }
 
   void analyze(unordered_map<string, uint32_t> true_data) {
     int false_pos = 0;

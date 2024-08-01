@@ -29,12 +29,15 @@ class BloomFilter : public PDS {
 public:
   char filename_dat[400];
   char filename_csv[400];
-  vector<bool> array;
-  set<string> tuples;
+  string name = "BloomFilter";
+  string trace_name;
 
   BOBHash32 *hash;
   uint32_t n_hash;
   uint32_t length;
+  uint32_t n;
+  vector<bool> array;
+  set<string> tuples;
 
   double avg_f1 = 0.0;
   double avg_recall = 0.0;
@@ -44,11 +47,33 @@ public:
   char data_buf[BUF_SZ];
   char csv_buf[BUF_SZ];
 
-  BloomFilter(uint32_t sz, uint32_t n, uint32_t k, int trace) {
-    sprintf(this->filename_dat, "results/%i_%s_%i.dat", trace,
-            typeid(this).name(), n);
-    sprintf(this->filename_csv, "results/%i_%s_%i.csv", trace,
-            typeid(this).name(), n);
+  BloomFilter(uint32_t sz, uint32_t n, uint32_t k, string trace) {
+    for (size_t i = 0; i < sz; i++) {
+      array.push_back(false);
+    }
+
+    this->hash = new BOBHash32[k];
+    for (size_t i = 0; i < k; i++) {
+      this->hash[i].initialize(n * k + i);
+    }
+    this->length = sz;
+    this->n_hash = k;
+    this->trace_name = trace;
+    this->n = n;
+  }
+  ~BloomFilter() {
+    this->array.clear();
+    this->fdata.close();
+    this->fcsv.close();
+  }
+
+  void setupLogging() {
+    sprintf(this->filename_dat, "results/%s_%s_%i_%i.dat",
+            this->trace_name.c_str(), this->name.c_str(), this->n,
+            this->length);
+    sprintf(this->filename_csv, "results/%s_%s_%i_%i.csv",
+            this->trace_name.c_str(), this->name.c_str(), this->n,
+            this->length);
     // Remove previous data file
     std::remove(filename_dat);
     std::remove(filename_csv);
@@ -65,43 +90,6 @@ public:
     char msg[100] = "epoch,total data,total pds,false pos,false "
                     "neg,recall,precision,f1";
     this->fcsv << msg << std::endl;
-
-    for (size_t i = 0; i < sz; i++) {
-      array.push_back(false);
-    }
-
-    this->hash = new BOBHash32[k];
-    for (size_t i = 0; i < k; i++) {
-      this->hash[i].initialize(n * k + i);
-    }
-    this->length = sz;
-    this->n_hash = k;
-  }
-  ~BloomFilter() {
-    this->array.clear();
-    this->fdata.close();
-    this->fcsv.close();
-  }
-
-  int insert(FIVE_TUPLE tuple) {
-    // Record true data
-    this->true_data[(string)tuple]++;
-
-    // Perform hashing
-    bool tuple_inserted = false;
-    for (size_t i = 0; i < this->n_hash; i++) {
-      int hash_idx = this->hashing(tuple, i);
-      if (!array[hash_idx]) {
-        array[hash_idx] = true;
-        tuple_inserted = true;
-      }
-    }
-
-    // Record unqiue tuples
-    if (tuple_inserted) {
-      tuples.insert((string)tuple);
-    }
-    return 0;
   }
 
   int lookup(FIVE_TUPLE tuple) {
@@ -159,12 +147,6 @@ public:
     std::cout << "Total filled indexes: " << count << std::endl;
   }
 
-  int hashing(FIVE_TUPLE key, uint32_t k) {
-    char c_ftuple[sizeof(FIVE_TUPLE)];
-    memcpy(c_ftuple, &key, sizeof(FIVE_TUPLE));
-    return hash[k].run(c_ftuple, 4) % this->length;
-  }
-
   void store_data(int epoch) {
     if (!this->fdata.is_open()) {
       std::cout << "Cannot open file " << this->filename_dat << std::endl;
@@ -183,17 +165,53 @@ public:
     this->fdata.write(&endl, sizeof(endl));
     return;
   }
+
+  int insert(FIVE_TUPLE tuple) {
+    // Record true data
+    this->true_data[(string)tuple]++;
+
+    // Perform hashing
+    bool tuple_inserted = false;
+    for (size_t i = 0; i < this->n_hash; i++) {
+      int hash_idx = this->hashing(tuple, i);
+      if (!array[hash_idx]) {
+        array[hash_idx] = true;
+        tuple_inserted = true;
+      }
+    }
+
+    // Record unqiue tuples
+    if (tuple_inserted) {
+      tuples.insert((string)tuple);
+      return 0;
+    }
+    return 1;
+  }
+
+  int hashing(FIVE_TUPLE key, uint32_t k) {
+    char c_ftuple[sizeof(FIVE_TUPLE)];
+    memcpy(c_ftuple, &key, sizeof(FIVE_TUPLE));
+    return hash[k].run(c_ftuple, 4) % this->length;
+  }
 };
 
 class LazyBloomFilter : public BloomFilter {
 public:
   using BloomFilter::BloomFilter;
-  // LazyBloomfilter(uint32_t sz, uint32_t n, uint32_t k)
-  //     : BloomFilter(sz, n, k) {}
+
+  void setName() { this->name = "LazyBloomFilter"; }
+
+  // LazyBloomFilter(uint32_t sz, uint32_t n, uint32_t k, string trace)
+  //     : BloomFilter(sz, n, k, trace) {
+  //   this->name = "LazyBloomFilter";
+  // }
 
   int insert(FIVE_TUPLE tuple) {
+    this->true_data[(string)tuple]++;
+
     for (size_t i = 0; i < this->n_hash; i++) {
       int hash_idx = this->hashing(tuple, i);
+      // Only update this index and store new tuple
       if (!array[hash_idx]) {
         array[hash_idx] = true;
         tuples.insert((string)tuple);

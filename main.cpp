@@ -9,6 +9,7 @@
 #include <glob.h>
 #include <iostream>
 #include <iterator>
+#include <unordered_map>
 #include <vector>
 
 int main() {
@@ -24,27 +25,52 @@ int main() {
 
   // Load in traces
   TRACE traces[std::size(filenames)];
+  unordered_map<string, TRACE> data_traces;
   std::size_t i = 0;
   for (auto f : filenames) {
     std::cout << f << std::endl;
-    data_parser.get_traces(f.data(), traces[i++]);
+    data_parser.get_traces(f.data(), traces[i]);
+    string dir = "data/";
+    string dat = ".dat";
+    string::size_type k = f.find(dir);
+    if (k != string::npos) {
+      f.erase(k, dir.length());
+    }
+    string::size_type j = f.find(dat);
+    if (j != string::npos) {
+      f.erase(j, dat.length());
+    }
+    data_traces[f] = traces[i++];
   }
+
+  std::cout << "------" << std::endl;
+  std::cout << "Finished parsing data, starting simulations..." << std::endl;
+  std::cout << "------" << std::endl;
   // FCM_Sketch *fcmsketch = new FCM_Sketch(4, 0);
   // stages.push_back(fcmsketch);
 
   int n_trace = 0;
-  for (const TRACE &trace : traces) {
+  for (const auto &[name_set, trace] : data_traces) {
     vector<PDS *> stages;
-    BloomFilter bfilter(1 * 512 * 1024, 0, 4, n_trace);
+
+    LazyBloomFilter bfilter(1 * 256 * 1024, 0, 4, name_set);
+    bfilter.setName();
+    bfilter.setupLogging();
     stages.push_back(&bfilter);
-    BloomFilter bfilter2(1 * 1024 * 1024, 1, 4, n_trace);
+
+    BloomFilter bfilter2(1 * 256 * 1024, 1, 4, name_set);
+    bfilter2.setupLogging();
+
     stages.push_back(&bfilter2);
     Simulator sim(stages, stages.size(), 1);
     // Default length of CAIDA traces is 60s
     sim.run(trace, 60);
     n_trace++;
   }
+
+  std::cout << "------" << std::endl;
   std::cout << "Finished simulations!" << std::endl;
+  std::cout << "------" << std::endl;
 
   // Print results
   // fcmsketch.print_sketch();

@@ -5,6 +5,8 @@ import subprocess
 for file in glob.glob("*.pcap"):
     print("Parsing %s into 5-tuple..."% file)
     out =subprocess.run(["tshark", "-r", file, "-T", "fields", "-e", "ip.src","-e", "ip.dst","-e", "tcp.srcport","-e", "tcp.dstport","-e", "ip.proto"], capture_output=True, text=True)
+    file.replace(".dirA.", "")
+    file.replace(".UTC.anon.", "")
     with open(file.replace("pcap","dat"), 'wb') as fout:
         lines = out.stdout.split('\n')
         for l in lines:

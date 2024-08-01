@@ -8,6 +8,7 @@
 class PDS {
 public:
   std::unordered_map<string, uint32_t> true_data;
+  string name;
   virtual ~PDS() = default;
   virtual int insert(FIVE_TUPLE tuple) {
     std::cout << "Not implemented!" << std::endl;
@@ -30,7 +31,11 @@ public:
     return;
   }
   virtual void store_data(int epoch) {
-    std::cout << "Not implemented!" << std::endl;
+    std::cout << "not implemented!" << std::endl;
+    return;
+  }
+  virtual void setName() {
+    std::cout << "not implemented!" << std::endl;
     return;
   }
   virtual void print_sketch() { std::cout << "Not implemented!" << std::endl; }

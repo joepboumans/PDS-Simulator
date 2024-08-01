@@ -2,9 +2,12 @@
 #define _PDS_H
 
 #include "common.h"
+#include <cstdint>
+#include <unordered_map>
 
 class PDS {
 public:
+  std::unordered_map<string, uint32_t> true_data;
   virtual ~PDS() = default;
   virtual int insert(FIVE_TUPLE tuple) {
     std::cout << "Not implemented!" << std::endl;
@@ -22,8 +25,7 @@ public:
     std::cout << "Not implemented!" << std::endl;
     return;
   }
-  virtual void analyze(std::unordered_map<string, uint32_t> true_data,
-                       int epoch) {
+  virtual void analyze(int epoch) {
     std::cout << "Not implemented!" << std::endl;
     return;
   }

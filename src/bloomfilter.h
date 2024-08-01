@@ -44,9 +44,11 @@ public:
   char data_buf[BUF_SZ];
   char csv_buf[BUF_SZ];
 
-  BloomFilter(uint32_t sz, uint32_t n, uint32_t k) {
-    sprintf(this->filename_dat, "results/%s_%i.dat", typeid(this).name(), n);
-    sprintf(this->filename_csv, "results/%s_%i.csv", typeid(this).name(), n);
+  BloomFilter(uint32_t sz, uint32_t n, uint32_t k, int trace) {
+    sprintf(this->filename_dat, "results/%i_%s_%i.dat", trace,
+            typeid(this).name(), n);
+    sprintf(this->filename_csv, "results/%i_%s_%i.csv", trace,
+            typeid(this).name(), n);
     // Remove previous data file
     std::remove(filename_dat);
     std::remove(filename_csv);
@@ -56,11 +58,12 @@ public:
     std::cout << this->filename_dat << std::endl;
 
     this->fdata.open(this->filename_dat, ios::out | ios_base::app);
-    this->fdata.rdbuf()->pubsetbuf(this->data_buf, BUF_SZ);
+    // this->fdata.rdbuf()->pubsetbuf(this->data_buf, BUF_SZ);
     this->fcsv.open(this->filename_csv, std::ios::out);
-    this->fcsv.rdbuf()->pubsetbuf(this->csv_buf, BUF_SZ);
+    // this->fcsv.rdbuf()->pubsetbuf(this->csv_buf, BUF_SZ);
     std::cout << "Opened files" << std::endl;
-    char msg[100] = "epoch,total,false_pos,recall,precision,f1";
+    char msg[100] = "epoch,total data,total pds,false pos,false "
+                    "neg,recall,precision,f1";
     this->fcsv << msg << std::endl;
 
     for (size_t i = 0; i < sz; i++) {
@@ -81,6 +84,10 @@ public:
   }
 
   int insert(FIVE_TUPLE tuple) {
+    // Record true data
+    this->true_data[(string)tuple]++;
+
+    // Perform hashing
     bool tuple_inserted = false;
     for (size_t i = 0; i < this->n_hash; i++) {
       int hash_idx = this->hashing(tuple, i);
@@ -90,6 +97,7 @@ public:
       }
     }
 
+    // Record unqiue tuples
     if (tuple_inserted) {
       tuples.insert((string)tuple);
     }
@@ -109,12 +117,13 @@ public:
   void reset() {
     std::fill(this->array.begin(), this->array.end(), false);
     this->tuples.clear();
+    this->true_data.clear();
   }
 
-  void analyze(unordered_map<string, uint32_t> true_data, int epoch) {
+  void analyze(int epoch) {
     int false_pos = 0;
-    int total_pkt = true_data.size();
-    for (const auto &[s_tuple, count] : true_data) {
+    int total_pkt = this->true_data.size();
+    for (const auto &[s_tuple, count] : this->true_data) {
       FIVE_TUPLE tup(s_tuple);
       if (auto search = this->tuples.find((string)tup);
           search != this->tuples.end()) {
@@ -131,10 +140,10 @@ public:
     double precision = 1; // IN BF can never result in false negatives
     double f1_score = 2 * ((recall * precision) / (precision + recall));
     char msg[100];
-    // sprintf(msg, "Recall: %.3f\tPrecision: %.3f\nF1-Score: %.3f", recall,
+    // sprintf(msg, "Recall: %.3f, true_pos: %i", recall, true_pos);
     // std::cout << msg << std::endl;
-    sprintf(msg, "%i,%i,%zu,%i,%.3f,%.3f,%.3f", epoch, total_pkt,
-            this->tuples.size(), false_pos, recall, precision, f1_score);
+    sprintf(msg, "%i,%i,%zu,%i,%i,%.3f,%.3f,%.3f", epoch, total_pkt,
+            this->tuples.size(), false_pos, 0, recall, precision, f1_score);
     this->fcsv << msg << std::endl;
   }
 
@@ -161,15 +170,10 @@ public:
       std::cout << "Cannot open file " << this->filename_dat << std::endl;
       throw;
     }
-    try {
-      char msg[3];
-      sprintf(msg, "%i:", epoch);
-      this->fdata.write(msg, sizeof(msg));
-    } catch (exception e) {
-      std::cout << "Failed writing to file" << std::endl;
-      std::cout << e.what() << std::endl;
-      throw e;
-    }
+    // Write epoch:
+    char msg[3];
+    sprintf(msg, "%i:", epoch);
+    this->fdata.write(msg, sizeof(msg));
 
     // Print data to file
     char buf[this->length];
@@ -181,7 +185,7 @@ public:
   }
 };
 
-class LazyBloomfilter : public BloomFilter {
+class LazyBloomFilter : public BloomFilter {
 public:
   using BloomFilter::BloomFilter;
   // LazyBloomfilter(uint32_t sz, uint32_t n, uint32_t k)

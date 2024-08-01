@@ -22,10 +22,9 @@ int Simulator::run(const TRACE &trace, unsigned int duration) {
     // Store data, analyze data and reset the PDS
     for (auto p : this->pds) {
       p->store_data(epoch);
-      p->analyze(this->true_data, epoch);
+      p->analyze(epoch);
       p->reset();
     }
-    this->true_data.clear();
   }
   std::cout << std::endl;
 
@@ -35,7 +34,6 @@ int Simulator::run(const TRACE &trace, unsigned int duration) {
 int Simulator::insert(const TRACE &trace, int start, int end) {
   for (size_t i = start; i < end; i++) {
     FIVE_TUPLE tuple = trace.at(i);
-    this->true_data[(string)tuple]++;
     for (auto p : this->pds) {
       int res = p->insert(tuple);
       // Do not continue to the next PDS if return anything other than 0

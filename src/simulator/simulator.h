@@ -3,6 +3,7 @@
 
 #include "../common.h"
 #include "../pds.h"
+#include <cstdint>
 #include <unordered_map>
 
 class Simulator {
@@ -11,6 +12,10 @@ public:
     this->n_pds = n_pds;
     this->pds = pds;
     this->epoch = epoch;
+    for (size_t i = 0; i < n_pds; i++) {
+      std::unordered_map<string, uint32_t> true_data;
+      this->true_data_sets.push_back(true_data);
+    }
   }
   Simulator(Simulator &&) = default;
   Simulator(const Simulator &) = default;
@@ -22,7 +27,7 @@ public:
   //   }
   // }
 
-  std::unordered_map<string, uint32_t> true_data;
+  vector<std::unordered_map<string, uint32_t>> true_data_sets;
 
   int run(const TRACE &trace, unsigned int duration);
 

@@ -30,22 +30,22 @@ int main() {
     data_parser.get_traces(f.data(), traces[i++]);
   }
 
-  vector<PDS *> stages;
-
-  BloomFilter bfilter(1 * 512 * 1024, 0, 4);
-  stages.push_back(&bfilter);
-  // BloomFilter bfilter2(1 * 1024 * 1024, 1, 4);
-  // stages.push_back(&bfilter2);
   // BloomFilter bfilter3(1 * 1024 * 1024, 2, 4);
   // stages.push_back(&bfilter3);
   // FCM_Sketch *fcmsketch = new FCM_Sketch(4, 0);
   // stages.push_back(fcmsketch);
 
-  Simulator sim(stages, stages.size(), 1);
+  int n_trace = 0;
   for (const TRACE &trace : traces) {
+    vector<PDS *> stages;
+    BloomFilter bfilter(1 * 512 * 1024, 0, 4, n_trace);
+    stages.push_back(&bfilter);
+    BloomFilter bfilter2(1 * 1024 * 1024, 1, 4, n_trace);
+    stages.push_back(&bfilter2);
+    Simulator sim(stages, stages.size(), 1);
     // Default length of CAIDA traces is 60s
     sim.run(trace, 60);
-    break;
+    n_trace++;
   }
   std::cout << "Finished simulations!" << std::endl;
 

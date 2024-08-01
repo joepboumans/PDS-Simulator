@@ -58,9 +58,9 @@ public:
     std::cout << this->filename_dat << std::endl;
 
     this->fdata.open(this->filename_dat, ios::out | ios_base::app);
-    // this->fdata.rdbuf()->pubsetbuf(this->data_buf, BUF_SZ);
+    this->fdata.rdbuf()->pubsetbuf(this->data_buf, BUF_SZ);
     this->fcsv.open(this->filename_csv, std::ios::out);
-    // this->fcsv.rdbuf()->pubsetbuf(this->csv_buf, BUF_SZ);
+    this->fcsv.rdbuf()->pubsetbuf(this->csv_buf, BUF_SZ);
     std::cout << "Opened files" << std::endl;
     char msg[100] = "epoch,total data,total pds,false pos,false "
                     "neg,recall,precision,f1";

@@ -21,11 +21,6 @@ public:
   Simulator(const Simulator &) = default;
   Simulator &operator=(Simulator &&) = default;
   Simulator &operator=(const Simulator &) = default;
-  // ~Simulator() {
-  //   for (auto p : pds) {
-  //     delete p;
-  //   }
-  // }
 
   vector<std::unordered_map<string, uint32_t>> true_data_sets;
 

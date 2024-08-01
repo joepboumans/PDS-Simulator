@@ -29,9 +29,6 @@ int main() {
     std::cout << f << std::endl;
     data_parser.get_traces(f.data(), traces[i++]);
   }
-
-  // BloomFilter bfilter3(1 * 1024 * 1024, 2, 4);
-  // stages.push_back(&bfilter3);
   // FCM_Sketch *fcmsketch = new FCM_Sketch(4, 0);
   // stages.push_back(fcmsketch);
 
@@ -49,26 +46,6 @@ int main() {
   }
   std::cout << "Finished simulations!" << std::endl;
 
-  // unordered_map<string, uint32_t> true_data;
-  // // Loop over traces
-  // for (auto trace : traces) {
-  //   int num_pkt = (int)trace.size() / 60;
-  //   std::cout << "Trace loading with size: " << num_pkt << std::endl;
-  //   for (int i = 0; i < num_pkt; i++) {
-  //     // Record true data
-  //     FIVE_TUPLE tuple = trace.at(i);
-  //     string s_ftuple = (string)tuple;
-  //     true_data[s_ftuple]++;
-  //     // Use Sketch insert
-  //     // fcmsketch.insert(trace.at(i));
-  //     bfilter.insert(trace.at(i));
-  //     // if (!bfilter.lookup(trace.at(i))) {
-  //     //   std::cout << "ERROR IN INSERTION!" << std::endl;
-  //     // }
-  //   }
-  //   break;
-  // }
-  // std::cout << "Finished insertions, printing results: " << std::endl;
   // Print results
   // fcmsketch.print_sketch();
   // for (const auto &n : true_data) {

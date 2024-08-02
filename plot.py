@@ -3,12 +3,14 @@ import pandas as pd
 import glob
 import re
 
+
+plot_dir = "plots/"
+
 def plot_pds_stats(df, title, n, sz, dataset):
     fig, axs = plt.subplots(2, 1, figsize=(9,9))
     plt.subplots_adjust(wspace=0.5, hspace=0.5)
     sz = int(sz)/1024
     fig.suptitle(f"{title} {n} {sz}KB\n {dataset}")
-    # fig.suptitle(dataset, fontsize=10)
 
     axs[0].set_title("Performance metrics", fontsize=10)
     df.plot(x = 'epoch', y = ["recall", "precision", "f1"], ax=axs[0])

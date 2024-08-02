@@ -32,5 +32,10 @@
 *.app
 
 # Data set
-data/*.dat
-data/*.pcap
+*.dat
+*.pcap
+*.csv
+*.dat
+
+# Figures
+*.png

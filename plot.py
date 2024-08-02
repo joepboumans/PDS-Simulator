@@ -7,18 +7,28 @@ import re
 plot_dir = "plots/"
 
 def plot_pds_stats(df, title, n, sz, dataset):
+    # Setup subplots
     fig, axs = plt.subplots(2, 1, figsize=(9,9))
     plt.subplots_adjust(wspace=0.5, hspace=0.5)
     sz = int(sz)/1024
     fig.suptitle(f"{title} {n} {sz}KB\n {dataset}")
 
+    # Plot data
     axs[0].set_title("Performance metrics", fontsize=10)
     df.plot(x = 'epoch', y = ["recall", "precision", "f1"], ax=axs[0])
     axs[1].set_title("Recordings", fontsize=10)
     df.plot(x = 'epoch', y = ["total data", "total pds", "false pos", "false neg"], ax=axs[1])
 
+
+    # Store figures 
+    plt.savefig(f"{plot_dir}{dataset}_{title}_{n}_{sz}.png", transparent=True)
+
 if __name__ == "__main__":
+    # Get results
     csv_results = glob.glob("results/*.csv")
+
+    total_df = {}
+    # Parse results
     reg_string = r"\/(?P<data_name>.+)_(?P<name>\w+)_(?P<n>\d+)_(?P<sz>\d+)"
     for result in csv_results:
         match = re.search(reg_string, result)
@@ -27,17 +37,7 @@ if __name__ == "__main__":
             continue;
         if match:
             data_info = match.groupdict()
-            df = pd.read_csv(result)
+            df = pd.read_csv(result) # epoch,total data,total pds,false pos,false neg,recall,precision,f1
             plot_pds_stats(df, data_info['name'], data_info['n'], data_info['sz'], data_info['data_name'])
-
-        plt.show()
-        exit()
-# epoch,total data,total pds,false pos,false neg,recall,precision,f1
-    df = pd.read_csv("results/data1_BloomFilter_1_262144.csv")
-# df.plot(x = 'epoch', y = 'f1')
-    df.plot(x = 'epoch', y = ["total data", "total pds", "false pos", "false neg"])
-    df.plot.box(column = ["recall", "f1"])
-# fig, ax = plt.subplots()
-# ax.plot([1,2,3,4], [1,4,2,3])
-
+            total_df[data_info] = df
 

@@ -25,7 +25,7 @@ def plot_pds_stats(df, title, n, sz, dataset):
 
 
 def parse_total_results(dfs, columns):
-    scores = []
+    scores = {}
     for column in columns:
         score = pd.DataFrame()
         for name, df in dfs.items():
@@ -44,7 +44,7 @@ def parse_total_results(dfs, columns):
         for c in score.columns:
             clean_scores[c] = score[c].dropna().reset_index(drop=True)
         score = clean_scores
-        scores.append(score)
+        scores[column]= score
 
     return scores
 

@@ -23,11 +23,37 @@ def plot_pds_stats(df, title, n, sz, dataset):
     # Store figures 
     plt.savefig(f"{plot_dir}{dataset}_{title}_{n}_{sz}.png", transparent=True)
 
+
+def parse_total_results(dfs, columns):
+    scores = []
+    for column in columns:
+        score = pd.DataFrame()
+        for name, df in dfs.items():
+            reg_name = r"(?P<name>\w+_\d+_\d+)"
+            match = re.search(reg_name, name)
+            if not match:
+                print(f"[ERROR] Cannot parse name, skipping data {name}")
+                continue;
+            name = match.group("name")
+
+            idf = pd.DataFrame(df[column])
+            idf = pd.DataFrame.rename(idf, columns={column:name})
+            score = pd.concat([score.reset_index(drop=True), idf.reset_index(drop=True)], ignore_index=True, sort=False)
+
+        clean_scores = pd.DataFrame(columns=score.columns)
+        for c in score.columns:
+            clean_scores[c] = score[c].dropna().reset_index(drop=True)
+        score = clean_scores
+        scores.append(score)
+
+    return scores
+
 if __name__ == "__main__":
     # Get results
     csv_results = glob.glob("results/*.csv")
 
     total_df = {}
+    columns = []
     # Parse results
     reg_string = r"\/(?P<data_name>.+)_(?P<name>\w+)_(?P<n>\d+)_(?P<sz>\d+)"
     for result in csv_results:
@@ -39,5 +65,9 @@ if __name__ == "__main__":
             data_info = match.groupdict()
             df = pd.read_csv(result) # epoch,total data,total pds,false pos,false neg,recall,precision,f1
             plot_pds_stats(df, data_info['name'], data_info['n'], data_info['sz'], data_info['data_name'])
-            total_df[data_info] = df
+            total_df[f"{data_info['name']}_{data_info['n']}_{data_info['sz']}_{data_info['data_name']}"] = df
+            columns = df.columns
 
+
+    scores = parse_total_results(total_df, columns)
+    print(scores)

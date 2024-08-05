@@ -4,6 +4,7 @@
 #include "common.h"
 #include <cstdint>
 #include <fstream>
+#include <set>
 #include <unordered_map>
 
 #define BUF_SZ 1024 * 1024

@@ -30,6 +30,10 @@ public:
     this->trace_name = trace;
     this->mem_sz = row * columns * sizeof(uint32_t);
 
+    // Setup logging
+    this->csv_header = "epoch,Average Relative Error,Average Absolute "
+                       "Error,Weighted Mean Relative Error,Recall,Precision,F1";
+
     // Setup Hashing
     this->hash = new BOBHash32[this->n_hash];
     for (size_t i = 0; i < this->n_hash; i++) {
@@ -39,6 +43,9 @@ public:
   uint32_t insert(FIVE_TUPLE tuple);
   uint32_t lookup(FIVE_TUPLE tuple);
   uint32_t hashing(FIVE_TUPLE tuple, uint32_t k);
+  void reset();
+  void analyze();
+  void store_data();
   void print_sketch();
 };
 

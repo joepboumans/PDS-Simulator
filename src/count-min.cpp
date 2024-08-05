@@ -33,6 +33,24 @@ uint32_t CountMin::lookup(FIVE_TUPLE tuple) {
   return min;
 }
 
+void CountMin::analyze() {
+  // Use lookup to find tuples
+  for (const auto &[s_tuple, count] : this->true_data) {
+  }
+  // Flow Size Estimation (Average Relative Error, Average Absolute Error)
+  // Heavy Hitter Detection (F1 Score)
+  // Flow Size Distribution (Weighted Mean Relative Error)
+}
+
+void CountMin::reset() {
+  for (auto r : this->counters) {
+    for (auto c : r) {
+      c.count = 0;
+      c.overflow = false;
+    }
+  }
+}
+
 void CountMin::print_sketch() {
   char msg[100];
   sprintf(msg, "Printing CM sketch of %ix%i with mem sz %i", this->n_hash,

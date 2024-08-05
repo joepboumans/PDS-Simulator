@@ -53,7 +53,7 @@ public:
     this->n_hash = k;
     this->n = n_struct;
 
-    // Logging setup
+    // Setup logging
     this->csv_header =
         "epoch,Total uniques,Total found,FP,FN,Recall,Precision,F1";
   }

@@ -61,9 +61,9 @@ int main() {
     // bfilter.setupLogging();
     // stages.push_back(&bfilter);
     //
-    // BloomFilter bfilter2(1 * 256 * 1024, 1, 4, name_set);
+    BloomFilter bfilter2(1 * 256 * 1024, 1, 4, name_set);
     // bfilter2.setupLogging();
-    // stages.push_back(&bfilter2);
+    stages.push_back(&bfilter2);
 
     Simulator sim(stages, stages.size(), 1);
     // Default length of CAIDA traces is 60s

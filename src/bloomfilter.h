@@ -27,11 +27,6 @@
 
 class BloomFilter : public PDS {
 public:
-  char filename_dat[400];
-  char filename_csv[400];
-  string name = "BloomFilter";
-  string trace_name;
-
   BOBHash32 *hash;
   uint32_t n_hash;
   uint32_t length;
@@ -42,11 +37,6 @@ public:
   double avg_f1 = 0.0;
   double avg_recall = 0.0;
 
-  std::ofstream fdata;
-  std::ofstream fcsv;
-  char data_buf[BUF_SZ];
-  char csv_buf[BUF_SZ];
-
   BloomFilter(uint32_t sz, uint32_t n, uint32_t k, string trace)
       : PDS(trace), array(sz, false) {
 
@@ -56,8 +46,10 @@ public:
     }
     this->length = sz;
     this->n_hash = k;
-    this->trace_name = trace;
     this->n = n;
+    string name = "BloomFilter";
+    this->setName(name);
+    this->setupLogging();
   }
   ~BloomFilter() {
     this->array.clear();
@@ -65,29 +57,29 @@ public:
     this->fcsv.close();
   }
 
-  void setupLogging() {
-    sprintf(this->filename_dat, "results/%s_%s_%i_%i.dat",
-            this->trace_name.c_str(), this->name.c_str(), this->n,
-            this->length);
-    sprintf(this->filename_csv, "results/%s_%s_%i_%i.csv",
-            this->trace_name.c_str(), this->name.c_str(), this->n,
-            this->length);
-    // Remove previous data file
-    std::remove(filename_dat);
-    std::remove(filename_csv);
-    // Open files
-
-    std::cout << "Removed files, opening new files..." << std::endl;
-    std::cout << this->filename_dat << std::endl;
-
-    this->fdata.open(this->filename_dat, ios::out | ios_base::app);
-    this->fdata.rdbuf()->pubsetbuf(this->data_buf, BUF_SZ);
-    this->fcsv.open(this->filename_csv, std::ios::out);
-    this->fcsv.rdbuf()->pubsetbuf(this->csv_buf, BUF_SZ);
-    std::cout << "...opened files" << std::endl;
-    char msg[100] = "epoch,Total uniques,Total found,FP,FN,Recall,Precision,F1";
-    this->fcsv << msg << std::endl;
-  }
+  // void setupLogging() {
+  //   sprintf(this->filename_dat, "results/%s_%s_%i_%i.dat",
+  //           this->trace_name.c_str(), this->name.c_str(), this->n,
+  //           this->length);
+  //   sprintf(this->filename_csv, "results/%s_%s_%i_%i.csv",
+  //           this->trace_name.c_str(), this->name.c_str(), this->n,
+  //           this->length);
+  //   // Remove previous data file
+  //   std::remove(filename_dat);
+  //   std::remove(filename_csv);
+  //   // Open files
+  //
+  //   std::cout << "Removed files, opening new files..." << std::endl;
+  //   std::cout << this->filename_dat << std::endl;
+  //
+  //   this->fdata.open(this->filename_dat, ios::out | ios_base::app);
+  //   this->fdata.rdbuf()->pubsetbuf(this->data_buf, BUF_SZ);
+  //   this->fcsv.open(this->filename_csv, std::ios::out);
+  //   this->fcsv.rdbuf()->pubsetbuf(this->csv_buf, BUF_SZ);
+  //   std::cout << "...opened files" << std::endl;
+  //   char msg[100] = "epoch,Total uniques,Total
+  //   found,FP,FN,Recall,Precision,F1"; this->fcsv << msg << std::endl;
+  // }
 
   int lookup(FIVE_TUPLE tuple) {
     for (size_t i = 0; i < this->n_hash; i++) {

@@ -54,18 +54,18 @@ int main() {
   for (const auto &[name_set, trace] : data_traces) {
     vector<PDS *> stages;
 
-    // CountMin cm(4, 4, 3, name_set, 0, 0);
-    // stages.push_back(&cm);
-
-    LazyBloomFilter bfilter(1 * 256 * 1024, 4, name_set, 0, 0);
-    bfilter.setName();
-    bfilter.setupLogging();
-    stages.push_back(&bfilter);
+    // LazyBloomFilter bfilter(1 * 256 * 1024, 4, name_set, 0, 0);
+    // bfilter.setName();
+    // bfilter.setupLogging();
+    // stages.push_back(&bfilter);
     //
-    BloomFilter bfilter2(1 * 256 * 1024, 4, name_set, 1, 1);
-    bfilter2.setName();
-    bfilter2.setupLogging();
-    stages.push_back(&bfilter2);
+    // BloomFilter bfilter2(1 * 256 * 1024, 4, name_set, 1, 1);
+    // bfilter2.setName();
+    // bfilter2.setupLogging();
+    // stages.push_back(&bfilter2);
+
+    CountMin cm(4, 4, 3, name_set, 0, 0);
+    stages.push_back(&cm);
 
     Simulator sim(stages, stages.size(), 1);
     // Default length of CAIDA traces is 60s
@@ -77,13 +77,5 @@ int main() {
   std::cout << "Finished simulations!" << std::endl;
   std::cout << "------" << std::endl;
 
-  // Print results
-  // fcmsketch.print_sketch();
-  // for (const auto &n : true_data) {
-  //   const char *c = n.first.data();
-  //   FIVE_TUPLE tuple;
-  //   memcpy(&tuple, c, sizeof(FIVE_TUPLE));
-  //   print_five_tuple(tuple);
-  // }
   return 0;
 }

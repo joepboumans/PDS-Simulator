@@ -57,13 +57,14 @@ int main() {
     // CountMin cm(4, 4, 3, name_set, 0, 0);
     // stages.push_back(&cm);
 
-    // LazyBloomFilter bfilter(1 * 256 * 1024, 0, 4, name_set);
-    // bfilter.setName();
-    // bfilter.setupLogging();
-    // stages.push_back(&bfilter);
+    LazyBloomFilter bfilter(1 * 256 * 1024, 4, name_set, 0, 0);
+    bfilter.setName();
+    bfilter.setupLogging();
+    stages.push_back(&bfilter);
     //
     BloomFilter bfilter2(1 * 256 * 1024, 4, name_set, 1, 1);
-    // bfilter2.setupLogging();
+    bfilter2.setName();
+    bfilter2.setupLogging();
     stages.push_back(&bfilter2);
 
     Simulator sim(stages, stages.size(), 1);

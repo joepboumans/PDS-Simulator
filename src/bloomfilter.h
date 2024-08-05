@@ -19,6 +19,7 @@
 #include <set>
 #include <stdexcept>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <unordered_map>
 #include <vector>
@@ -55,11 +56,9 @@ public:
     // Logging setup
     this->csv_header =
         "epoch,Total uniques,Total found,FP,FN,Recall,Precision,F1";
-    this->name = "BloomFilter";
-
-    this->setName(this->name);
-    this->setupLogging();
   }
+
+  virtual void setName() { this->name = "BloomFilter"; }
 
   ~BloomFilter() {
     this->array.clear();
@@ -167,15 +166,11 @@ public:
 
 class LazyBloomFilter : public BloomFilter {
 public:
-  using BloomFilter::BloomFilter;
-
   void setName() { this->name = "LazyBloomFilter"; }
 
-  // LazyBloomFilter(uint32_t sz, uint32_t n, uint32_t k, string trace)
-  //     : BloomFilter(sz, n, k, trace) {
-  //   this->name = "LazyBloomFilter";
-  // }
-
+  LazyBloomFilter(uint32_t sz, uint32_t k, string trace, uint32_t n_stage,
+                  uint32_t n_struct)
+      : BloomFilter(sz, k, trace, n_stage, n_struct) {}
   int insert(FIVE_TUPLE tuple) {
     this->true_data[(string)tuple]++;
 

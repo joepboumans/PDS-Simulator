@@ -65,6 +65,7 @@ public:
   virtual void print_sketch() { std::cout << "Not implemented!" << std::endl; }
 
   void setName(string in) { this->name = in; }
+  virtual void setName() { this->name = "NOT SET"; }
   void setupLogging() {
     sprintf(this->filename_dat, "results/%s_%s_%i_%i_%i.dat",
             this->trace_name.c_str(), this->name.c_str(), this->n_stage,

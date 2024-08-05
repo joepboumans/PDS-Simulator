@@ -45,7 +45,7 @@ def parse_total_results(dfs, columns):
         for c in score.columns:
             clean_scores[c] = score[c].dropna().reset_index(drop=True)
         score = clean_scores
-        score = score.reindex(sorted(score.columns), axis=1)
+        score = score.reindex(sorted(score.columns, reverse=True), axis=1)
         scores[column]= score
 
     return scores

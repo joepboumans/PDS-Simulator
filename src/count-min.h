@@ -44,7 +44,7 @@ public:
   uint32_t lookup(FIVE_TUPLE tuple);
   uint32_t hashing(FIVE_TUPLE tuple, uint32_t k);
   void reset();
-  void analyze();
+  void analyze(int epoch);
   void store_data();
   void print_sketch();
 };

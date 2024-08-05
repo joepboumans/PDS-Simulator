@@ -29,7 +29,7 @@ def parse_total_results(dfs, columns):
     for column in columns:
         score = pd.DataFrame()
         for name, df in dfs.items():
-            reg_name = r"(?P<name>\w+_\d+_\d+)"
+            reg_name = r"(?P<name>\d+_\w+_\d+)"
             match = re.search(reg_name, name)
             if not match:
                 print(f"[ERROR] Cannot parse name, skipping data {name}")
@@ -44,6 +44,7 @@ def parse_total_results(dfs, columns):
         for c in score.columns:
             clean_scores[c] = score[c].dropna().reset_index(drop=True)
         score = clean_scores
+        score = score.reindex(sorted(score.columns), axis=1)
         scores[column]= score
 
     return scores
@@ -64,10 +65,12 @@ if __name__ == "__main__":
         if match:
             data_info = match.groupdict()
             df = pd.read_csv(result) # epoch,total data,total pds,false pos,false neg,recall,precision,f1
-            plot_pds_stats(df, data_info['name'], data_info['n'], data_info['sz'], data_info['data_name'])
-            total_df[f"{data_info['name']}_{data_info['n']}_{data_info['sz']}_{data_info['data_name']}"] = df
+            # plot_pds_stats(df, data_info['name'], data_info['n'], data_info['sz'], data_info['data_name'])
+            total_df[f"{data_info['n']}_{data_info['name']}_{data_info['sz']}_{data_info['data_name']}"] = df
             columns = df.columns
 
 
     scores = parse_total_results(total_df, columns)
+    scores['f1'].plot.box()
+    plt.show()
     print(scores)

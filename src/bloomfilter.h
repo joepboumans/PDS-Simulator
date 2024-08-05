@@ -86,7 +86,7 @@ public:
     this->fdata.rdbuf()->pubsetbuf(this->data_buf, BUF_SZ);
     this->fcsv.open(this->filename_csv, std::ios::out);
     this->fcsv.rdbuf()->pubsetbuf(this->csv_buf, BUF_SZ);
-    std::cout << "Opened files" << std::endl;
+    std::cout << "...opened files" << std::endl;
     char msg[100] = "epoch,Total uniques,Total found,FP,FN,Recall,Precision,F1";
     this->fcsv << msg << std::endl;
   }

@@ -33,6 +33,8 @@ public:
     // Setup logging
     this->csv_header = "epoch,Average Relative Error,Average Absolute "
                        "Error,Weighted Mean Relative Error,Recall,Precision,F1";
+    this->name = "CountMin";
+    this->setupLogging();
 
     // Setup Hashing
     this->hash = new BOBHash32[this->n_hash];

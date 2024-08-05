@@ -42,21 +42,26 @@ void CountMin::analyze(int epoch) {
   double average_relative_error = 0;
   double n = this->true_data.size();
 
+  std::cout << std::endl;
+
   for (const auto &[s_tuple, count] : this->true_data) {
     FIVE_TUPLE tuple(s_tuple);
     int diff = count - this->lookup(tuple);
+
+    // std::cout << diff << "\t" << count << std::endl;
     average_absolute_error += std::abs(diff);
-    average_relative_error += (double)std::abs(diff) / count;
+    average_relative_error += ((double)std::abs(diff) / count);
   }
+
   average_absolute_error = average_absolute_error / n;
   average_relative_error = average_relative_error / n;
-
-  std::cout << std::endl
-            << epoch << "\t" << average_absolute_error << std::endl;
-  std::cout << epoch << "\t" << average_relative_error << std::endl;
+  std::cout << epoch << "\tAAE: " << average_absolute_error << std::endl;
+  std::cout << epoch << "\tARE: " << average_relative_error << std::endl;
+  std::cout << "n = " << n << std::endl;
   // Flow Size Estimation (Average Relative Error, Average Absolute Error)
   // Heavy Hitter Detection (F1 Score)
   // Flow Size Distribution (Weighted Mean Relative Error)
+  exit(0);
 }
 
 void CountMin::reset() {

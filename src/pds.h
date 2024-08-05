@@ -38,15 +38,15 @@ public:
     this->mem_sz = sz;
   }
   ~PDS() = default;
-  virtual int insert(FIVE_TUPLE tuple) {
+  virtual uint32_t insert(FIVE_TUPLE tuple) {
     std::cout << "Not implemented!" << std::endl;
     return -1;
   };
-  virtual int remove(FIVE_TUPLE tuple) {
+  virtual uint32_t remove(FIVE_TUPLE tuple) {
     std::cout << "Not implemented!" << std::endl;
     return -1;
   }
-  virtual int lookup(FIVE_TUPLE tuple) {
+  virtual uint32_t lookup(FIVE_TUPLE tuple) {
     std::cout << "Not implemented!" << std::endl;
     return -1;
   }

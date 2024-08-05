@@ -36,8 +36,9 @@ public:
       this->hash[i].initialize(n_struct * this->n_hash + i);
     }
   }
-  int insert(FIVE_TUPLE tuple);
-  int hashing(FIVE_TUPLE tuple, uint32_t k);
+  uint32_t insert(FIVE_TUPLE tuple);
+  uint32_t lookup(FIVE_TUPLE tuple);
+  uint32_t hashing(FIVE_TUPLE tuple, uint32_t k);
   void print_sketch();
 };
 

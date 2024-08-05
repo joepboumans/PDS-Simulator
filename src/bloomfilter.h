@@ -66,7 +66,7 @@ public:
     this->fcsv.close();
   }
 
-  int lookup(FIVE_TUPLE tuple) {
+  uint32_t lookup(FIVE_TUPLE tuple) {
     for (size_t i = 0; i < this->n_hash; i++) {
       int hash_idx = this->hashing(tuple, i);
       if (!array[hash_idx]) {
@@ -135,7 +135,7 @@ public:
     return;
   }
 
-  int insert(FIVE_TUPLE tuple) {
+  uint32_t insert(FIVE_TUPLE tuple) {
     // Record true data
     this->true_data[(string)tuple]++;
 
@@ -157,7 +157,7 @@ public:
     return 1;
   }
 
-  int hashing(FIVE_TUPLE key, uint32_t k) {
+  uint32_t hashing(FIVE_TUPLE key, uint32_t k) {
     char c_ftuple[sizeof(FIVE_TUPLE)];
     memcpy(c_ftuple, &key, sizeof(FIVE_TUPLE));
     return this->hash[k].run(c_ftuple, 4) % this->length;
@@ -171,7 +171,7 @@ public:
   LazyBloomFilter(uint32_t sz, uint32_t k, string trace, uint32_t n_stage,
                   uint32_t n_struct)
       : BloomFilter(sz, k, trace, n_stage, n_struct) {}
-  int insert(FIVE_TUPLE tuple) {
+  uint32_t insert(FIVE_TUPLE tuple) {
     this->true_data[(string)tuple]++;
 
     for (size_t i = 0; i < this->n_hash; i++) {

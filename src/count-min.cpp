@@ -3,9 +3,14 @@
 
 #include "count-min.h"
 #include "common.h"
+#include <algorithm>
+#include <cstdint>
 #include <cstdio>
+#include <limits>
+#include <math.h>
+#include <sys/types.h>
 
-int CountMin::insert(FIVE_TUPLE tuple) {
+uint32_t CountMin::insert(FIVE_TUPLE tuple) {
   for (size_t i = 0; i < this->n_hash; i++) {
     int hash_idx = this->hashing(tuple, i);
     this->counters[i][hash_idx].increment();
@@ -13,10 +18,19 @@ int CountMin::insert(FIVE_TUPLE tuple) {
   return 0;
 }
 
-int CountMin::hashing(FIVE_TUPLE key, uint32_t k) {
+uint32_t CountMin::hashing(FIVE_TUPLE key, uint32_t k) {
   char c_ftuple[sizeof(FIVE_TUPLE)];
   memcpy(c_ftuple, &key, sizeof(FIVE_TUPLE));
   return this->hash[k].run(c_ftuple, 4) % this->columns;
+}
+
+uint32_t CountMin::lookup(FIVE_TUPLE tuple) {
+  uint32_t min = std::numeric_limits<uint32_t>::max();
+  for (size_t i = 0; i < this->n_hash; i++) {
+    int hash_idx = this->hashing(tuple, i);
+    min = std::min(min, this->counters[i][hash_idx].count);
+  }
+  return min;
 }
 
 void CountMin::print_sketch() {

@@ -24,7 +24,7 @@ private:
   uint32_t *stages_sz;
   uint32_t k;
 
-  int hashing(FIVE_TUPLE key) {
+  uint32_t hashing(FIVE_TUPLE key) {
     char c_ftuple[sizeof(FIVE_TUPLE)];
     memcpy(c_ftuple, &key, sizeof(FIVE_TUPLE));
     return hash.run(c_ftuple, 4) % stages_sz[0];
@@ -68,8 +68,8 @@ public:
       delete v;
     }
   }
-  int insert(FIVE_TUPLE tuple) {
-    int hash_idx = this->hashing(tuple);
+  uint32_t insert(FIVE_TUPLE tuple) {
+    uint32_t hash_idx = this->hashing(tuple);
     for (size_t s = 0; s < n_stages; s++) {
       if (this->stages[s][hash_idx].overflow) {
         // Check for complete overflow

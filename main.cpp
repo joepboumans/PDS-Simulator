@@ -1,5 +1,6 @@
 #include "src/bloomfilter.h"
 #include "src/common.h"
+#include "src/count-min.h"
 #include "src/data-parser.h"
 #include "src/fcmsketch.h"
 #include "src/simulator/simulator.h"
@@ -53,15 +54,17 @@ int main() {
   for (const auto &[name_set, trace] : data_traces) {
     vector<PDS *> stages;
 
-    LazyBloomFilter bfilter(1 * 256 * 1024, 0, 4, name_set);
-    bfilter.setName();
-    bfilter.setupLogging();
-    stages.push_back(&bfilter);
+    CountMin cm(4, 4, 3, name_set);
 
-    BloomFilter bfilter2(1 * 256 * 1024, 1, 4, name_set);
-    bfilter2.setupLogging();
+    // LazyBloomFilter bfilter(1 * 256 * 1024, 0, 4, name_set);
+    // bfilter.setName();
+    // bfilter.setupLogging();
+    // stages.push_back(&bfilter);
+    //
+    // BloomFilter bfilter2(1 * 256 * 1024, 1, 4, name_set);
+    // bfilter2.setupLogging();
+    // stages.push_back(&bfilter2);
 
-    stages.push_back(&bfilter2);
     Simulator sim(stages, stages.size(), 1);
     // Default length of CAIDA traces is 60s
     sim.run(trace, 60);

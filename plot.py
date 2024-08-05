@@ -12,7 +12,7 @@ def plot_pds_stats(df, title, n, sz, dataset):
     fig, axs = plt.subplots(2, 1, figsize=(9,9))
     plt.subplots_adjust(wspace=0.5, hspace=0.5)
     sz = int(sz)/1024
-    fig.suptitle(f"{title} {n} {sz}KB\n {dataset}")
+    fig.suptitle(f"{n} {title} {sz}KB\n {dataset}")
 
     # Plot data
     axs[0].set_title("Performance metrics", fontsize=10)
@@ -22,7 +22,7 @@ def plot_pds_stats(df, title, n, sz, dataset):
 
 
     # Store figures 
-    plt.savefig(f"{plot_dir}{dataset}_{title}_{n}_{sz}.png", transparent=True)
+    plt.savefig(f"{plot_dir}{dataset}_{n}_{title}_{sz}.png", transparent=True)
 
 
 def parse_total_results(dfs, columns):
@@ -66,7 +66,7 @@ if __name__ == "__main__":
         if match:
             data_info = match.groupdict()
             df = pd.read_csv(result) # epoch,total data,total pds,false pos,false neg,recall,precision,f1
-            # plot_pds_stats(df, data_info['name'], data_info['n'], data_info['sz'], data_info['data_name'])
+            plot_pds_stats(df, data_info['name'], data_info['n'], data_info['sz'], data_info['data_name'])
             total_df[f"{data_info['n']}_{data_info['name']}_{data_info['sz']}_{data_info['data_name']}"] = df
             columns = df.columns
 

@@ -1,10 +1,11 @@
 #ifndef _SIMULATOR_CPP
 #define _SIMULATOR_CPP
 #include "simulator.h"
+#include <cmath>
 
 int Simulator::run(const TRACE &trace, unsigned int duration) {
   unsigned long num_pkts = trace.size();
-  unsigned long line_rate = num_pkts / duration; // per second
+  unsigned long line_rate = std::ceil((float)num_pkts / duration); // per second
   unsigned long packets_per_epoch = this->epoch_len * line_rate;
   std::cout << "Starting run with " << this->n_pds << " stages over "
             << num_pkts << " packets" << " with a line rate of " << line_rate

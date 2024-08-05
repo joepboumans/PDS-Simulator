@@ -71,6 +71,7 @@ if __name__ == "__main__":
 
 
     scores = parse_total_results(total_df, columns)
-    scores['f1'].plot.box()
+    for score in scores:
+        score.plot.box()
     plt.show()
     print(scores)

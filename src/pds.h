@@ -9,7 +9,10 @@ class PDS {
 public:
   std::unordered_map<string, uint32_t> true_data;
   string name;
-  virtual ~PDS() = default;
+  string trace_name;
+
+  PDS(string trace) { this->trace_name = trace; }
+  ~PDS() = default;
   virtual int insert(FIVE_TUPLE tuple) {
     std::cout << "Not implemented!" << std::endl;
     return -1;
@@ -34,10 +37,7 @@ public:
     std::cout << "not implemented!" << std::endl;
     return;
   }
-  virtual void setName() {
-    std::cout << "not implemented!" << std::endl;
-    return;
-  }
+  virtual void setName(string in) { this->name = in; }
   virtual void print_sketch() { std::cout << "Not implemented!" << std::endl; }
 };
 

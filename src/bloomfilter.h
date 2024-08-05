@@ -47,7 +47,7 @@ public:
   char data_buf[BUF_SZ];
   char csv_buf[BUF_SZ];
 
-  BloomFilter(uint32_t sz, uint32_t n, uint32_t k, string trace) {
+  BloomFilter(uint32_t sz, uint32_t n, uint32_t k, string trace) : PDS(trace) {
     for (size_t i = 0; i < sz; i++) {
       array.push_back(false);
     }

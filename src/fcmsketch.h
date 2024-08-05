@@ -31,9 +31,9 @@ private:
   }
 
 public:
-  FCM_Sketch(uint32_t n_roots, uint32_t n, uint32_t n_stages = 3,
-             uint32_t k = 8) {
-    // Check if structure is possible, max counter is 32bit
+  FCM_Sketch(uint32_t n_roots, uint32_t n, string trace, uint32_t n_stages = 3,
+             uint32_t k = 8)
+      : PDS(trace) {
 
     // Maximum 32 bit counter
     uint32_t max_bits = 16;

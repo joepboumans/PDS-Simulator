@@ -64,13 +64,16 @@ int main() {
     // bfilter2.setupLogging();
     // stages.push_back(&bfilter2);
 
-    CountMin cm(4, 4, 3, name_set, 0, 0);
+    CountMin cm(4, 4, name_set, 0, 0);
     stages.push_back(&cm);
+    cm.print_sketch();
 
     Simulator sim(stages, stages.size(), 1);
     // Default length of CAIDA traces is 60s
     sim.run(trace, 60);
     n_trace++;
+    cm.print_sketch();
+    exit(0);
   }
 
   std::cout << "------" << std::endl;

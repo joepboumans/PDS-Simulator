@@ -24,7 +24,7 @@ public:
   std::ofstream fcsv;
   char data_buf[BUF_SZ];
   char csv_buf[BUF_SZ];
-  char csv_header[100] = "CSV HEADER IS NOT SET";
+  string csv_header = "CSV HEADER IS NOT SET";
 
   PDS(string trace) { this->trace_name = trace; }
   ~PDS() = default;

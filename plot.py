@@ -7,12 +7,12 @@ import math
 
 plot_dir = "plots/"
 
-def plot_pds_stats(df, title, n, sz, dataset):
+def plot_pds_stats(df, title, n_stage, n_struct, sz, dataset):
     # Setup subplots
     fig, axs = plt.subplots(2, 1, figsize=(9,9))
     plt.subplots_adjust(wspace=0.5, hspace=0.5)
     sz = int(sz)/1024
-    fig.suptitle(f"{n} {title} {sz}KB\n {dataset}")
+    fig.suptitle(f"{n_stage}.{n_struct} {title} {sz}KB\n {dataset}")
 
     # Plot data
     axs[0].set_title("Performance metrics", fontsize=10)
@@ -22,7 +22,7 @@ def plot_pds_stats(df, title, n, sz, dataset):
 
 
     # Store figures 
-    plt.savefig(f"{plot_dir}{dataset}_{n}_{title}_{sz}.png", transparent=True)
+    plt.savefig(f"{plot_dir}{dataset}_{n_stage}_{n_struct}_{title}_{sz}.png", transparent=True)
 
 
 def parse_total_results(dfs, columns):
@@ -30,7 +30,7 @@ def parse_total_results(dfs, columns):
     for column in columns:
         score = pd.DataFrame()
         for name, df in dfs.items():
-            reg_name = r"(?P<name>\d+_\w+_\d+)"
+            reg_name = r"(?P<name>\d+_\d+_\w+_\d+)"
             match = re.search(reg_name, name)
             if not match:
                 print(f"[ERROR] Cannot parse name, skipping data {name}")
@@ -57,7 +57,7 @@ if __name__ == "__main__":
     total_df = {}
     columns = []
     # Parse results
-    reg_string = r"\/(?P<data_name>.+)_(?P<name>\w+)_(?P<n>\d+)_(?P<sz>\d+)"
+    reg_string = r"\/(?P<data_name>.+)_(?P<name>\w+)_(?P<n_stage>\d+)_(?P<n_struct>\d+)_(?P<sz>\d+)"
     for result in csv_results:
         match = re.search(reg_string, result)
         if not match:
@@ -66,8 +66,8 @@ if __name__ == "__main__":
         if match:
             data_info = match.groupdict()
             df = pd.read_csv(result) # epoch,total data,total pds,false pos,false neg,recall,precision,f1
-            plot_pds_stats(df, data_info['name'], data_info['n'], data_info['sz'], data_info['data_name'])
-            total_df[f"{data_info['n']}_{data_info['name']}_{data_info['sz']}_{data_info['data_name']}"] = df
+            plot_pds_stats(df, data_info['name'], data_info['n_stage'], data_info['n_struct'], data_info['sz'], data_info['data_name'])
+            total_df[f"{data_info['n_stage']}_{data_info['n_struct']}_{data_info['name']}_{data_info['sz']}_{data_info['data_name']}"] = df
             columns = df.columns
 
 

@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import glob
 import re
+import math
 
 
 plot_dir = "plots/"
@@ -15,9 +16,9 @@ def plot_pds_stats(df, title, n, sz, dataset):
 
     # Plot data
     axs[0].set_title("Performance metrics", fontsize=10)
-    df.plot(x = 'epoch', y = ["recall", "precision", "f1"], ax=axs[0])
+    df.plot(x = 'epoch', y = ["Recall", "Precision", "F1"], ax=axs[0])
     axs[1].set_title("Recordings", fontsize=10)
-    df.plot(x = 'epoch', y = ["total data", "total pds", "false pos", "false neg"], ax=axs[1])
+    df.plot(x = 'epoch', y = ["Total uniques", "Total found", "FP", "FN"], ax=axs[1])
 
 
     # Store figures 
@@ -71,7 +72,20 @@ if __name__ == "__main__":
 
 
     scores = parse_total_results(total_df, columns)
-    for score in scores:
-        score.plot.box()
+    scores.pop('epoch')
+    rows = len(scores) #math.ceil(len(scores)  / 3)
+    fig2, axes = plt.subplots(rows, 1, figsize=(5,13))
+    plt.subplots_adjust(wspace=0.5, hspace=0.5)
+
+    for (param, score),i in zip(scores.items(), range(len(scores))):
+        if param == "epoch":
+            continue
+        # row = math.floor(i / 3)
+        ax = axes[i]
+        ax.set_title(param)
+        score.plot.box(ax=ax, vert=False, grid=True)
+        ax.set_yticklabels(ax.get_yticklabels(), fontsize=8)
+        # plt.title(param)
+    plt.tight_layout()
+    plt.savefig(f"{plot_dir}overview.png", transparent=True)
     plt.show()
-    print(scores)

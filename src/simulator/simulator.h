@@ -8,10 +8,10 @@
 
 class Simulator {
 public:
-  Simulator(vector<PDS *> pds, int n_pds, float epoch) {
+  Simulator(vector<PDS *> pds, int n_pds, float epoch_len) {
     this->n_pds = n_pds;
     this->pds = pds;
-    this->epoch = epoch;
+    this->epoch_len = epoch_len;
   }
   Simulator(Simulator &&) = default;
   Simulator(const Simulator &) = default;
@@ -25,7 +25,7 @@ public:
 private:
   vector<PDS *> pds;
   int n_pds;
-  float epoch;
+  float epoch_len;
   int insert(const TRACE &trace, int start, int end);
   int analyze();
   int store();

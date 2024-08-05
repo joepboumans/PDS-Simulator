@@ -17,7 +17,9 @@ int Simulator::run(const TRACE &trace, unsigned int duration) {
     int epoch = (int)i / packets_per_epoch;
     std::cout << "\rEpoch: " << epoch << std::flush;
     if (i + packets_per_epoch < num_pkts) {
+      std::cout << " inserting... ";
       this->insert(trace, i, i + packets_per_epoch);
+      std::cout << "done ";
     } else {
       // Skip left over the last, not complete epoch
       break;

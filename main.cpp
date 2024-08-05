@@ -54,14 +54,15 @@ int main() {
   for (const auto &[name_set, trace] : data_traces) {
     vector<PDS *> stages;
 
-    CountMin cm(4, 4, 3, name_set);
+    // CountMin cm(4, 4, 3, name_set, 0, 0);
+    // stages.push_back(&cm);
 
     // LazyBloomFilter bfilter(1 * 256 * 1024, 0, 4, name_set);
     // bfilter.setName();
     // bfilter.setupLogging();
     // stages.push_back(&bfilter);
     //
-    BloomFilter bfilter2(1 * 256 * 1024, 1, 4, name_set);
+    BloomFilter bfilter2(1 * 256 * 1024, 4, name_set, 1, 1);
     // bfilter2.setupLogging();
     stages.push_back(&bfilter2);
 

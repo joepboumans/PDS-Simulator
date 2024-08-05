@@ -37,28 +37,30 @@ public:
   double avg_f1 = 0.0;
   double avg_recall = 0.0;
 
-  BloomFilter(uint32_t sz, uint32_t n, uint32_t k, string trace)
-      : PDS(trace), array(sz, false) {
+  BloomFilter(uint32_t sz, uint32_t k, string trace, uint32_t n_stage,
+              uint32_t n_struct)
+      : PDS(trace, n_stage, n_struct, sz), array(sz, false) {
 
+    // Init hashing
     this->hash = new BOBHash32[k];
     for (size_t i = 0; i < k; i++) {
-      this->hash[i].initialize(n * k + i);
+      this->hash[i].initialize(n_struct * k + i);
     }
+
+    // Setup vars
     this->length = sz;
     this->n_hash = k;
-    this->n = n;
+    this->n = n_struct;
 
     // Logging setup
-    this->n_stage = n;
-    this->n_struct = n;
-    this->mem_sz = sz;
     this->csv_header =
         "epoch,Total uniques,Total found,FP,FN,Recall,Precision,F1";
-    string name = "BloomFilter";
+    this->name = "BloomFilter";
 
-    this->setName(name);
+    this->setName(this->name);
     this->setupLogging();
   }
+
   ~BloomFilter() {
     this->array.clear();
     this->fdata.close();
@@ -93,16 +95,12 @@ public:
         false_pos++;
       }
     }
-    // std::cout << "Total found " << this->tuples.size() << std::endl;
-    // std::cout << "False Positives: " << false_pos << std::endl;
-    // std::cout << "Total num_pkt " << total_pkt << std::endl;
     int true_pos = total_pkt - false_pos;
     double recall = (double)true_pos / (true_pos + false_pos);
     double precision = 1; // IN BF can never result in false negatives
     double f1_score = 2 * ((recall * precision) / (precision + recall));
     char msg[100];
-    // sprintf(msg, "Recall: %.3f, true_pos: %i", recall, true_pos);
-    // std::cout << msg << std::endl;
+
     sprintf(msg, "%i,%i,%zu,%i,%i,%.3f,%.3f,%.3f", epoch, total_pkt,
             this->tuples.size(), false_pos, 0, recall, precision, f1_score);
     this->fcsv << msg << std::endl;
@@ -111,7 +109,6 @@ public:
   void print_sketch() {
     uint32_t count = 0;
     for (auto i : this->array) {
-      // std::cout << i;
       if (i) {
         count++;
       }
@@ -147,8 +144,8 @@ public:
     bool tuple_inserted = false;
     for (size_t i = 0; i < this->n_hash; i++) {
       int hash_idx = this->hashing(tuple, i);
-      if (!array[hash_idx]) {
-        array[hash_idx] = true;
+      if (!this->array[hash_idx]) {
+        this->array[hash_idx] = true;
         tuple_inserted = true;
       }
     }
@@ -164,7 +161,7 @@ public:
   int hashing(FIVE_TUPLE key, uint32_t k) {
     char c_ftuple[sizeof(FIVE_TUPLE)];
     memcpy(c_ftuple, &key, sizeof(FIVE_TUPLE));
-    return hash[k].run(c_ftuple, 4) % this->length;
+    return this->hash[k].run(c_ftuple, 4) % this->length;
   }
 };
 

@@ -26,7 +26,17 @@ public:
   char csv_buf[BUF_SZ];
   string csv_header = "CSV HEADER IS NOT SET";
 
-  PDS(string trace) { this->trace_name = trace; }
+  PDS(string trace, uint32_t stage, uint32_t n) {
+    this->trace_name = trace;
+    this->n_stage = stage;
+    this->n_struct = n;
+  }
+  PDS(string trace, uint32_t stage, uint32_t n, uint32_t sz) {
+    this->trace_name = trace;
+    this->n_stage = stage;
+    this->n_struct = n;
+    this->mem_sz = sz;
+  }
   ~PDS() = default;
   virtual int insert(FIVE_TUPLE tuple) {
     std::cout << "Not implemented!" << std::endl;

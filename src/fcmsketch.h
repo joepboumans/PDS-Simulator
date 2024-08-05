@@ -31,9 +31,9 @@ private:
   }
 
 public:
-  FCM_Sketch(uint32_t n_roots, uint32_t n, string trace, uint32_t n_stages = 3,
-             uint32_t k = 8)
-      : PDS(trace) {
+  FCM_Sketch(uint32_t n_roots, string trace, uint32_t n_stage,
+             uint32_t n_struct, uint32_t n_stages = 3, uint32_t k = 8)
+      : PDS(trace, n_stage, n_struct) {
 
     // Maximum 32 bit counter
     uint32_t max_bits = 16;
@@ -57,7 +57,7 @@ public:
       }
       stages.push_back(stage);
     }
-    this->hash.initialize(n);
+    this->hash.initialize(n_struct);
     this->stages_sz = sz_stages;
     this->k = k;
     this->n_stages = n_stages;

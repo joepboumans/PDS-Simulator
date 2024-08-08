@@ -47,6 +47,8 @@ public:
   uint32_t hashing(FIVE_TUPLE tuple, uint32_t k);
   void reset();
   void analyze(int epoch);
+  double average_absolute_error = 0;
+  double average_relative_error = 0;
   void store_data();
   void print_sketch();
 };

@@ -37,8 +37,8 @@ uint32_t CountMin::lookup(FIVE_TUPLE tuple) {
 
 void CountMin::analyze(int epoch) {
   // Use lookup to find tuples
-  double average_absolute_error = 0;
-  double average_relative_error = 0;
+  this->average_absolute_error = 0;
+  this->average_relative_error = 0;
   double n = this->true_data.size();
 
   std::cout << std::endl;
@@ -47,20 +47,18 @@ void CountMin::analyze(int epoch) {
     FIVE_TUPLE tuple(s_tuple);
     int diff = count - this->lookup(tuple);
 
-    // std::cout << diff << "\t" << count << std::endl;
-    average_absolute_error += std::abs(diff);
-    average_relative_error += ((double)std::abs(diff) / count);
+    this->average_absolute_error += std::abs(diff);
+    this->average_relative_error += ((double)std::abs(diff) / count);
   }
 
-  average_absolute_error = average_absolute_error / n;
-  average_relative_error = average_relative_error / n;
-  std::cout << epoch << "\tAAE: " << average_absolute_error << std::endl;
-  std::cout << epoch << "\tARE: " << average_relative_error << std::endl;
+  this->average_absolute_error = this->average_absolute_error / n;
+  this->average_relative_error = this->average_relative_error / n;
+  std::cout << epoch << "\tAAE: " << this->average_absolute_error << std::endl;
+  std::cout << epoch << "\tARE: " << this->average_relative_error << std::endl;
   std::cout << "n = " << n << std::endl;
   // Flow Size Estimation (Average Relative Error, Average Absolute Error)
   // Heavy Hitter Detection (F1 Score)
   // Flow Size Distribution (Weighted Mean Relative Error)
-  exit(0);
 }
 
 void CountMin::reset() {

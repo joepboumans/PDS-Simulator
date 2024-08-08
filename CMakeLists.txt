@@ -30,7 +30,12 @@ foreach(name ${tests})
   message("${name}")
   string(REPLACE ".cpp" "" basename "${name}")
   message("Adding ${name} with as ${basename}")
-  add_executable("${basename}" test/${name})
+  # Add dependent class from src for linking
+  if(EXISTS "${CMAKE_SOURCE_DIR}/${basename}/")
+    file(GLOB deps CONFIGURE_DEPENDS
+         "*src/${basename}/*.cpp""*src/${basename}/*.h")
+  endif()
+  add_executable("${basename}" test/${name} ${deps})
   target_link_libraries(${basename} PRIVATE Catch2::Catch2WithMain)
   include(CTest)
   include(Catch)

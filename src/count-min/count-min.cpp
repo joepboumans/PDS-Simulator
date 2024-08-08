@@ -2,7 +2,6 @@
 #define _SIMULATOR_CPP
 
 #include "count-min.h"
-#include "common.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdint>

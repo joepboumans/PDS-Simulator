@@ -1,4 +1,4 @@
-#include "../src/count-min.h"
+#include "../src/count-min/count-min.h"
 #include <catch2/catch_test_macros.hpp>
 
 TEST_CASE("Smoke Test", "[smoke-test]") {

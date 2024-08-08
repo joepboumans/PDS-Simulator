@@ -99,6 +99,48 @@ struct FIVE_TUPLE {
     operator++();
     return old;
   }
+
+  FIVE_TUPLE operator+(int i) {
+    FIVE_TUPLE new_tuple = *this;
+    for (auto &src : new_tuple.srcIp) {
+      if (src >= std::numeric_limits<unsigned char>::max()) {
+        src += i;
+        continue;
+      }
+      src += i;
+      return new_tuple;
+    }
+    for (auto &dst : new_tuple.dstIp) {
+      if (dst >= std::numeric_limits<unsigned char>::max()) {
+        dst += i;
+        continue;
+      }
+      dst += i;
+      return new_tuple;
+    }
+    for (auto &src : new_tuple.srcPort) {
+      if (src >= std::numeric_limits<unsigned char>::max()) {
+        src += i;
+        continue;
+      }
+      src += i;
+      return new_tuple;
+    }
+    for (auto &dst : new_tuple.dstPort) {
+      if (dst >= std::numeric_limits<unsigned char>::max()) {
+        dst += i;
+        continue;
+      }
+      dst += i;
+      return new_tuple;
+    }
+    if (new_tuple.protocol >= std::numeric_limits<unsigned char>::max()) {
+      new_tuple.protocol += i;
+      return new_tuple;
+    }
+    new_tuple.protocol += i;
+    return new_tuple;
+  }
 };
 
 typedef vector<FIVE_TUPLE> TRACE;

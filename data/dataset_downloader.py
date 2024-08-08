@@ -16,20 +16,27 @@ if __name__ == "__main__":
         for dataset in lines:
             dataset = dataset.strip()
             sp_set = dataset.split("/")
+            date = sp_set[2].split('-')[0]
+            print(date)
             print(dataset)
             # Download data set
             file_name = f"{sp_set[1]}.{sp_set[2]}.pcap"
-            url = f"https://data.caida.org/datasets/{dataset}/{sp_set[1]}.dirA.{sp_set[2]}.anon.pcap.gz"
+            url = f"https://data.caida.org/datasets/{sp_set[0]}/{sp_set[1]}/{date}-130000.UTC/{sp_set[1]}.dirA.{sp_set[2]}.anon.pcap.gz"
             download_file = f"{file_name}.gz"
-            proc = subprocess.Popen(["curl","-u", args.user, url, "-o", download_file], stdout=subprocess.PIPE)
-            outs, errs = proc.communicate()
-            if errs:
-                print(errs)
-                exit(1)
+
+            if (os.path.isfile(download_file)):
+                print(f"File was downloaded: {download_file}")
+            else:
+                print(f"Downloading {url}")
+                proc = subprocess.Popen(["curl","-u", args.user, url, "-o", download_file], stdout=subprocess.PIPE)
+                outs, errs = proc.communicate()
+                if errs:
+                    print(errs)
+                    exit(1)
 
 
             #gzip dataset
-            if (os.path.isfile(download_file)):
+            if (os.path.isfile(file_name)):
                 print("PCAP already present, skipping...")
                 continue
 

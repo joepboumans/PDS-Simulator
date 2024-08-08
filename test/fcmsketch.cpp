@@ -1,21 +1,13 @@
 #include "../src/fcmsketch.h"
-#include <assert.h>
+#include <catch2/catch_test_macros.hpp>
 #include <typeinfo>
 
-void smokeTest() {
-  std::cout << "Running smokeTest..." << std::endl;
-  assert(true == true);
-  std::cout << "Finished smokeTest" << std::endl;
+TEST_CASE("Smoke Test", "[smoke-test]") {
+  REQUIRE(true == true);
+  REQUIRE(false == false);
 }
 
-void test_construct() {
-  std::cout << "Constructing test..." << std::endl;
-  FCM_Sketch fcmsketch(3, 0);
-  assert(typeid(fcmsketch) == typeid(FCM_Sketch));
-  std::cout << "Finished construct test" << std::endl;
-}
-int main() {
-  smokeTest();
-  test_construct();
-  return 0;
+TEST_CASE("Constructor FCM", "[const-fcm]") {
+  FCM_Sketch fcmsketch(3, "test", 0, 0);
+  REQUIRE(typeid(fcmsketch) == typeid(FCM_Sketch));
 }

@@ -7,13 +7,13 @@ TEST_CASE("Smoke Test", "[smoke-test]") {
   std::cout << "Smoke done!" << std::endl;
 }
 
-TEST_CASE("Constructor CountMin Sketch", "[const-CM]") {
-  CountMin count_min(4, 4, "test", 0, 0);
+TEST_CASE("Constructor CountMin Sketch", "[CM][Constructor]") {
+  CountMin count_min(4, 4, 0, "test", 0, 0);
   REQUIRE(typeid(count_min) == typeid(CountMin));
 }
 
-TEST_CASE("Analysis test", "[Analysis]") {
-  CountMin count_min(4, 4, "test", 0, 0);
+TEST_CASE("Analysis test", "[CM][analysis]") {
+  CountMin count_min(4, 4, 1, "test", 0, 0);
   REQUIRE(count_min.average_absolute_error == 0);
   REQUIRE(count_min.average_relative_error == 0);
   FIVE_TUPLE tuple;
@@ -21,10 +21,13 @@ TEST_CASE("Analysis test", "[Analysis]") {
   count_min.analyze(0);
   REQUIRE(count_min.average_absolute_error == 0);
   REQUIRE(count_min.average_relative_error == 0);
+  REQUIRE(count_min.precision == 1.0);
+  REQUIRE(count_min.recall == 1.0);
+  REQUIRE(count_min.f1 == 1.0);
 }
 
-TEST_CASE("Mixed insert - analysis", "[Mixed-Analysis]") {
-  CountMin count_min(32, 1024, "test", 0, 0);
+TEST_CASE("Analysis - Flow Size", "[CM][analysis][flow-size]") {
+  CountMin count_min(32, 1024, 1024 * 1024 * 10 + 5000 * 3, "test", 0, 0);
   REQUIRE(count_min.average_absolute_error == 0);
   REQUIRE(count_min.average_relative_error == 0);
   FIVE_TUPLE tuple;
@@ -59,4 +62,67 @@ TEST_CASE("Mixed insert - analysis", "[Mixed-Analysis]") {
   // count_min.print_sketch();
   REQUIRE(count_min.average_absolute_error <= 1000);
   REQUIRE(count_min.average_relative_error <= 2);
+}
+
+TEST_CASE("Analysis - F1", "[CM][analysis][F1]") {
+  CountMin count_min(16, 512, 512, "test", 0, 0);
+  REQUIRE(count_min.average_absolute_error == 0);
+  REQUIRE(count_min.average_relative_error == 0);
+  FIVE_TUPLE tuple;
+  SECTION("Single HH") {
+    for (size_t i = 0; i < 1024; i++) {
+      count_min.insert(tuple);
+    }
+    count_min.analyze(0);
+    REQUIRE(count_min.f1 == 1.0);
+    REQUIRE(count_min.precision == 1.0);
+    REQUIRE(count_min.recall == 1.0);
+  }
+  SECTION("Five HH") {
+    for (size_t i = 0; i < 1024; i++) {
+      count_min.insert(tuple);
+      count_min.insert(tuple + 1);
+      count_min.insert(tuple + 2);
+      count_min.insert(tuple + 3);
+      count_min.insert(tuple + 4);
+    }
+    count_min.analyze(0);
+    REQUIRE(count_min.f1 == 1.0);
+    REQUIRE(count_min.precision == 1.0);
+    REQUIRE(count_min.recall == 1.0);
+  }
+  SECTION("Five HH - 5k Small Flows") {
+    for (size_t i = 0; i < 1024; i++) {
+      count_min.insert(tuple);
+      count_min.insert(tuple + 1);
+      count_min.insert(tuple + 2);
+      count_min.insert(tuple + 3);
+      count_min.insert(tuple + 4);
+    }
+    tuple.protocol++;
+    for (size_t i = 0; i < 500; i++) {
+      count_min.insert(tuple);
+      tuple++;
+    }
+    count_min.analyze(0);
+    REQUIRE(count_min.f1 < 1.0);
+    REQUIRE(count_min.precision <= 1.0);
+    REQUIRE(count_min.recall <= 1.0);
+  }
+  SECTION("100 HH - 50k Small Flows") {
+    for (size_t i = 0; i < 1024; i++) {
+      for (size_t j = 0; j < 100; j++) {
+        count_min.insert(tuple + j);
+      }
+    }
+    tuple.protocol++;
+    for (size_t i = 0; i < 10000; i++) {
+      count_min.insert(tuple);
+      tuple++;
+    }
+    count_min.analyze(0);
+    REQUIRE(count_min.f1 < 1.0);
+    REQUIRE(count_min.precision <= 1.0);
+    REQUIRE(count_min.recall <= 1.0);
+  }
 }

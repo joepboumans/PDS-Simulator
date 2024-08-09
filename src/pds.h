@@ -78,19 +78,19 @@ public:
     std::remove(filename_dat);
     std::remove(filename_csv);
     // Open files
-    std::cout << "Removed files, opening new files..." << std::endl;
-    std::cout << this->filename_dat << std::endl;
+    // std::cout << "Removed files, opening new files..." << std::endl;
+    // std::cout << this->filename_dat << std::endl;
 
     // Setup data file with buffer
     this->fdata.open(this->filename_dat, std::ios::out | std::ios_base::app);
     this->fdata.rdbuf()->pubsetbuf(this->data_buf, BUF_SZ);
-    std::cout << "Open file " << this->filename_dat << std::endl;
+    // std::cout << "Open file " << this->filename_dat << std::endl;
     // Setup csv file with buffer
     this->fcsv.open(this->filename_csv, std::ios::out);
     this->fcsv.rdbuf()->pubsetbuf(this->csv_buf, BUF_SZ);
-    std::cout << "Open file " << this->filename_csv << std::endl;
+    // std::cout << "Open file " << this->filename_csv << std::endl;
 
-    std::cout << "...opened files" << std::endl;
+    // std::cout << "...opened files" << std::endl;
 
     this->fcsv << this->csv_header << std::endl;
   }

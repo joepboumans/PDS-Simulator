@@ -64,7 +64,7 @@ int main() {
     // bfilter2.setupLogging();
     // stages.push_back(&bfilter2);
 
-    CountMin cm(32, 32, name_set, 0, 0);
+    CountMin cm(32, 10650, trace.size() * 0.0005 / 60, name_set, 0, 0);
     stages.push_back(&cm);
 
     Simulator sim(stages, stages.size(), 1);

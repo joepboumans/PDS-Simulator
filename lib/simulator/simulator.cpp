@@ -15,7 +15,7 @@ int Simulator::run(const TRACE &trace, unsigned int duration) {
   // Split into epochs for simulations
   for (size_t i = 0; i < num_pkts; i += (packets_per_epoch)) {
     int epoch = (int)i / packets_per_epoch;
-    std::cout << "\rEpoch: " << epoch << std::flush;
+    // std::cout << "\rEpoch: " << epoch << std::flush;
     if (i + packets_per_epoch < num_pkts) {
       this->insert(trace, i, i + packets_per_epoch);
     } else {

@@ -7,6 +7,7 @@
 #include "../../src/pds.h"
 #include <cstdint>
 #include <limits>
+#include <set>
 #include <sys/types.h>
 #include <vector>
 
@@ -18,8 +19,10 @@ public:
   uint32_t columns;
   uint32_t n_hash;
   string trace_name;
-  CountMin(uint32_t row, uint32_t columns, string trace, uint32_t n_stage,
-           uint32_t n_struct)
+  uint32_t hh_threshold;
+  std::set<string> HH_candidates;
+  CountMin(uint32_t row, uint32_t columns, uint32_t hh_threshold, string trace,
+           uint32_t n_stage, uint32_t n_struct)
       : PDS{trace, n_stage, n_struct},
         counters(row,
                  vector<Counter>(
@@ -27,6 +30,8 @@ public:
     // Assign defaults
     this->columns = columns;
     this->n_hash = row;
+    this->hh_threshold = hh_threshold;
+    // std::cout << "HH Threshold: " << hh_threshold << std::endl;
     this->trace_name = trace;
     this->mem_sz = row * columns * sizeof(uint32_t);
 
@@ -39,7 +44,7 @@ public:
     // Setup Hashing
     this->hash = new BOBHash32[this->n_hash];
     for (size_t i = 0; i < this->n_hash; i++) {
-      this->hash[i].initialize(n_struct * this->n_hash + i);
+      this->hash[i].initialize(750 + n_struct * this->n_hash + i);
     }
   }
   uint32_t insert(FIVE_TUPLE tuple);
@@ -47,8 +52,11 @@ public:
   uint32_t hashing(FIVE_TUPLE tuple, uint32_t k);
   void reset();
   void analyze(int epoch);
-  double average_absolute_error = 0;
-  double average_relative_error = 0;
+  double average_absolute_error = 0.0;
+  double average_relative_error = 0.0;
+  double f1 = 0.0;
+  double recall = 0.0;
+  double precision = 0.0;
   void store_data();
   void print_sketch();
 };

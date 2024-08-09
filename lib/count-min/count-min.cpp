@@ -9,24 +9,21 @@
 #include <cstdlib>
 #include <limits>
 #include <math.h>
-#include <numeric>
 #include <set>
 #include <sys/types.h>
-#include <vector>
 
 uint32_t CountMin::insert(FIVE_TUPLE tuple) {
   this->true_data[(string)tuple]++;
-  vector<uint32_t> hh_overflow(this->n_hash, false);
+  bool hh_overflow = true;
 
   for (size_t i = 0; i < this->n_hash; i++) {
     int hash_idx = this->hashing(tuple, i);
     this->counters[i][hash_idx].increment();
-    if (this->counters[i][hash_idx].count >= this->hh_threshold) {
-      hh_overflow[i] = 1;
+    if (this->counters[i][hash_idx].count < this->hh_threshold) {
+      hh_overflow = false;
     }
   }
-  if ((uint32_t)std::accumulate(hh_overflow.begin(), hh_overflow.end(), 0) ==
-      this->n_hash) {
+  if (hh_overflow) {
     this->HH_candidates.insert((string)tuple);
   }
   return 0;
@@ -74,7 +71,7 @@ void CountMin::analyze(int epoch) {
   int true_pos = 0, false_pos = 0, true_neg = 0, false_neg = 0;
   set<string> true_hh, true_not_hh;
   for (const auto &[s_tuple, count] : this->true_data) {
-    if (count >= this->hh_threshold) {
+    if (count > this->hh_threshold) {
       true_hh.insert(s_tuple);
       continue;
     }

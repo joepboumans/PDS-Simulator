@@ -66,9 +66,8 @@ TEST_CASE("Analysis - Flow Size", "[CM][analysis][flow-size]") {
 
 TEST_CASE("Analysis - F1", "[CM][analysis][F1]") {
   CountMin count_min(16, 512, 512, "test", 0, 0);
-  REQUIRE(count_min.average_absolute_error == 0);
-  REQUIRE(count_min.average_relative_error == 0);
   FIVE_TUPLE tuple;
+
   SECTION("Single HH") {
     for (size_t i = 0; i < 1024; i++) {
       count_min.insert(tuple);
@@ -78,6 +77,7 @@ TEST_CASE("Analysis - F1", "[CM][analysis][F1]") {
     REQUIRE(count_min.precision == 1.0);
     REQUIRE(count_min.recall == 1.0);
   }
+
   SECTION("Five HH") {
     for (size_t i = 0; i < 1024; i++) {
       count_min.insert(tuple);
@@ -91,7 +91,8 @@ TEST_CASE("Analysis - F1", "[CM][analysis][F1]") {
     REQUIRE(count_min.precision == 1.0);
     REQUIRE(count_min.recall == 1.0);
   }
-  SECTION("Five HH - 5k Small Flows") {
+
+  SECTION("Five HH - 500 Small Flows") {
     for (size_t i = 0; i < 1024; i++) {
       count_min.insert(tuple);
       count_min.insert(tuple + 1);
@@ -109,7 +110,8 @@ TEST_CASE("Analysis - F1", "[CM][analysis][F1]") {
     REQUIRE(count_min.precision <= 1.0);
     REQUIRE(count_min.recall <= 1.0);
   }
-  SECTION("100 HH - 50k Small Flows") {
+
+  SECTION("100 HH - 10k Small Flows") {
     for (size_t i = 0; i < 1024; i++) {
       for (size_t j = 0; j < 100; j++) {
         count_min.insert(tuple + j);

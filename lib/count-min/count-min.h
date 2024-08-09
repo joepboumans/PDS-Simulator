@@ -21,6 +21,7 @@ public:
   string trace_name;
   uint32_t hh_threshold;
   std::set<string> HH_candidates;
+
   CountMin(uint32_t row, uint32_t columns, uint32_t hh_threshold, string trace,
            uint32_t n_stage, uint32_t n_struct)
       : PDS{trace, n_stage, n_struct},
@@ -47,16 +48,19 @@ public:
       this->hash[i].initialize(750 + n_struct * this->n_hash + i);
     }
   }
+
   uint32_t insert(FIVE_TUPLE tuple);
   uint32_t lookup(FIVE_TUPLE tuple);
   uint32_t hashing(FIVE_TUPLE tuple, uint32_t k);
   void reset();
+
   void analyze(int epoch);
   double average_absolute_error = 0.0;
   double average_relative_error = 0.0;
   double f1 = 0.0;
   double recall = 0.0;
   double precision = 0.0;
+
   void store_data();
   void print_sketch();
 };

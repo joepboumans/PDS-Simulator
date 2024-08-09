@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <limits>
+#include <map>
 #include <math.h>
 #include <set>
 #include <sys/types.h>
@@ -115,6 +116,22 @@ void CountMin::analyze(int epoch) {
           this->precision, this->f1);
   std::cout << epoch << msg << std::endl;
   // Flow Size Distribution (Weighted Mean Relative Error)
+  double wmre = 0.0;
+  map<uint32_t, uint32_t> true_fsd;
+  map<uint32_t, uint32_t> e_fsd;
+  for (const auto &[tuple, count] : this->true_data) {
+    true_fsd[count]++;
+    e_fsd[this->lookup(tuple)]++;
+  }
+  double wmre_nom = 0.0;
+  double wmre_den = 0.0;
+  for (size_t i = 0; i < max(true_fsd.size(), e_fsd.size()); i++) {
+    uint32_t diff = true_fsd[i] - e_fsd[i];
+    wmre_nom += std::abs((double)diff);
+    wmre_den += (double)(true_fsd[i] + e_fsd[i]) / 2;
+  }
+  wmre = wmre_nom / wmre_den;
+  std::cout << "WMRE: " << wmre << std::endl;
 }
 
 void CountMin::reset() {

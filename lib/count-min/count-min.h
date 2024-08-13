@@ -1,10 +1,10 @@
 #ifndef _COUNT_MIN_H
 #define _COUNT_MIN_H
 
-#include "../BOBHash32.h"
-#include "../common.h"
-#include "../counter.h"
-#include "../pds.h"
+#include "../../src/BOBHash32.h"
+#include "../../src/common.h"
+#include "../../src/counter.h"
+#include "../../src/pds.h"
 #include <cstdint>
 #include <limits>
 #include <sys/types.h>

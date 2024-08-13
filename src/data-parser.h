@@ -18,10 +18,8 @@ public:
 
     // Verify if the trace is present or needs to be downloaded
     if (!this->check_for_traces()) {
-      int result = this->download_data_traces();
-      if (result != 0) {
-        return result;
-      }
+      std::cout << "Cannot find dataset " << this->filename << std::endl;
+      exit(1);
     }
 
     std::cout << "Found file, opening..." << std::endl;

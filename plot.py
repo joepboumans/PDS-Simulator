@@ -15,10 +15,12 @@ def plot_pds_stats(df, title, n_stage, n_struct, sz, dataset):
     fig.suptitle(f"{n_stage}.{n_struct} {title} {sz}KB\n {dataset}")
 
     # Plot data
-    axs[0].set_title("Performance metrics", fontsize=10)
-    df.plot(x = 'epoch', y = ["Recall", "Precision", "F1"], ax=axs[0])
-    axs[1].set_title("Recordings", fontsize=10)
-    df.plot(x = 'epoch', y = ["Total uniques", "Total found", "FP", "FN"], ax=axs[1])
+    if "F1" in df.columns:
+        axs[0].set_title("Performance metrics", fontsize=10)
+        df.plot(x = 'epoch', y = ["Recall", "Precision", "F1"], ax=axs[0])
+    if "Total uniques" in df.columns:
+        axs[1].set_title("Recordings", fontsize=10)
+        df.plot(x = 'epoch', y = ["Total uniques", "Total found", "FP", "FN"], ax=axs[1])
 
 
     # Store figures 
@@ -50,27 +52,7 @@ def parse_total_results(dfs, columns):
 
     return scores
 
-if __name__ == "__main__":
-    # Get results
-    csv_results = glob.glob("results/*.csv")
-
-    total_df = {}
-    columns = []
-    # Parse results
-    reg_string = r"\/(?P<data_name>.+)_(?P<name>\w+)_(?P<n_stage>\d+)_(?P<n_struct>\d+)_(?P<sz>\d+)"
-    for result in csv_results:
-        match = re.search(reg_string, result)
-        if not match:
-            print(f"[ERROR] Cannot parse name, skipping file {result}")
-            continue;
-        if match:
-            data_info = match.groupdict()
-            df = pd.read_csv(result) # epoch,total data,total pds,false pos,false neg,recall,precision,f1
-            plot_pds_stats(df, data_info['name'], data_info['n_stage'], data_info['n_struct'], data_info['sz'], data_info['data_name'])
-            total_df[f"{data_info['n_stage']}_{data_info['n_struct']}_{data_info['name']}_{data_info['sz']}_{data_info['data_name']}"] = df
-            columns = df.columns
-
-
+def plot_total_results(total_df, columns):
     scores = parse_total_results(total_df, columns)
     scores.pop('epoch')
     rows = len(scores) #math.ceil(len(scores)  / 3)
@@ -88,4 +70,36 @@ if __name__ == "__main__":
         # plt.title(param)
     plt.tight_layout()
     plt.savefig(f"{plot_dir}overview.png", transparent=True)
+
+if __name__ == "__main__":
+    # Get results
+    csv_results = glob.glob("results/*.csv")
+
+    # total_df = {}
+    amq_df = {}
+    amq_columns = []
+    fc_df = {}
+    fc_columns = []
+    # Parse results
+    reg_string = r"\/(?P<data_name>.+)_(?P<name>\w+)_(?P<n_stage>\d+)_(?P<n_struct>\d+)_(?P<sz>\d+)"
+    for result in csv_results:
+        match = re.search(reg_string, result)
+        if not match:
+            print(f"[ERROR] Cannot parse name, skipping file {result}")
+            continue;
+        if match:
+            data_info = match.groupdict()
+# "epoch,Average Relative Error,Average Absolute Error,Weighted Mean Relative Error,Recall,Precision,F1
+# epoch,total data,total pds,false pos,false neg,recall,precision,f1
+            df = pd.read_csv(result) 
+            # plot_pds_stats(df, data_info['name'], data_info['n_stage'], data_info['n_struct'], data_info['sz'], data_info['data_name'])
+            if "Average Relative Error" in df.columns:
+                fc_df[f"{data_info['n_stage']}_{data_info['n_struct']}_{data_info['name']}_{data_info['sz']}_{data_info['data_name']}"] = df
+                fc_columns = df.columns
+            else:
+                amq_df[f"{data_info['n_stage']}_{data_info['n_struct']}_{data_info['name']}_{data_info['sz']}_{data_info['data_name']}"] = df
+                amq_columns = df.columns
+
+    plot_total_results(amq_df, amq_columns)
+    plot_total_results(fc_df, fc_columns)
     plt.show()

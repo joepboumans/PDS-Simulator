@@ -5,19 +5,14 @@
 #include "common.h"
 #include "pds.h"
 #include <algorithm>
-#include <bitset>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <exception>
 #include <fstream>
-#include <ios>
 #include <iostream>
-#include <memory>
 #include <set>
-#include <stdexcept>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -114,25 +109,6 @@ public:
     }
     std::cout << std::endl;
     std::cout << "Total filled indexes: " << count << std::endl;
-  }
-
-  void store_data(int epoch) {
-    if (!this->fdata.is_open()) {
-      std::cout << "Cannot open file " << this->filename_dat << std::endl;
-      throw;
-    }
-    // Write epoch:
-    char msg[3];
-    sprintf(msg, "%i:", epoch);
-    this->fdata.write(msg, sizeof(msg));
-
-    // Print data to file
-    char buf[this->length];
-    std::copy(this->array.begin(), this->array.end(), buf);
-    this->fdata.write(buf, sizeof(buf));
-    char endl = '\n';
-    this->fdata.write(&endl, sizeof(endl));
-    return;
   }
 
   uint32_t insert(FIVE_TUPLE tuple) {

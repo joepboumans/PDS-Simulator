@@ -19,7 +19,8 @@ TEST_CASE("Constructor simulator", "[const][sim]") {
 
 TEST_CASE("Run simulator on BF", "[BF][sim]") {
   dataParser data_parser;
-  string data_set = "data/equinix-chicago.20160218-133000.UTC.dat";
+  string data_set =
+      "/workspace/master-thesis/data/equinix-chicago-20160121-130000.dat";
   TRACE trace;
   data_parser.get_traces(data_set.data(), trace);
   vector<PDS *> stage;
@@ -33,11 +34,12 @@ TEST_CASE("Run simulator on BF", "[BF][sim]") {
 
 TEST_CASE("Run simulator on CM-Sketch", "[CM][sim]") {
   dataParser data_parser;
-  string data_set = "data/equinix-chicago.20160218-133000.UTC.dat";
+  string data_set =
+      "/workspace/master-thesis/data/equinix-chicago-20160121-130000.dat";
   TRACE trace;
   data_parser.get_traces(data_set.data(), trace);
   vector<PDS *> stage;
-  CountMin cm(32, 1024, data_set, 0, 0);
+  CountMin cm(32, 1024, trace.size() * 0.0005 / 60, data_set, 0, 0);
   stage.push_back(&cm);
   Simulator simulator(stage, stage.size(), 1);
   simulator.run(trace, 60);

@@ -9,7 +9,6 @@
 #include <limits>
 #include <set>
 #include <sys/types.h>
-#include <vector>
 
 class CountMin : public PDS {
 public:
@@ -60,6 +59,7 @@ public:
   double f1 = 0.0;
   double recall = 0.0;
   double precision = 0.0;
+  double wmre = 0.0;
 
   void store_data();
   void print_sketch();

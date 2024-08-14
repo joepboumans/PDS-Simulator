@@ -1,4 +1,4 @@
-#include "../lib/count-min/count-min.h"
+#include "lib/count-min/count-min.h"
 #include <catch2/catch_test_macros.hpp>
 
 TEST_CASE("Smoke Test", "[smoke-test]") {
@@ -17,6 +17,7 @@ TEST_CASE("Analysis test", "[CM][analysis]") {
   REQUIRE(count_min.average_absolute_error == 0);
   REQUIRE(count_min.average_relative_error == 0);
   FIVE_TUPLE tuple;
+  count_min.insert(tuple);
   count_min.insert(tuple);
   count_min.analyze(0);
   REQUIRE(count_min.average_absolute_error == 0);

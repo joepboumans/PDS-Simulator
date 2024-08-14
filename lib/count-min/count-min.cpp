@@ -51,7 +51,7 @@ void CountMin::analyze(int epoch) {
   this->average_relative_error = 0;
   double n = this->true_data.size();
 
-  std::cout << std::endl;
+  // std::cout << std::endl;
 
   // Flow Size Estimation (Average Relative Error, Average Absolute Error)
   for (const auto &[s_tuple, count] : this->true_data) {
@@ -64,9 +64,9 @@ void CountMin::analyze(int epoch) {
 
   this->average_absolute_error = this->average_absolute_error / n;
   this->average_relative_error = this->average_relative_error / n;
-  std::cout << epoch << "\tAAE: " << this->average_absolute_error << std::endl;
-  std::cout << epoch << "\tARE: " << this->average_relative_error << std::endl;
-  std::cout << "n = " << n << std::endl;
+  // std::cout << epoch << "\tAAE: " << this->average_absolute_error <<
+  // std::endl; std::cout << epoch << "\tARE: " << this->average_relative_error
+  // << std::endl; std::cout << "n = " << n << std::endl;
 
   // Heavy Hitter Detection (F1 Score)
   int true_pos = 0, false_pos = 0, true_neg = 0, false_neg = 0;
@@ -94,11 +94,11 @@ void CountMin::analyze(int epoch) {
       false_pos++;
     }
   }
-  std::cout << epoch << " Heavy hitters" << std::endl;
-  char msg[200];
-  sprintf(msg, "\tTP:%i\tFP:%i\tTN:%i\tFN:%i", true_pos, false_pos, true_neg,
-          false_neg);
-  std::cout << epoch << msg << std::endl;
+  // std::cout << epoch << " Heavy hitters" << std::endl;
+  // char msg[200];
+  // sprintf(msg, "\tTP:%i\tFP:%i\tTN:%i\tFN:%i", true_pos, false_pos, true_neg,
+  //         false_neg);
+  // std::cout << epoch << msg << std::endl;
 
   if (true_pos == 0 && false_pos == 0) {
     this->recall = 1.0;
@@ -112,9 +112,9 @@ void CountMin::analyze(int epoch) {
   }
   this->f1 = 2 * ((recall * precision) / (precision + recall));
 
-  sprintf(msg, "\tRecall:%.3f\tPrecision:%.3f\tF1:%.3f", this->recall,
-          this->precision, this->f1);
-  std::cout << epoch << msg << std::endl;
+  // sprintf(msg, "\tRecall:%.3f\tPrecision:%.3f\tF1:%.3f", this->recall,
+  // this->precision, this->f1);
+  // std::cout << epoch << msg << std::endl;
   // Flow Size Distribution (Weighted Mean Relative Error)
   double wmre = 0.0;
   map<uint32_t, uint32_t> true_fsd;
@@ -131,7 +131,7 @@ void CountMin::analyze(int epoch) {
     wmre_den += (double)(true_fsd[i] + e_fsd[i]) / 2;
   }
   wmre = wmre_nom / wmre_den;
-  std::cout << "WMRE: " << wmre << std::endl;
+  // std::cout << "WMRE: " << wmre << std::endl;
 }
 
 void CountMin::reset() {

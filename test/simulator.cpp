@@ -24,7 +24,7 @@ TEST_CASE("Run simulator on BF", "[BF][sim]") {
   TRACE trace;
   data_parser.get_traces(data_set.data(), trace);
   vector<PDS *> stage;
-  BloomFilter bfilter(256 * 1024, 4, data_set, 0, 0);
+  BloomFilter bfilter(256 * 1024, 4, "sim", 0, 0);
   bfilter.setName();
   bfilter.setupLogging();
   stage.push_back(&bfilter);
@@ -39,7 +39,7 @@ TEST_CASE("Run simulator on CM-Sketch", "[CM][sim]") {
   TRACE trace;
   data_parser.get_traces(data_set.data(), trace);
   vector<PDS *> stage;
-  CountMin cm(32, 1024, trace.size() * 0.0005 / 60, data_set, 0, 0);
+  CountMin cm(32, 1024, trace.size() * 0.0005 / 60, "sim", 0, 0);
   stage.push_back(&cm);
   Simulator simulator(stage, stage.size(), 1);
   simulator.run(trace, 60);
@@ -57,7 +57,7 @@ TEST_CASE("Run simulator on BF->CM-Sketch", "[BF][CM][sim]") {
   bfilter.setupLogging();
   stages.push_back(&bfilter);
 
-  CountMin cm(64, 1024, trace.size() * 0.0005 / 60, "sim", 0, 0);
+  CountMin cm(128, 1024, trace.size() * 0.0005 / 60, "sim", 1, 0);
   stages.push_back(&cm);
 
   Simulator simulator(stages, stages.size(), 1);

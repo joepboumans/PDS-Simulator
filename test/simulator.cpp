@@ -44,3 +44,22 @@ TEST_CASE("Run simulator on CM-Sketch", "[CM][sim]") {
   Simulator simulator(stage, stage.size(), 1);
   simulator.run(trace, 60);
 }
+TEST_CASE("Run simulator on BF->CM-Sketch", "[BF][CM][sim]") {
+  dataParser data_parser;
+  string data_set = "data/equinix-chicago-20160121-130000.dat";
+  TRACE trace;
+  data_parser.get_traces(data_set.data(), trace);
+
+  vector<PDS *> stages;
+
+  BloomFilter bfilter(256 * 1024, 4, "sim", 0, 0);
+  bfilter.setName();
+  bfilter.setupLogging();
+  stages.push_back(&bfilter);
+
+  CountMin cm(64, 1024, trace.size() * 0.0005 / 60, "sim", 0, 0);
+  stages.push_back(&cm);
+
+  Simulator simulator(stages, stages.size(), 1);
+  simulator.run(trace, 60);
+}

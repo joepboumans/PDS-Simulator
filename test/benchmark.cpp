@@ -23,3 +23,20 @@ TEST_CASE("Benchmark BF", "[BF][Benchmark]") {
     simulator.run(trace, 60);
   }
 }
+
+TEST_CASE("Benchmark CM", "[CM][Benchmark]") {
+  dataParser data_parser;
+  string data_set = "data/equinix-chicago-20160121-130000.dat";
+  TRACE trace;
+  data_parser.get_traces(data_set.data(), trace);
+
+  SECTION("Run CM") {
+    auto sz = GENERATE(1, 8, 16, 32, 64, 128, 256, 512, 1024);
+
+    vector<PDS *> stage;
+    CountMin cm(sz, 1024, trace.size() * 0.0005 / 60, "benchmark", 0, 0);
+    stage.push_back(&cm);
+    Simulator simulator(stage, stage.size(), 1);
+    simulator.run(trace, 60);
+  }
+}

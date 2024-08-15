@@ -100,6 +100,8 @@ if __name__ == "__main__":
                 amq_df[f"{data_info['n_stage']}_{data_info['n_struct']}_{data_info['name']}_{data_info['sz']}_{data_info['data_name']}"] = df
                 amq_columns = df.columns
 
-    plot_total_results(amq_df, amq_columns)
-    plot_total_results(fc_df, fc_columns)
+    if amq_df:
+        plot_total_results(amq_df, amq_columns)
+    if fc_df:
+        plot_total_results(fc_df, fc_columns)
     plt.show()

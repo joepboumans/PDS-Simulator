@@ -141,6 +141,28 @@ struct FIVE_TUPLE {
     new_tuple.protocol += i;
     return new_tuple;
   }
+
+  FIVE_TUPLE operator^=(FIVE_TUPLE tup) {
+    *this = *this ^ tup;
+    return *this;
+  }
+
+  FIVE_TUPLE operator^(FIVE_TUPLE tup) {
+    for (size_t i = 0; i < 4; i++) {
+      this->srcIp[i] ^= tup.srcIp[i];
+    }
+    for (size_t i = 0; i < 4; i++) {
+      this->dstIp[i] ^= tup.dstIp[i];
+    }
+    for (size_t i = 0; i < 2; i++) {
+      this->srcPort[i] ^= tup.srcPort[i];
+    }
+    for (size_t i = 0; i < 2; i++) {
+      this->dstPort[i] ^= tup.dstPort[i];
+    }
+    this->protocol ^= tup.protocol;
+    return *this;
+  }
 };
 
 typedef vector<FIVE_TUPLE> TRACE;

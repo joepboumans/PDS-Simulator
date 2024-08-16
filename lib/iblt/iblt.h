@@ -3,29 +3,37 @@
 
 #include "../../src/BOBHash32.h"
 #include "../../src/common.h"
-#include "../../src/counter.h"
 #include "../../src/pds.h"
 #include <cstdint>
-#include <limits>
-#include <set>
 #include <sys/types.h>
+
+struct IBLT_entry {
+  uint32_t count;
+  FIVE_TUPLE tupleXOR;
+  uint32_t hashXOR;
+};
 
 class IBLT : public PDS {
 public:
   BOBHash32 *hash;
   uint32_t n_hash;
+  uint32_t length;
   string trace_name;
+  vector<IBLT_entry> table;
 
-  IBLT(uint32_t row, uint32_t columns, uint32_t hh_threshold, string trace,
-       uint32_t n_stage, uint32_t n_struct)
-      : PDS{trace, n_stage, n_struct} {
+  IBLT(uint32_t length, string trace, uint32_t k, uint32_t n_stage,
+       uint32_t n_struct)
+      : PDS{trace, n_stage, n_struct}, table(length) {
     // Assign defaults
+    this->n_hash = k;
+    this->length = length;
     this->trace_name = trace;
-    this->mem_sz = row * columns * sizeof(uint32_t);
+    // 4B Count + 13B tuple XOR + 4B Hash XOR
+    this->mem_sz = 21 * length;
 
     // Setup logging
-    this->csv_header = "epoch,Average Relative Error,Average Absolute "
-                       "Error,Weighted Mean Relative Error,Recall,Precision,F1";
+    this->csv_header =
+        "epoch,Total uniques,Total found,FP,FN,Recall,Precision,F1";
     this->name = "IBLT";
     this->setupLogging();
 

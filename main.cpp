@@ -1,4 +1,5 @@
 #include "lib/count-min/count-min.h"
+#include "lib/iblt/iblt.h"
 #include "lib/simulator/simulator.h"
 #include "src/bloomfilter.h"
 #include "src/common.h"
@@ -42,30 +43,27 @@ int main() {
       f.erase(j, dat.length());
     }
     data_traces[f] = traces[i++];
+    break;
   }
 
   std::cout << "------" << std::endl;
   std::cout << "Finished parsing data, starting simulations..." << std::endl;
   std::cout << "------" << std::endl;
-  // FCM_Sketch *fcmsketch = new FCM_Sketch(4, 0);
-  // stages.push_back(fcmsketch);
+
+  FIVE_TUPLE tup;
+  tup.protocol++;
+  std::cout << tup << std::endl;
+  FIVE_TUPLE tup1;
+  tup ^= tup1;
+  std::cout << tup << std::endl;
+  tup1.protocol++;
+  tup ^= tup1;
+  std::cout << tup << std::endl;
+  IBLT iblt(16, "test", 4, 0, 0);
 
   int n_trace = 0;
   for (const auto &[name_set, trace] : data_traces) {
     vector<PDS *> stages;
-
-    // LazyBloomFilter bfilter(1 * 256 * 1024, 4, name_set, 0, 0);
-    // bfilter.setName();
-    // bfilter.setupLogging();
-    // stages.push_back(&bfilter);
-    //
-    // BloomFilter bfilter2(1 * 256 * 1024, 4, name_set, 1, 1);
-    // bfilter2.setName();
-    // bfilter2.setupLogging();
-    // stages.push_back(&bfilter2);
-
-    CountMin cm(32, 10650, trace.size() * 0.0005 / 60, name_set, 0, 0);
-    stages.push_back(&cm);
 
     Simulator sim(stages, stages.size(), 1);
     // Default length of CAIDA traces is 60s

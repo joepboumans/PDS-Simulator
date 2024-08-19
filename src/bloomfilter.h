@@ -81,8 +81,7 @@ public:
     int false_pos = 0;
     int total_pkt = this->true_data.size();
     for (const auto &[s_tuple, count] : this->true_data) {
-      FIVE_TUPLE tup(s_tuple);
-      if (auto search = this->tuples.find((string)tup);
+      if (auto search = this->tuples.find(s_tuple);
           search != this->tuples.end()) {
         // Recorded correctly
       } else {

@@ -6,18 +6,21 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <iterator>
 #include <math.h>
+#include <ostream>
 #include <sys/types.h>
 
 uint32_t CuckooHash::insert(FIVE_TUPLE tuple) {
   this->true_data[(string)tuple]++;
-  FIVE_TUPLE prev_tuple = tuple;
   // If it is present CHT do not insert
   if (!this->lookup(tuple)) {
     // Not seen before, or out of table, considerd as new unique and send to
     // data plane
     this->tuples.insert((string)tuple);
     this->insertions++;
+
+    FIVE_TUPLE prev_tuple = tuple;
     for (size_t i = 0; i < this->n_tables; i++) {
       uint32_t idx = this->hashing(prev_tuple, i);
       FIVE_TUPLE empty = {};
@@ -26,8 +29,9 @@ uint32_t CuckooHash::insert(FIVE_TUPLE tuple) {
         this->tables[i][idx] = prev_tuple;
         return 0;
       } else {
-        prev_tuple = this->tables[i][idx];
+        FIVE_TUPLE tmp_tuple = this->tables[i][idx];
         this->tables[i][idx] = prev_tuple;
+        prev_tuple = tmp_tuple;
       }
     }
   }
@@ -37,7 +41,7 @@ uint32_t CuckooHash::insert(FIVE_TUPLE tuple) {
 uint32_t CuckooHash::hashing(FIVE_TUPLE key, uint32_t k) {
   char c_ftuple[sizeof(FIVE_TUPLE)];
   memcpy(c_ftuple, &key, sizeof(FIVE_TUPLE));
-  return this->hash[k].run(c_ftuple, 4) % this->length;
+  return this->hash[k].run(c_ftuple, sizeof(FIVE_TUPLE)) % this->length;
 }
 
 uint32_t CuckooHash::lookup(FIVE_TUPLE tuple) {
@@ -106,11 +110,12 @@ void CuckooHash::print_sketch() {
   sprintf(msg, "Printing Cuckoo Hash of %ix%i with mem sz %i", this->n_tables,
           this->length, this->mem_sz);
   std::cout << msg << std::endl;
-  for (size_t i = 0; i < this->n_tables; i++) {
-    std::cout << i << ":" << std::endl;
-    for (size_t l = 0; l < this->length; l++) {
-      std::cout << this->tables[i][l] << std::endl;
+  for (size_t l = 0; l < this->length; l++) {
+    std::cout << l << ":\t";
+    for (size_t i = 0; i < this->n_tables; i++) {
+      std::cout << this->tables[i][l] << "\t";
     }
+    std::cout << std::endl;
   }
 }
 #endif // !_CUCKOO_HASH_CPP

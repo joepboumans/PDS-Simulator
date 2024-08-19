@@ -12,6 +12,7 @@
 #include <glob.h>
 #include <iostream>
 #include <iterator>
+#include <ostream>
 #include <unordered_map>
 #include <vector>
 
@@ -55,7 +56,7 @@ int main() {
   for (const auto &[name_set, trace] : data_traces) {
     vector<PDS *> stages;
 
-    CuckooHash cuckoo(3, 1024 * 1024, name_set, 0, 0);
+    CuckooHash cuckoo(10, 1024, name_set, 0, 0);
     stages.push_back(&cuckoo);
     Simulator sim(stages, stages.size(), 1);
     // Default length of CAIDA traces is 60s

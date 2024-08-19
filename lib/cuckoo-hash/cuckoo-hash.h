@@ -15,6 +15,7 @@ public:
   vector<vector<FIVE_TUPLE>> tables;
   string trace_name;
   set<string> tuples;
+  uint32_t insertions = 0;
 
   CuckooHash(uint32_t n_tables, uint32_t length, string trace, uint32_t n_stage,
              uint32_t n_struct)
@@ -24,7 +25,7 @@ public:
     this->n_tables = n_tables;
     this->length = length;
     this->trace_name = trace;
-    this->mem_sz = length * n_tables * sizeof(uint32_t);
+    this->mem_sz = length * n_tables * 13;
 
     // Setup logging
     this->csv_header = "epoch,Insertions,Recall,Precision,F1";
@@ -47,7 +48,6 @@ public:
   double f1 = 0.0;
   double recall = 0.0;
   double precision = 0.0;
-  uint32_t insertions = 0;
 
   void store_data();
   void print_sketch();

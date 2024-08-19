@@ -29,9 +29,11 @@ public:
   uint32_t n;
   vector<bool> array;
   set<string> tuples;
+  uint32_t insertions = 0;
 
-  double avg_f1 = 0.0;
-  double avg_recall = 0.0;
+  double f1 = 0.0;
+  double recall = 0.0;
+  double precision = 0.0;
 
   BloomFilter(uint32_t sz, uint32_t k, string trace, uint32_t n_stage,
               uint32_t n_struct)
@@ -49,8 +51,7 @@ public:
     this->n = n_struct;
 
     // Setup logging
-    this->csv_header =
-        "epoch,Total uniques,Total found,FP,FN,Recall,Precision,F1";
+    this->csv_header = "epoch,Insertions,Recall,Precision,F1";
   }
 
   virtual void setName() { this->name = "BloomFilter"; }
@@ -74,29 +75,44 @@ public:
   void reset() {
     std::fill(this->array.begin(), this->array.end(), false);
     this->tuples.clear();
+    this->insertions = 0;
     this->true_data.clear();
   }
 
   void analyze(int epoch) {
-    int false_pos = 0;
-    int total_pkt = this->true_data.size();
+    int true_pos = 0, false_pos = 0, true_neg = 0, false_neg = 0;
     for (const auto &[s_tuple, count] : this->true_data) {
       if (auto search = this->tuples.find(s_tuple);
           search != this->tuples.end()) {
         // Recorded correctly
+        true_pos++;
       } else {
         false_pos++;
       }
     }
-    int true_pos = total_pkt - false_pos;
-    double recall = (double)true_pos / (true_pos + false_pos);
-    double precision = 1; // IN BF can never result in false negatives
-    double f1_score = 2 * ((recall * precision) / (precision + recall));
-    char msg[100];
+    // F1 Score
+    if (true_pos == 0 && false_pos == 0) {
+      this->recall = 1.0;
+    } else {
+      this->recall = (double)true_pos / (true_pos + false_pos);
+    }
+    if (true_neg == 0 && false_neg == 0) {
+      this->precision = 1.0;
+    } else {
+      this->precision = (double)true_neg / (true_neg + false_neg);
+    }
+    this->f1 = 2 * ((recall * precision) / (precision + recall));
 
-    sprintf(msg, "%i,%i,%zu,%i,%i,%.3f,%.3f,%.3f", epoch, total_pkt,
-            this->tuples.size(), false_pos, 0, recall, precision, f1_score);
-    this->fcsv << msg << std::endl;
+    char msg[100];
+    sprintf(msg, "\tInsertions:%i\tRecall:%.3f\tPrecision:%.3f\tF1:%.3f",
+            this->insertions, this->recall, this->precision, this->f1);
+    std::cout << msg;
+
+    // Save data into csv
+    char csv[300];
+    sprintf(csv, "%i,%i,%.3f,%.3f,%.3f", epoch, this->insertions, this->recall,
+            this->precision, this->f1);
+    this->fcsv << csv << std::endl;
   }
 
   void print_sketch() {
@@ -127,6 +143,7 @@ public:
     // Record unqiue tuples
     if (tuple_inserted) {
       tuples.insert((string)tuple);
+      this->insertions++;
       return 0;
     }
     return 1;

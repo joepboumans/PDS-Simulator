@@ -18,10 +18,9 @@ def plot_pds_stats(df, title, n_stage, n_struct, sz, dataset):
     if "F1" in df.columns:
         axs[0].set_title("Performance metrics", fontsize=10)
         df.plot(x = 'epoch', y = ["Recall", "Precision", "F1"], ax=axs[0])
-    if "Total uniques" in df.columns:
+    if "Insertions" in df.columns:
         axs[1].set_title("Recordings", fontsize=10)
-        df.plot(x = 'epoch', y = ["Total uniques", "Total found", "FP", "FN"], ax=axs[1])
-
+        df.plot(x = 'epoch', y = ["Insertions"], ax=axs[1])
 
     # Store figures 
     plt.savefig(f"{plot_dir}{dataset}_{n_stage}_{n_struct}_{title}_{sz}.png", transparent=True)

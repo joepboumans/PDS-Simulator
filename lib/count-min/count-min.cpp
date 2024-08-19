@@ -1,5 +1,5 @@
-#ifndef _SIMULATOR_CPP
-#define _SIMULATOR_CPP
+#ifndef _COUNT_MIN_CPP
+#define _COUNT_MIN_CPP
 
 #include "count-min.h"
 #include <algorithm>
@@ -161,4 +161,4 @@ void CountMin::print_sketch() {
     std::cout << std::endl;
   }
 }
-#endif // !_SIMULATOR_CPP
+#endif // !_COUNT_MIN_CPP

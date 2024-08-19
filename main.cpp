@@ -1,4 +1,5 @@
 #include "lib/count-min/count-min.h"
+#include "lib/cuckoo-hash/cuckoo-hash.h"
 #include "lib/iblt/iblt.h"
 #include "lib/simulator/simulator.h"
 #include "src/bloomfilter.h"
@@ -50,21 +51,12 @@ int main() {
   std::cout << "Finished parsing data, starting simulations..." << std::endl;
   std::cout << "------" << std::endl;
 
-  FIVE_TUPLE tup;
-  tup.protocol++;
-  std::cout << tup << std::endl;
-  FIVE_TUPLE tup1;
-  tup ^= tup1;
-  std::cout << tup << std::endl;
-  tup1.protocol++;
-  tup ^= tup1;
-  std::cout << tup << std::endl;
-  IBLT iblt(16, "test", 4, 0, 0);
-
   int n_trace = 0;
   for (const auto &[name_set, trace] : data_traces) {
     vector<PDS *> stages;
 
+    CuckooHash cuckoo(3, 1024 * 1024, name_set, 0, 0);
+    stages.push_back(&cuckoo);
     Simulator sim(stages, stages.size(), 1);
     // Default length of CAIDA traces is 60s
     sim.run(trace, 60);

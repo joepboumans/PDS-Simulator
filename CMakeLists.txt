@@ -9,10 +9,11 @@ set(CMAKE_SOURCE_DIR ${CMAKE_HOME_DIRECTORY}/src)
 add_subdirectory(lib/count-min)
 add_subdirectory(lib/simulator)
 add_subdirectory(lib/iblt)
+add_subdirectory(lib/cuckoo-hash)
 include_directories(${CMAKE_SOURCE_DIR})
 
 add_executable(main main.cpp)
-target_link_libraries(main lib-count-min lib-simulator lib-iblt)
+target_link_libraries(main lib-count-min lib-simulator lib-iblt lib-cuckoo-hash)
 target_include_directories(main PUBLIC ${CMAKE_SOURCE_DIR}
                                        ${CMAKE_HOME_DIRECTORY})
 target_compile_options(main PRIVATE -Wall -O3)
@@ -35,7 +36,8 @@ foreach(name ${tests})
   # "*src/${basename}/*.cpp" "*src/${basename}/*.h") endif()
   add_executable("${basename}" test/${name} ${deps})
   target_link_libraries(${basename} PRIVATE Catch2::Catch2WithMain)
-  target_link_libraries(${basename} PUBLIC lib-count-min lib-simulator lib-iblt)
+  target_link_libraries(${basename} PUBLIC lib-count-min lib-simulator lib-iblt
+                                           lib-cuckoo-hash)
   target_include_directories(${basename} PUBLIC ${CMAKE_SOURCE_DIR}
                                                 ${CMAKE_HOME_DIRECTORY})
   include(CTest)

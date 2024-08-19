@@ -150,18 +150,39 @@ struct FIVE_TUPLE {
   FIVE_TUPLE operator^(FIVE_TUPLE tup) {
     for (size_t i = 0; i < 4; i++) {
       this->srcIp[i] ^= tup.srcIp[i];
-    }
-    for (size_t i = 0; i < 4; i++) {
       this->dstIp[i] ^= tup.dstIp[i];
     }
     for (size_t i = 0; i < 2; i++) {
       this->srcPort[i] ^= tup.srcPort[i];
-    }
-    for (size_t i = 0; i < 2; i++) {
       this->dstPort[i] ^= tup.dstPort[i];
     }
     this->protocol ^= tup.protocol;
     return *this;
+  }
+
+  bool operator==(const FIVE_TUPLE &rhs) {
+
+    if (this->protocol != rhs.protocol) {
+      return false;
+    }
+
+    for (size_t i = 0; i < 4; i++) {
+      if (this->srcIp[i] != rhs.srcIp[i]) {
+        return false;
+      }
+      if (this->dstIp[i] != rhs.dstIp[i]) {
+        return false;
+      }
+    }
+    for (size_t i = 0; i < 2; i++) {
+      if (this->srcPort[i] != rhs.srcPort[i]) {
+        return false;
+      }
+      if (this->dstPort[i] != rhs.dstPort[i]) {
+        return false;
+      }
+    }
+    return true;
   }
 };
 

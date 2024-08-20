@@ -14,32 +14,32 @@ class CountMin : public PDS {
 public:
   BOBHash32 *hash;
   vector<vector<Counter>> counters;
-  uint32_t row;
-  uint32_t columns;
   uint32_t n_hash;
   string trace_name;
   uint32_t hh_threshold;
   std::set<string> HH_candidates;
 
-  CountMin(uint32_t row, uint32_t columns, uint32_t hh_threshold, string trace,
+  CountMin(uint32_t rows, uint32_t columns, uint32_t hh_threshold, string trace,
            uint32_t n_stage, uint32_t n_struct)
       : PDS{trace, n_stage, n_struct},
-        counters(row,
+        counters(rows,
                  vector<Counter>(
                      columns, Counter(std::numeric_limits<uint32_t>::max()))) {
     // Assign defaults
     this->columns = columns;
-    this->n_hash = row;
+    this->n_hash = rows;
     this->hh_threshold = hh_threshold;
     // std::cout << "HH Threshold: " << hh_threshold << std::endl;
     this->trace_name = trace;
-    this->mem_sz = row * columns * sizeof(uint32_t);
+    this->mem_sz = rows * columns * sizeof(uint32_t);
 
     // Setup logging
     this->csv_header = "epoch,Average Relative Error,Average Absolute "
                        "Error,Weighted Mean Relative Error,Recall,Precision,F1";
     this->name = "CountMin";
     this->setupLogging();
+    this->columns = columns;
+    this->rows = rows;
 
     // Setup Hashing
     this->hash = new BOBHash32[this->n_hash];

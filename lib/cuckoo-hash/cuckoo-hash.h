@@ -30,6 +30,8 @@ public:
     // Setup logging
     this->csv_header = "epoch,Insertions,Recall,Precision,F1";
     this->name = "CuckooHash";
+    this->rows = n_tables;
+    this->columns = length;
     this->setupLogging();
 
     // Setup Hashing

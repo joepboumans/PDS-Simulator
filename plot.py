@@ -5,6 +5,15 @@ import re
 import math
 
 
+def sort_names(names):
+    new_names = []
+    for name in names:
+        new_names.append(name.split("_"))
+    new_names = sorted(new_names, key = lambda x: (x[0], x[1], x[2], int(x[3]), int(x[4])) if len(x) > 4 else (x[0], x[1], x[2], int(x[3])), reverse=True)
+    new_names = ["_".join(name) for name in new_names]
+
+    return new_names
+
 plot_dir = "plots/"
 
 def plot_pds_stats(df, title, n_stage, n_struct, sz, dataset):
@@ -46,7 +55,7 @@ def parse_total_results(dfs, columns):
         for c in score.columns:
             clean_scores[c] = score[c].dropna().reset_index(drop=True)
         score = clean_scores
-        score = score.reindex(sorted(score.columns, reverse=True), axis=1)
+        score = score.reindex(sort_names(score.columns), axis=1)
         scores[column]= score
 
     return scores
@@ -80,7 +89,7 @@ if __name__ == "__main__":
     fc_df = {}
     fc_columns = []
     # Parse results
-    reg_string = r"\/(?P<data_name>.+)_(?P<name>\w+)_(?P<n_stage>\d+)_(?P<n_struct>\d+)_(?P<sz>\d+)"
+    reg_string = r"\/(?P<data_name>[^_]+?)_(?P<name>\w+?)_(?P<n_stage>\d+)_(?P<n_struct>\d+)_(?P<sz>(?P<row>\d+)_(?P<col>\d+)|\d+)"
     for result in csv_results:
         match = re.search(reg_string, result)
         if not match:
@@ -92,12 +101,21 @@ if __name__ == "__main__":
 # epoch,total data,total pds,false pos,false neg,recall,precision,f1
             df = pd.read_csv(result) 
             # plot_pds_stats(df, data_info['name'], data_info['n_stage'], data_info['n_struct'], data_info['sz'], data_info['data_name'])
-            if "Average Relative Error" in df.columns:
-                fc_df[f"{data_info['n_stage']}_{data_info['n_struct']}_{data_info['name']}_{data_info['sz']}_{data_info['data_name']}"] = df
-                fc_columns = df.columns
+            
+            if data_info['row']:
+                if "Average Relative Error" in df.columns:
+                    fc_df[f"{data_info['n_stage']}_{data_info['n_struct']}_{data_info['name']}_{data_info['row']}_{data_info['col']}_{data_info['data_name']}"] = df
+                    fc_columns = df.columns
+                else:
+                    amq_df[f"{data_info['n_stage']}_{data_info['n_struct']}_{data_info['name']}_{data_info['row']}_{data_info['col']}_{data_info['data_name']}"] = df
+                    amq_columns = df.columns
             else:
-                amq_df[f"{data_info['n_stage']}_{data_info['n_struct']}_{data_info['name']}_{data_info['sz']}_{data_info['data_name']}"] = df
-                amq_columns = df.columns
+                if "Average Relative Error" in df.columns:
+                    fc_df[f"{data_info['n_stage']}_{data_info['n_struct']}_{data_info['name']}_{data_info['sz']}_{data_info['data_name']}"] = df
+                    fc_columns = df.columns
+                else:
+                    amq_df[f"{data_info['n_stage']}_{data_info['n_struct']}_{data_info['name']}_{data_info['sz']}_{data_info['data_name']}"] = df
+                    amq_columns = df.columns
 
     if amq_df:
         plot_total_results(amq_df, amq_columns)

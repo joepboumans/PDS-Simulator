@@ -15,6 +15,8 @@ public:
   string name = "NOT SET";
   string trace_name = "NOT SET";
   uint32_t mem_sz;
+  uint32_t rows;
+  uint32_t columns;
   uint32_t n_stage;
   uint32_t n_struct;
 
@@ -63,16 +65,21 @@ public:
   void setName(string in) { this->name = in; }
   virtual void setName() { this->name = "NOT SET"; }
   void setupLogging() {
-    sprintf(this->filename_csv, "results/%s_%s_%i_%i_%i.csv",
-            this->trace_name.c_str(), this->name.c_str(), this->n_stage,
-            this->n_struct, this->mem_sz);
+    if (this->rows == 0) {
+      sprintf(this->filename_csv, "results/%s_%s_%i_%i_%i.csv",
+              this->trace_name.c_str(), this->name.c_str(), this->n_stage,
+              this->n_struct, this->mem_sz);
+    } else {
+      sprintf(this->filename_csv, "results/%s_%s_%i_%i_%i_%i.csv",
+              this->trace_name.c_str(), this->name.c_str(), this->n_stage,
+              this->n_struct, this->rows, this->columns);
+    }
     // Remove previous csv file
     std::remove(filename_csv);
 
     // Setup csv file with buffer
     this->fcsv.open(this->filename_csv, std::ios::out);
     this->fcsv.rdbuf()->pubsetbuf(this->csv_buf, BUF_SZ);
-    // std::cout << "Open file " << this->filename_csv << std::endl;
 
     this->fcsv << this->csv_header << std::endl;
   }

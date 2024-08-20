@@ -30,7 +30,7 @@ TEST_CASE("Benchmark CHT", "[CHT][Benchmark]") {
   TRACE trace;
   data_parser.get_traces(data_set.data(), trace);
 
-  auto tables = GENERATE(3, 5, 8, 16, 32);
+  auto tables = GENERATE(2, 3, 4, 8, 16, 32);
   SECTION("Run CHT") {
     auto sz = GENERATE(1024, 4 * 1024, 8 * 1024, 16 * 1024);
     vector<PDS *> stage;

@@ -14,7 +14,7 @@ public:
   uint32_t n_tables;
   vector<vector<FIVE_TUPLE>> tables;
   string trace_name;
-  set<string> tuples;
+  set<FIVE_TUPLE> tuples;
   uint32_t insertions = 0;
 
   CuckooHash(uint32_t n_tables, uint32_t length, string trace, uint32_t n_stage,

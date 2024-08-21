@@ -4,14 +4,13 @@
 #include "common.h"
 #include <cstdint>
 #include <fstream>
-#include <set>
 #include <unordered_map>
 
 #define BUF_SZ 1024 * 1024
 
 class PDS {
 public:
-  std::unordered_map<string, uint32_t> true_data;
+  std::unordered_map<FIVE_TUPLE, uint32_t, tupleHash> true_data;
   string name = "NOT SET";
   string trace_name = "NOT SET";
   uint32_t mem_sz;

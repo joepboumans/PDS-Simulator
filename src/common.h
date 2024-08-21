@@ -1,6 +1,7 @@
 #ifndef _COMMON_H
 #define _COMMON_H
 
+#include "BOBHash32.h"
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
@@ -11,6 +12,7 @@
 #include <iterator>
 #include <limits>
 #include <ostream>
+#include <set>
 #include <unordered_map>
 #include <vector>
 using std::string;
@@ -40,7 +42,7 @@ struct FIVE_TUPLE {
               << "|" << protocol;
   }
 
-  explicit operator string() {
+  operator string() {
     char c_ftuple[sizeof(FIVE_TUPLE)];
     memcpy(c_ftuple, this, sizeof(FIVE_TUPLE));
     string s_ftuple;
@@ -160,7 +162,8 @@ struct FIVE_TUPLE {
     return *this;
   }
 
-  bool operator==(const FIVE_TUPLE &rhs) {
+  auto operator<=>(const FIVE_TUPLE &) const = default;
+  bool operator==(const FIVE_TUPLE &rhs) const {
 
     if (this->protocol != rhs.protocol) {
       return false;
@@ -183,6 +186,16 @@ struct FIVE_TUPLE {
       }
     }
     return true;
+  }
+};
+
+struct tupleHash {
+  std::size_t operator()(const FIVE_TUPLE &k) const {
+    using std::size_t;
+    BOBHash32 hasher(750);
+    char c_ftuple[sizeof(FIVE_TUPLE)];
+    memcpy(c_ftuple, &k, sizeof(FIVE_TUPLE));
+    return hasher.run(c_ftuple, 4);
   }
 };
 

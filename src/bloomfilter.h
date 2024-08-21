@@ -17,6 +17,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #define BUF_SZ 1024 * 1024
@@ -28,7 +29,7 @@ public:
   uint32_t length;
   uint32_t n;
   vector<bool> array;
-  set<string> tuples;
+  unordered_set<FIVE_TUPLE, tupleHash> tuples;
   uint32_t insertions = 0;
 
   double f1 = 0.0;

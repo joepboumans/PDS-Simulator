@@ -7,7 +7,6 @@
 #include "../../src/pds.h"
 #include <cstdint>
 #include <limits>
-#include <set>
 #include <sys/types.h>
 
 class CountMin : public PDS {
@@ -18,7 +17,7 @@ public:
   string trace_name;
 
   uint32_t hh_threshold;
-  std::set<string> HH_candidates;
+  std::unordered_set<FIVE_TUPLE, tupleHash> HH_candidates;
 
   CountMin(uint32_t rows, uint32_t columns, uint32_t hh_threshold, string trace,
            uint32_t n_stage, uint32_t n_struct)

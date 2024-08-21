@@ -11,17 +11,14 @@ add_subdirectory(lib/fcm-sketch)
 add_subdirectory(lib/simulator)
 add_subdirectory(lib/iblt)
 add_subdirectory(lib/cuckoo-hash)
-# Added custom hash, not ideal setup like this TODO: Integrate with design
-add_subdirectory(/home/joep/xxHash/cmake_unofficial/ /home/joep/xxHash/build/
-                 EXCLUDE_FROM_ALL)
 include_directories(${CMAKE_SOURCE_DIR})
 
-find_package(xxHash NAMES xxhash xxHash REQUIRED)
+# Added custom hash, not ideal setup like this TODO: Integrate with design
+find_package(xxHash CONFIG REQUIRED)
 
 add_executable(main main.cpp)
-target_link_libraries(main PUBLIC xxHash::xxhash)
-target_link_libraries(main PRIVATE lib-count-min lib-fcm-sketch lib-simulator
-                                   lib-iblt lib-cuckoo-hash)
+target_link_libraries(main PUBLIC xxHash::xxhash lib-count-min lib-fcm-sketch
+                                  lib-simulator lib-iblt lib-cuckoo-hash)
 target_include_directories(main PUBLIC ${CMAKE_SOURCE_DIR}
                                        ${CMAKE_HOME_DIRECTORY})
 target_compile_options(main PRIVATE -Wall -O3)

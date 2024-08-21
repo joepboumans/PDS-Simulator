@@ -2,6 +2,7 @@
 #define _COMMON_H
 
 #include "BOBHash32.h"
+#include "xxhash.h"
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
@@ -195,7 +196,9 @@ struct tupleHash {
     static BOBHash32 hasher(750);
     static char c_ftuple[sizeof(FIVE_TUPLE)];
     memcpy(c_ftuple, &k, sizeof(FIVE_TUPLE));
-    return hasher.run(c_ftuple, 4);
+
+    // return XXH32(c_ftuple, sizeof(FIVE_TUPLE), 0);
+    return hasher.run(c_ftuple, sizeof(FIVE_TUPLE));
   }
 };
 

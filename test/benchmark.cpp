@@ -65,23 +65,10 @@ TEST_CASE("Benchmark FCM Sketch", "[FCM][Benchmark]") {
   TRACE trace;
   data_parser.get_traces(data_set.data(), trace);
 
-  SECTION("Run small roots for FCM") {
-    auto stages = GENERATE(3, 5, 8);
-    SECTION("Run FCM") {
-      auto roots = GENERATE(4, 8, 16, 32, 64);
-
-      vector<PDS *> stage;
-      FCM_Sketch fcm(roots, stages, 8, trace.size() * 0.0005 / 60, "benchmark",
-                     0, 0);
-      stage.push_back(&fcm);
-      Simulator simulator(stage, stage.size(), 1);
-      simulator.run(trace, 60);
-    }
-  }
-  SECTION("Run bigger roots with limited stages") {
-    auto stages = GENERATE(2, 3, 4, 5, 6);
-    SECTION("Run FCM") {
-      auto roots = GENERATE(4, 8, 16, 32, 64, 128);
+  SECTION("Run FCM") {
+    auto stages = GENERATE(3, 4, 5, 6, 8);
+    SECTION("Run with increasing amount of roots") {
+      auto roots = GENERATE(8, 16, 32, 64, 128);
 
       vector<PDS *> stage;
       FCM_Sketch fcm(roots, stages, 8, trace.size() * 0.0005 / 60, "benchmark",

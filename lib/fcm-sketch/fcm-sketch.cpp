@@ -14,9 +14,9 @@ uint32_t FCM_Sketch::hashing(FIVE_TUPLE key, uint32_t k) {
 uint32_t FCM_Sketch::insert(FIVE_TUPLE tuple) {
   this->true_data[(string)tuple]++;
 
+  uint32_t hash_idx = this->hashing(tuple, 0);
+  uint32_t c = 0;
   for (size_t s = 0; s < n_stages; s++) {
-    uint32_t hash_idx = this->hashing(tuple, s);
-    uint32_t c = 0;
     Counter *curr_counter = &this->stages[s][hash_idx];
     if (curr_counter->overflow) {
       // Check for complete overflow
@@ -24,7 +24,7 @@ uint32_t FCM_Sketch::insert(FIVE_TUPLE tuple) {
         return 1;
       }
       c += curr_counter->count;
-      // hash_idx = hash_idx >> this->k;
+      hash_idx = hash_idx / this->k;
       continue;
     }
     curr_counter->increment();
@@ -36,6 +36,27 @@ uint32_t FCM_Sketch::insert(FIVE_TUPLE tuple) {
   }
   return 0;
 }
+
+uint32_t FCM_Sketch::lookup(FIVE_TUPLE tuple) {
+  uint32_t hash_idx = this->hashing(tuple, 0);
+  uint32_t c = 0;
+  for (size_t s = 0; s < n_stages; s++) {
+    Counter *curr_counter = &this->stages[s][hash_idx];
+    if (curr_counter->overflow) {
+      // Check for complete overflow
+      if (s == n_stages - 1) {
+        return -1;
+      }
+      c += curr_counter->count;
+      hash_idx = hash_idx / this->k;
+      continue;
+    }
+    c += curr_counter->count;
+    return c;
+  }
+  return -1;
+}
+
 void FCM_Sketch::print_sketch() {
   for (size_t s = 0; s < n_stages; s++) {
     std::cout << "Stage " << s << " with " << this->stages_sz[s] << " counters"
@@ -74,21 +95,20 @@ void FCM_Sketch::analyze(int epoch) {
   map<uint32_t, uint32_t> true_fsd;
   map<uint32_t, uint32_t> e_fsd;
 
-  for (const auto &[s_tuple, count] : this->true_data) {
+  for (const auto &[tuple, count] : this->true_data) {
     // // Flow Size Distribution (Weighted Mean Relative Error)
     // true_fsd[count]++;
     // e_fsd[this->lookup(s_tuple)]++;
     //
     // // Flow Size Estimation (Average Relative Error, Average Absolute Error)
-    // FIVE_TUPLE tuple(s_tuple);
-    // int diff = count - this->lookup(tuple);
-    //
-    // this->average_absolute_error += std::abs(diff);
-    // this->average_relative_error += ((double)std::abs(diff) / count);
+    int diff = count - this->lookup(tuple);
+
+    this->average_absolute_error += std::abs(diff);
+    this->average_relative_error += ((double)std::abs(diff) / count);
 
     // Heavy Hitter Detection (F1 Score)
     if (count > this->hh_threshold) {
-      if (auto search = this->HH_candidates.find(s_tuple);
+      if (auto search = this->HH_candidates.find(tuple);
           search != this->HH_candidates.end()) {
         true_pos++;
       } else {
@@ -96,16 +116,15 @@ void FCM_Sketch::analyze(int epoch) {
       }
       continue;
     }
-    if (auto search = this->HH_candidates.find(s_tuple);
+    if (auto search = this->HH_candidates.find(tuple);
         search == this->HH_candidates.end()) {
       true_neg++;
     } else {
       false_pos++;
     }
   }
-  //
-  // this->average_absolute_error = this->average_absolute_error / n;
-  // this->average_relative_error = this->average_relative_error / n;
+  this->average_absolute_error = this->average_absolute_error / n;
+  this->average_relative_error = this->average_relative_error / n;
 
   // Heavy Hitter Detection (F1 Score)
   if (true_pos == 0 && false_pos == 0) {
@@ -120,11 +139,13 @@ void FCM_Sketch::analyze(int epoch) {
   }
   this->f1 = 2 * ((recall * precision) / (precision + recall));
 
-  // char msg[200];
-  // sprintf(msg, "\tTP:%i\tFP:%i\tRecall:%.3f\tPrecision:%.3f\tF1:%.3f",
-  // true_pos,
-  //         false_pos, this->recall, this->precision, this->f1);
-  // std::cout << epoch << msg << std::endl;
+  char msg[200];
+  sprintf(msg,
+          "\tTP:%i\tFP:%i\tRecall:%.3f\tPrecision:%.3f\tF1:%.3f\tAAE:%.3f\tARE:"
+          "%.3f",
+          true_pos, false_pos, this->recall, this->precision, this->f1,
+          this->average_absolute_error, this->average_relative_error);
+  std::cout << msg;
   // Save data into csv
   char csv[300];
   sprintf(csv, "%i,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f", epoch,

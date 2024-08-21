@@ -49,6 +49,7 @@ public:
       max_counter[i] = max_count;
       n_roots *= k;
       max_count = max_count >> max_bits;
+      std::cout << max_count << std::endl;
       max_bits /= 2;
     }
 
@@ -67,12 +68,12 @@ public:
       for (size_t j = 0; j < this->stages_sz[i]; j++) {
         this->stages[i].push_back(Counter(max_counter[i]));
       }
-      std::cout << this->stages[i][0].count << std::endl;
     }
   }
 
   uint32_t insert(FIVE_TUPLE tuple);
   uint32_t hashing(FIVE_TUPLE tuple, uint32_t k);
+  uint32_t lookup(FIVE_TUPLE tuple);
   void reset();
 
   void analyze(int epoch);

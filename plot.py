@@ -71,6 +71,8 @@ def plot_total_results(total_df, columns):
         if param == "epoch":
             continue
         fig2, ax = plt.subplots(figsize=(9,9))
+        if param == "Average Relative Error" or param == "Average Absolute Error":
+            ax.set_xscale('log')
         ax.set_title(param)
         score.plot.box(ax=ax, vert=False, grid=True)
         ax.set_yticklabels(ax.get_yticklabels(), fontsize=8)

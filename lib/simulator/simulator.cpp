@@ -1,6 +1,7 @@
 #ifndef _SIMULATOR_CPP
 #define _SIMULATOR_CPP
 #include "simulator.h"
+#include <chrono>
 #include <cmath>
 #include <iostream>
 
@@ -13,6 +14,7 @@ int Simulator::run(const TRACE &trace, unsigned int duration) {
             << " p/s over " << duration / this->epoch_len << " epochs"
             << std::endl;
 
+  auto start = std::chrono::high_resolution_clock::now();
   // Split into epochs for simulations
   for (size_t i = 0; i < num_pkts; i += (packets_per_epoch)) {
     int epoch = (int)i / packets_per_epoch;
@@ -31,7 +33,10 @@ int Simulator::run(const TRACE &trace, unsigned int duration) {
       p->reset();
     }
   }
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto time = duration_cast<std::chrono::milliseconds>(stop - start);
   std::cout << std::endl;
+  std::cout << "Finished data set with time: " << time << std::endl;
 
   return 0;
 }

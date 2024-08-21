@@ -78,7 +78,7 @@ def plot_total_results(total_df, columns):
         ax.set_yticklabels(ax.get_yticklabels(), fontsize=8)
         # plt.title(param)
         plt.tight_layout()
-        plt.savefig(f"{plot_dir}overview.png", transparent=True)
+        plt.savefig(f"{plot_dir}{param}_overview.png", transparent=True)
 
 if __name__ == "__main__":
     # Get results

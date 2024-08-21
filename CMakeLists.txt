@@ -18,7 +18,7 @@ target_link_libraries(main lib-count-min lib-fcm-sketch lib-simulator lib-iblt
                       lib-cuckoo-hash)
 target_include_directories(main PUBLIC ${CMAKE_SOURCE_DIR}
                                        ${CMAKE_HOME_DIRECTORY})
-target_compile_options(main PRIVATE -Wall -O0)
+target_compile_options(main PRIVATE -Wall -O3)
 
 # https://github.com/catchorg/Catch2/blob/devel/docs/cmake-integration.md#installing-catch2-from-git-repository
 find_package(Catch2 3 REQUIRED)

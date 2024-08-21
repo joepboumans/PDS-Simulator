@@ -40,7 +40,7 @@ def parse_total_results(dfs, columns):
     for column in columns:
         score = pd.DataFrame()
         for name, df in dfs.items():
-            reg_name = r"(?P<name>\d+_\d+_\w+_\d+)"
+            reg_name = r"(?P<name>\d+_\d+_[\w-]+_\d+)"
             match = re.search(reg_name, name)
             if not match:
                 print(f"[ERROR] Cannot parse name, skipping data {name}")
@@ -89,7 +89,7 @@ if __name__ == "__main__":
     fc_df = {}
     fc_columns = []
     # Parse results
-    reg_string = r"\/(?P<data_name>[^_]+?)_(?P<name>\w+?)_(?P<n_stage>\d+)_(?P<n_struct>\d+)_(?P<sz>(?P<row>\d+)_(?P<col>\d+)|\d+)"
+    reg_string = r"\/(?P<data_name>[^_]+?)_(?P<name>[\w-]+?)_(?P<n_stage>\d+)_(?P<n_struct>\d+)_(?P<sz>(?P<row>\d+)_(?P<col>\d+)|\d+)"
     for result in csv_results:
         match = re.search(reg_string, result)
         if not match:

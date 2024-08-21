@@ -26,6 +26,7 @@ int Simulator::run(const TRACE &trace, unsigned int duration) {
     // Store data, analyze data and reset the PDS
     for (auto p : this->pds) {
       // p->store_data(epoch);
+      // p->print_sketch();
       p->analyze(epoch);
       p->reset();
     }

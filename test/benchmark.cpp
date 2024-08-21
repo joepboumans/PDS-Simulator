@@ -1,5 +1,6 @@
 #include "lib/count-min/count-min.h"
 #include "lib/cuckoo-hash/cuckoo-hash.h"
+#include "lib/fcm-sketch/fcm-sketch.h"
 #include "lib/simulator/simulator.h"
 #include "src/bloomfilter.h"
 #include "src/data-parser.h"
@@ -53,6 +54,23 @@ TEST_CASE("Benchmark CM", "[CM][Benchmark]") {
     vector<PDS *> stage;
     CountMin cm(sz, 1024, trace.size() * 0.0005 / 60, "benchmark", 0, 0);
     stage.push_back(&cm);
+    Simulator simulator(stage, stage.size(), 1);
+    simulator.run(trace, 60);
+  }
+}
+
+TEST_CASE("Benchmark FCM Sketch", "[FCM][Benchmark]") {
+  dataParser data_parser;
+  string data_set = "data/equinix-chicago-20160121-130000.dat";
+  TRACE trace;
+  data_parser.get_traces(data_set.data(), trace);
+
+  SECTION("Run FCM") {
+    auto roots = GENERATE(4, 8, 16, 32, 64, 128, 256);
+
+    vector<PDS *> stage;
+    FCM_Sketch fcm(roots, 3, 8, trace.size() * 0.0005 / 60, "benchmark", 0, 0);
+    stage.push_back(&fcm);
     Simulator simulator(stage, stage.size(), 1);
     simulator.run(trace, 60);
   }

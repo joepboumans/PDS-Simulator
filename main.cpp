@@ -1,11 +1,11 @@
 #include "lib/count-min/count-min.h"
 #include "lib/cuckoo-hash/cuckoo-hash.h"
+#include "lib/fcm-sketch/fcm-sketch.h"
 #include "lib/iblt/iblt.h"
 #include "lib/simulator/simulator.h"
 #include "src/bloomfilter.h"
 #include "src/common.h"
 #include "src/data-parser.h"
-#include "src/fcmsketch.h"
 #include <cstddef>
 #include <cstdio>
 #include <cstring>
@@ -52,16 +52,16 @@ int main() {
   std::cout << "Finished parsing data, starting simulations..." << std::endl;
   std::cout << "------" << std::endl;
 
-  int n_trace = 0;
   for (const auto &[name_set, trace] : data_traces) {
     vector<PDS *> stages;
 
-    CuckooHash cuckoo(10, 1024, name_set, 0, 0);
-    stages.push_back(&cuckoo);
+    // CuckooHash cuckoo(10, 1024, name_set, 0, 0);
+    // stages.push_back(&cuckoo);
+    FCM_Sketch fcm(3, 3, 8, name_set, 0, 0);
+    stages.push_back(&fcm);
     Simulator sim(stages, stages.size(), 1);
     // Default length of CAIDA traces is 60s
     sim.run(trace, 60);
-    n_trace++;
   }
 
   std::cout << "------" << std::endl;

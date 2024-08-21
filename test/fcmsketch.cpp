@@ -1,4 +1,4 @@
-#include "../src/fcmsketch.h"
+#include "lib/fcm-sketch/fcm-sketch.h"
 #include <catch2/catch_test_macros.hpp>
 #include <typeinfo>
 
@@ -8,6 +8,6 @@ TEST_CASE("Smoke Test", "[smoke-test]") {
 }
 
 TEST_CASE("Constructor FCM", "[const-fcm]") {
-  FCM_Sketch fcmsketch(3, "test", 0, 0);
+  FCM_Sketch fcmsketch(3, 3, 8, "test", 0, 0);
   REQUIRE(typeid(fcmsketch) == typeid(FCM_Sketch));
 }

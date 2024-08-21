@@ -2,6 +2,7 @@
 #define _SIMULATOR_CPP
 #include "simulator.h"
 #include <cmath>
+#include <iostream>
 
 int Simulator::run(const TRACE &trace, unsigned int duration) {
   unsigned long num_pkts = trace.size();

@@ -192,13 +192,12 @@ struct FIVE_TUPLE {
 
 struct tupleHash {
   std::size_t operator()(const FIVE_TUPLE &k) const {
-    using std::size_t;
-    static BOBHash32 hasher(750);
+    // static BOBHash32 hasher(750);
     static char c_ftuple[sizeof(FIVE_TUPLE)];
     memcpy(c_ftuple, &k, sizeof(FIVE_TUPLE));
 
-    // return XXH32(c_ftuple, sizeof(FIVE_TUPLE), 0);
-    return hasher.run(c_ftuple, sizeof(FIVE_TUPLE));
+    return XXH32(c_ftuple, sizeof(FIVE_TUPLE), 0);
+    // return hasher.run(c_ftuple, sizeof(FIVE_TUPLE));
   }
 };
 

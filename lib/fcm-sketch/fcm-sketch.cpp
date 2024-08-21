@@ -6,7 +6,7 @@
 #include <map>
 
 uint32_t FCM_Sketch::hashing(FIVE_TUPLE key, uint32_t k) {
-  char c_ftuple[sizeof(FIVE_TUPLE)];
+  static char c_ftuple[sizeof(FIVE_TUPLE)];
   memcpy(c_ftuple, &key, sizeof(FIVE_TUPLE));
   return hash.run(c_ftuple, sizeof(FIVE_TUPLE)) % this->stages_sz[k];
 }

@@ -6,6 +6,7 @@
 #include "src/bloomfilter.h"
 #include "src/common.h"
 #include "src/data-parser.h"
+#include <chrono>
 #include <cstddef>
 #include <cstdio>
 #include <cstring>
@@ -53,8 +54,8 @@ int main() {
   std::cout << "------" << std::endl;
 
   for (const auto &[name_set, trace] : data_traces) {
+    auto start = std::chrono::high_resolution_clock::now();
     vector<PDS *> stages;
-
     // CuckooHash cuckoo(10, 1024, name_set, 0, 0);
     // stages.push_back(&cuckoo);
     FCM_Sketch fcm(256, 5, 8, trace.size() * 0.0005 / 60, name_set, 0, 0);
@@ -62,6 +63,9 @@ int main() {
     Simulator sim(stages, stages.size(), 1);
     // Default length of CAIDA traces is 60s
     sim.run(trace, 60);
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = duration_cast<std::chrono::milliseconds>(stop - start);
+    std::cout << "Finished data set with time: " << duration << std::endl;
   }
 
   std::cout << "------" << std::endl;

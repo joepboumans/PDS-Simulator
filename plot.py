@@ -63,20 +63,20 @@ def parse_total_results(dfs, columns):
 def plot_total_results(total_df, columns):
     scores = parse_total_results(total_df, columns)
     scores.pop('epoch')
-    rows = len(scores) #math.ceil(len(scores)  / 3)
-    fig2, axes = plt.subplots(rows, 1, figsize=(10,15))
-    plt.subplots_adjust(wspace=0.5, hspace=0.5)
+    # rows = len(scores) #math.ceil(len(scores)  / 3)
+    # fig2, axes = plt.subplots(rows, 1, figsize=(10,15))
+    # plt.subplots_adjust(wspace=0.5, hspace=0.5)
 
     for (param, score),i in zip(scores.items(), range(len(scores))):
         if param == "epoch":
             continue
-        ax = axes[i]
+        fig2, ax = plt.subplots(figsize=(9,9))
         ax.set_title(param)
         score.plot.box(ax=ax, vert=False, grid=True)
         ax.set_yticklabels(ax.get_yticklabels(), fontsize=8)
         # plt.title(param)
-    plt.tight_layout()
-    plt.savefig(f"{plot_dir}overview.png", transparent=True)
+        plt.tight_layout()
+        plt.savefig(f"{plot_dir}overview.png", transparent=True)
 
 if __name__ == "__main__":
     # Get results

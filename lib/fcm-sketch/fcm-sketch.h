@@ -30,11 +30,12 @@ public:
              uint32_t n_struct)
       : PDS(trace, n_stage, n_struct), stages(n_stages), stages_sz(n_stages) {
 
-    // Defaultss and hash
+    // Defaults and hash
     this->hash.initialize(750 + n_struct);
     this->k = k;
     this->n_stages = n_stages;
     this->hh_threshold = hh_threshold;
+    this->columns = n_roots;
 
     // Calculate max count for counters and length of each stage
     // Maximum 32 bit counter
@@ -51,6 +52,16 @@ public:
       max_bits /= 2;
     }
 
+    // Setup logging
+    this->csv_header = "epoch,Average Relative Error,Average Absolute "
+                       "Error,Weighted Mean Relative Error,Recall,Precision,F1";
+    this->name = "FCM-Sketch";
+    this->trace_name = trace;
+    this->rows = n_stages;
+    this->mem_sz = mem / 8;
+    // std::cout << "Total memory used: " << this->mem_sz << std::endl;
+    this->setupLogging();
+
     // Setup stages accoording to k * n_roots over the stages
     for (size_t i = 0; i < n_stages; i++) {
       for (size_t j = 0; j < this->stages_sz[i]; j++) {
@@ -58,17 +69,6 @@ public:
       }
       std::cout << this->stages[i][0].count << std::endl;
     }
-
-    // Setup logging
-    this->csv_header = "epoch,Average Relative Error,Average Absolute "
-                       "Error,Weighted Mean Relative Error,Recall,Precision,F1";
-    this->name = "FCM-Sketch";
-    this->trace_name = trace;
-    this->columns = n_roots;
-    this->rows = n_stages;
-    this->mem_sz = mem / 8;
-    // std::cout << "Total memory used: " << this->mem_sz << std::endl;
-    this->setupLogging();
   }
 
   uint32_t insert(FIVE_TUPLE tuple);

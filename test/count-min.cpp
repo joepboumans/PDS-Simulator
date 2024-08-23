@@ -28,7 +28,7 @@ TEST_CASE("Analysis test", "[CM][analysis]") {
 }
 
 TEST_CASE("Analysis - Flow Size", "[CM][analysis][flow-size]") {
-  CountMin count_min(32, 1024, 1024 * 1024 * 10 + 5000 * 3, "test", 0, 0);
+  CountMin count_min(10, 1024, 1024 * 1024 * 10 + 5000 * 3, "test", 0, 0);
   REQUIRE(count_min.average_absolute_error == 0);
   REQUIRE(count_min.average_relative_error == 0);
   FIVE_TUPLE tuple;

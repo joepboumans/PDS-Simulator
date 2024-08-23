@@ -47,8 +47,8 @@ public:
       mem += n_roots * max_bits;
       this->stages_sz[i] = n_roots;
       max_counter[i] = max_count;
-      std::cout << i << ":Number of roots: " << n_roots << std::endl;
-      std::cout << i << ":Max counter: " << max_count << std::endl;
+      // std::cout << i << ":Number of roots: " << n_roots << std::endl;
+      // std::cout << i << ":Max counter: " << max_count << std::endl;
       n_roots *= k;
       max_bits /= 2;
       max_count = max_count >> max_bits;
@@ -84,6 +84,7 @@ public:
   double recall = 0.0;
   double precision = 0.0;
   double wmre = 0.0;
+  void get_distribution();
 
   void store_data();
   void print_sketch();

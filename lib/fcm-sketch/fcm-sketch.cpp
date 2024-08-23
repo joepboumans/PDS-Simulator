@@ -139,18 +139,52 @@ void FCM_Sketch::analyze(int epoch) {
   }
   this->f1 = 2 * ((recall * precision) / (precision + recall));
 
-  char msg[200];
-  sprintf(msg,
-          "\tTP:%i\tFP:%i\tRecall:%.3f\tPrecision:%.3f\tF1:%.3f\tAAE:%.3f\tARE:"
-          "%.3f",
-          true_pos, false_pos, this->recall, this->precision, this->f1,
-          this->average_absolute_error, this->average_relative_error);
-  std::cout << msg;
+  this->get_distribution();
+  this->print_sketch();
+  // char msg[200];
+  // sprintf(msg,
+  //         "\tTP:%i\tFP:%i\tRecall:%.3f\tPrecision:%.3f\tF1:%.3f\tAAE:%.3f\tARE:"
+  //         "%.3f",
+  //         true_pos, false_pos, this->recall, this->precision, this->f1,
+  //         this->average_absolute_error, this->average_relative_error);
+  // std::cout << msg;
   // Save data into csv
   char csv[300];
   sprintf(csv, "%i,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f", epoch,
           this->average_relative_error, this->average_absolute_error,
           this->wmre, this->recall, this->precision, this->f1);
   this->fcsv << csv << std::endl;
+}
+
+void FCM_Sketch::get_distribution() {
+  // stage, idx, count
+  vector<vector<uint32_t>> summary(this->n_stages);
+  vector<vector<uint32_t>> virtual_counters(this->n_stages);
+
+  for (size_t stage = 0; stage < this->n_stages; stage++) {
+    summary[stage].resize(this->stages_sz[stage], 0);
+
+    for (size_t i = 0; i < this->stages_sz[stage]; i++) {
+      summary[stage][i] = this->stages[stage][i].count;
+      if (stage > 0) {
+        // Add overflow from previous stages
+        for (size_t k = 0; k < this->k; k++) {
+          if (this->stages[stage - 1][i * this->k + k].overflow) {
+            summary[stage][i] += summary[stage - 1][i * this->k + k];
+          }
+        }
+      }
+      // Last overflow, add to VCs with degree of stage
+      if (!this->stages[stage][i].overflow && summary[stage][i] > 0) {
+        virtual_counters[stage].push_back(summary[stage][i]);
+      }
+    }
+  }
+
+  for (size_t st = 0; st < virtual_counters.size(); st++) {
+    for (auto &val : virtual_counters[st]) {
+      std::cout << "Degree " << st << ":" << val << std::endl;
+    }
+  }
 }
 #endif // !_FCM_SKETCH_CPP

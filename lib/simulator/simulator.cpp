@@ -32,6 +32,7 @@ int Simulator::run(const TRACE &trace, unsigned int duration) {
       p->analyze(epoch);
       p->reset();
     }
+    exit(0);
   }
   auto stop = std::chrono::high_resolution_clock::now();
   auto time = duration_cast<std::chrono::milliseconds>(stop - start);

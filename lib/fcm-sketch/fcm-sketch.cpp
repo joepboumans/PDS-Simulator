@@ -2,6 +2,7 @@
 #define _FCM_SKETCH_CPP
 
 #include "fcm-sketch.h"
+#include "EM_FCM.h"
 #include <cstdint>
 #include <map>
 
@@ -140,7 +141,9 @@ void FCM_Sketch::analyze(int epoch) {
   this->f1 = 2 * ((recall * precision) / (precision + recall));
 
   this->get_distribution();
-  this->print_sketch();
+
+  EM_FCM<0, 2048, 255, 65535> *em_fsd_algo =
+      new EM_FCM<0, 2048, 255, 65535>(); // new
   // char msg[200];
   // sprintf(msg,
   //         "\tTP:%i\tFP:%i\tRecall:%.3f\tPrecision:%.3f\tF1:%.3f\tAAE:%.3f\tARE:"

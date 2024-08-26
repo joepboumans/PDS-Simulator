@@ -1,4 +1,4 @@
-#include "lib/fcm-sketch/fcm-sketch.h"
+#include "lib/fcm-sketch/fcm-sketch.hpp"
 #include <catch2/catch_test_macros.hpp>
 #include <typeinfo>
 

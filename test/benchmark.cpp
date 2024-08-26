@@ -1,6 +1,6 @@
 #include "lib/count-min/count-min.h"
 #include "lib/cuckoo-hash/cuckoo-hash.h"
-#include "lib/fcm-sketch/fcm-sketch.h"
+#include "lib/fcm-sketch/fcm-sketch.hpp"
 #include "lib/simulator/simulator.h"
 #include "src/bloomfilter.h"
 #include "src/data-parser.h"

@@ -1,10 +1,14 @@
 #ifndef _FCM_SKETCH_CPP
 #define _FCM_SKETCH_CPP
 
-#include "fcm-sketch.h"
+#include "fcm-sketch.hpp"
 #include "EM_FCM.h"
+#include <algorithm>
+#include <cmath>
 #include <cstdint>
+#include <iterator>
 #include <map>
+#include <vector>
 
 uint32_t FCM_Sketch::hashing(FIVE_TUPLE key, uint32_t k) {
   static char c_ftuple[sizeof(FIVE_TUPLE)];
@@ -160,34 +164,55 @@ void FCM_Sketch::analyze(int epoch) {
 }
 
 void FCM_Sketch::get_distribution() {
-  // stage, idx, count
-  vector<vector<uint32_t>> summary(this->n_stages);
-  vector<vector<uint32_t>> virtual_counters(this->n_stages);
+  // stage, idx, (count, degree)
+  vector<vector<vector<uint32_t>>> summary(this->n_stages);
+  // degree, idx, count
+  vector<vector<uint32_t>> virtual_counters(std::pow(this->k, this->n_stages));
+  // stage, idx of entry, idx of merging paths/predecessors
+  // vector<vector<vector<uint32_t>>> colliding_paths(this->n_stages);
+  uint32_t max_counter_value = 0;
 
   for (size_t stage = 0; stage < this->n_stages; stage++) {
-    summary[stage].resize(this->stages_sz[stage], 0);
+    summary[stage].resize(this->stages_sz[stage], vector<uint32_t>(2, 0));
 
     for (size_t i = 0; i < this->stages_sz[stage]; i++) {
-      summary[stage][i] = this->stages[stage][i].count;
+      summary[stage][i][0] = this->stages[stage][i].count;
+      summary[stage][i][1] = 1;
+      max_counter_value =
+          std::max(max_counter_value, this->stages[stage][i].count);
+
       if (stage > 0) {
         // Add overflow from previous stages
         for (size_t k = 0; k < this->k; k++) {
-          if (this->stages[stage - 1][i * this->k + k].overflow) {
-            summary[stage][i] += summary[stage - 1][i * this->k + k];
+          uint32_t child_idx = i * this->k + k;
+          if (this->stages[stage - 1][child_idx].overflow) {
+            // Add childs degree and count
+            summary[stage][i][1] += summary[stage - 1][child_idx][1];
+            summary[stage][i][0] += summary[stage - 1][child_idx][0];
+            // colliding_paths[stage][i].push_back(child_idx);
           }
         }
       }
-      // Last overflow, add to VCs with degree of stage
-      if (!this->stages[stage][i].overflow && summary[stage][i] > 0) {
-        virtual_counters[stage].push_back(summary[stage][i]);
+
+      // If not overflowing and not 0, add to VCs with degree
+      if (!this->stages[stage][i].overflow && summary[stage][i][0] > 0) {
+        virtual_counters[summary[stage][i][1]].push_back(summary[stage][i][0]);
       }
     }
   }
 
   for (size_t st = 0; st < virtual_counters.size(); st++) {
-    for (auto &val : virtual_counters[st]) {
-      std::cout << "Degree " << st << ":" << val << std::endl;
+    if (virtual_counters[st].size() == 0) {
+      continue;
     }
+    std::cout << "Degree: " << st << std::endl;
+    for (auto &val : virtual_counters[st]) {
+      std::cout << " " << val;
+    }
+    std::cout << std::endl;
   }
 }
+
+void FCM_Sketch::init_MLE(vector<vector<uint32_t>> virtual_counters,
+                          vector<vector<vector<uint32_t>>> colliding_paths) {}
 #endif // !_FCM_SKETCH_CPP

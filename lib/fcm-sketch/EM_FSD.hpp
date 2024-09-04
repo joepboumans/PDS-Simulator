@@ -162,11 +162,12 @@ public:
                     vector<vector<uint32_t>> counters, uint32_t w0) {
 
     this->max_counter_value = max_counter_value;
+    max_degree += 1;
     this->max_degree = max_degree;
 
-    counter_dist.resize(max_degree + 1);
+    counter_dist.resize(max_degree);
     for (size_t d = 0; d < max_degree; d++) {
-      counter_dist[d].resize(max_counter_value + 1);
+      counter_dist[d].resize(max_counter_value);
       std::fill(counter_dist[d].begin(), counter_dist[d].end(), 0);
     }
     // Inital guess for # of flows
@@ -188,7 +189,7 @@ public:
     }
     ns.resize(max_counter_value + 1);
     for (size_t d = 0; d < max_degree; d++) {
-      for (size_t i = 1; i < counter_dist.size(); ++i) {
+      for (size_t i = 0; i < counter_dist.size(); i++) {
         dist_new[i] += counter_dist[d][i] / double(w - counter_dist[d][0]);
         ns[i] += counter_dist[d][i];
       }
@@ -204,33 +205,33 @@ public:
     nt.resize(max_degree + 1);
     std::fill(ns.begin(), ns.end(), 0);
 
-    // std::thread threads[max_degree];
-    // for (size_t t = 0; t < max_degree; t++) {
-    //   threads[t] = std::thread(&EMFSD_ld::calculate_single_degree, *this,
-    //                            std::ref(nt[t]), t);
-    // }
-    // for (size_t t = 0; t < max_degree; t++) {
-    //   threads[t].join();
-    // }
-
-    for (size_t d = 0; d < max_degree; d++) {
-      this->calculate_single_degree(nt[d], d);
+    std::thread threads[max_degree];
+    for (size_t t = 0; t < max_degree; t++) {
+      threads[t] = std::thread(&EMFSD_ld::calculate_single_degree, *this,
+                               std::ref(nt[t]), t);
     }
+    for (size_t t = 0; t < max_degree; t++) {
+      threads[t].join();
+    }
+
+    // for (size_t d = 0; d < max_degree; d++) {
+    //   this->calculate_single_degree(nt[d], d);
+    // }
 
     n_new = 0.0;
     for (size_t d = 0; d < max_degree; d++) {
-      for (uint32_t i = 1; i < max_counter_value; i++) {
+      for (uint32_t i = 0; i < max_counter_value; i++) {
         ns[i] += nt[d][i];
         n_new += nt[d][i];
       }
     }
-    for (uint32_t i = 1; i < max_counter_value; i++) {
+    for (uint32_t i = 0; i < max_counter_value; i++) {
       dist_new[i] = ns[i] / n_new;
     }
-    for (auto &x : ns) {
-      std::cout << x << " ";
-    }
-    std::cout << std::endl;
+    //   for (auto &x : ns) {
+    //     std::cout << x << " ";
+    //   }
+    //   std::cout << std::endl;
   }
 };
 

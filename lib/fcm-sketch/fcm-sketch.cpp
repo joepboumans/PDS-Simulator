@@ -207,6 +207,9 @@ vector<double> FCM_Sketch::get_distribution() {
 
       // If not overflowing and not 0, add to VCs with degree
       if (!this->stages[stage][i].overflow && summary[stage][i][0] > 0) {
+        if (stage == 0) {
+          summary[stage][i][1] -= 1;
+        }
         virtual_counters[summary[stage][i][1]].push_back(summary[stage][i][0]);
         max_counter_value = std::max(max_counter_value, summary[stage][i][0]);
         max_degree = std::max(max_degree, summary[stage][i][1]);
@@ -224,6 +227,7 @@ vector<double> FCM_Sketch::get_distribution() {
   //   }
   //   std::cout << std::endl;
   // }
+  std::cout << "Maximum degree is: " << max_degree << std::endl;
 
   EMFSD_ld EM;
   EM.set_counters(max_counter_value, max_degree, virtual_counters,

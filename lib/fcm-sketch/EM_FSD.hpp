@@ -164,35 +164,33 @@ public:
     this->max_counter_value = max_counter_value;
     this->max_degree = max_degree;
 
-    this->counter_dist.resize(max_degree + 1);
+    counter_dist.resize(max_degree + 1);
     for (size_t d = 0; d < max_degree; d++) {
-      this->counter_dist[d].resize(max_counter_value + 1);
-      std::fill(this->counter_dist[d].begin(), this->counter_dist[d].end(), 0);
+      counter_dist[d].resize(max_counter_value + 1);
+      std::fill(counter_dist[d].begin(), counter_dist[d].end(), 0);
     }
     // Inital guess for # of flows
     // double n_new = 0.0; // # of flows (Cardinality)
     for (size_t d = 0; d < max_degree; d++) {
       n_new += counters[d].size();
       for (size_t i = 0; i < counters[d].size(); i++) {
-        this->counter_dist[d][counters[d][i]]++;
+        counter_dist[d][counters[d][i]]++;
       }
     }
-    this->w = w0;
+    w = w0;
 
     // Inital guess for Flow Size Distribution (Phi)
-    this->dist_new.resize(max_counter_value + 1);
-    // this->dist_old.resize(max_counter_value + 1);
+    dist_new.resize(max_counter_value + 1);
     for (auto &degree : counters) {
       for (auto count : degree) {
-        this->dist_new[count]++;
+        dist_new[count]++;
       }
     }
-    this->ns.resize(max_counter_value + 1);
+    ns.resize(max_counter_value + 1);
     for (size_t d = 0; d < max_degree; d++) {
-      for (size_t i = 1; i < this->counter_dist.size(); ++i) {
-        this->dist_new[i] += this->counter_dist[d][i] /
-                             double(this->w - this->counter_dist[d][0]);
-        this->ns[i] += this->counter_dist[d][i];
+      for (size_t i = 1; i < counter_dist.size(); ++i) {
+        dist_new[i] += counter_dist[d][i] / double(w - counter_dist[d][0]);
+        ns[i] += counter_dist[d][i];
       }
     }
   }

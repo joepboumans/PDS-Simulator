@@ -182,6 +182,7 @@ vector<double> FCM_Sketch::get_distribution() {
   // degree, idx, count
   vector<vector<uint32_t>> virtual_counters(std::pow(this->k, this->n_stages));
   uint32_t max_counter_value = 0;
+  uint32_t max_degree = 0;
 
   for (size_t stage = 0; stage < this->n_stages; stage++) {
     summary[stage].resize(this->stages_sz[stage], vector<uint32_t>(2, 0));
@@ -208,6 +209,7 @@ vector<double> FCM_Sketch::get_distribution() {
       if (!this->stages[stage][i].overflow && summary[stage][i][0] > 0) {
         virtual_counters[summary[stage][i][1]].push_back(summary[stage][i][0]);
         max_counter_value = std::max(max_counter_value, summary[stage][i][0]);
+        max_degree = std::max(max_degree, summary[stage][i][1]);
       }
     }
   }
@@ -223,7 +225,8 @@ vector<double> FCM_Sketch::get_distribution() {
   //   std::cout << std::endl;
   // }
   EMFSD_ld EM;
-  EM.set_counters(max_counter_value, virtual_counters, this->stages_sz[0]);
+  EM.set_counters(max_counter_value, max_degree, virtual_counters,
+                  this->stages_sz[0]);
   EM.next_epoch();
   return EM.ns;
 }

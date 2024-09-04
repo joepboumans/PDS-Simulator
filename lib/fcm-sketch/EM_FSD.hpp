@@ -3,7 +3,10 @@
 
 #include <cmath>
 #include <cstdint>
+#include <functional>
 #include <iostream>
+#include <numeric>
+#include <thread>
 #include <unistd.h>
 #include <unordered_map>
 #include <vector>
@@ -145,25 +148,21 @@ private:
       }
     }
 
-    n_new = 0.0;
-    for (uint32_t i = 1; i < counter_dist[xi].size(); i++) {
-      n_new += ns[i];
-    }
-    for (uint32_t i = 1; i < counter_dist[xi].size(); i++) {
-      dist_new[i] = ns[i] / n_new;
-    }
-
-    n_sum = n_new;
+    double accum = std::accumulate(nt.begin(), nt.end(), 0.0);
+    if (counter_dist[xi].size() != 0)
+      printf("[EM_FCM] ******** degree %2d is "
+             "finished...(accum:%10.1f) **********\n",
+             xi, accum);
   }
 
 public:
   EMFSD_ld() {}
 
-  void set_counters(uint32_t max_counter_value,
+  void set_counters(uint32_t max_counter_value, uint32_t max_degree,
                     vector<vector<uint32_t>> counters, uint32_t w0) {
 
     this->max_counter_value = max_counter_value;
-    this->max_degree = counters.size();
+    this->max_degree = max_degree;
 
     this->counter_dist.resize(max_degree + 1);
     for (size_t d = 0; d < max_degree; d++) {
@@ -199,18 +198,26 @@ public:
   }
 
   void next_epoch() {
+    double lambda = n_old / double(w);
     dist_old = dist_new;
     n_old = n_new;
 
-    double lambda = n_old / double(w);
-
-    std::fill(ns.begin(), ns.end(), 0);
     vector<vector<double>> nt;
     nt.resize(max_degree + 1);
+    std::fill(ns.begin(), ns.end(), 0);
 
-    for (size_t d = 0; d < max_degree; d++) {
-      this->calculate_single_degree(nt[d], d);
+    std::thread threads[max_degree];
+    for (size_t t = 0; t < max_degree; t++) {
+      threads[t] = std::thread(&EMFSD_ld::calculate_single_degree, *this,
+                               std::ref(nt[t]), t);
     }
+    for (size_t t = 0; t < max_degree; t++) {
+      threads[t].join();
+    }
+
+    // for (size_t d = 0; d < max_degree; d++) {
+    //   this->calculate_single_degree(nt[d], d);
+    // }
     n_new = 0.0;
     for (size_t d = 0; d < max_degree; d++) {
       for (uint32_t i = 1; i < max_counter_value; i++) {
@@ -222,10 +229,10 @@ public:
       dist_new[i] = ns[i] / n_new;
     }
     n_sum = n_new;
-    // for (auto &x : ns) {
-    //   std::cout << x << " ";
-    // }
-    // std::cout << std::endl;
+    for (auto &x : ns) {
+      std::cout << x << " ";
+    }
+    std::cout << std::endl;
   }
 };
 

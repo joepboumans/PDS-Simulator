@@ -212,20 +212,19 @@ vector<double> FCM_Sketch::get_distribution() {
     }
   }
 
-  for (size_t st = 0; st < virtual_counters.size(); st++) {
-    if (virtual_counters[st].size() == 0) {
-      continue;
-    }
-    std::cout << "Degree: " << st << std::endl;
-    for (auto &val : virtual_counters[st]) {
-      std::cout << " " << val;
-    }
-    std::cout << std::endl;
-  }
+  // for (size_t st = 0; st < virtual_counters.size(); st++) {
+  //   if (virtual_counters[st].size() == 0) {
+  //     continue;
+  //   }
+  //   std::cout << "Degree: " << st << std::endl;
+  //   for (auto &val : virtual_counters[st]) {
+  //     std::cout << " " << val;
+  //   }
+  //   std::cout << std::endl;
+  // }
   EMFSD_ld EM;
-  EM.set_counters(max_counter_value, virtual_counters);
+  EM.set_counters(max_counter_value, virtual_counters, this->stages_sz[0]);
   EM.next_epoch();
-  vector<double> result = EM.ns;
-  return result;
+  return EM.ns;
 }
 #endif // !_FCM_SKETCH_CPP

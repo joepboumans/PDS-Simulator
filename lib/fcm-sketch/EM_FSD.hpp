@@ -13,9 +13,9 @@ using std::vector;
 
 // Degree = 1
 class EMFSD_ld {
-  uint32_t w;                        // width of counters
-  vector<uint32_t> counter_dist;     // initial counter values
-  vector<double> dist_old, dist_new; // for ratio \phi
+  uint32_t w;                            // width of counters
+  vector<vector<uint32_t>> counter_dist; // initial counter values
+  vector<double> dist_old, dist_new;     // for ratio \phi
 public:
   vector<double> ns; // for integer n
   double n_sum;      // n_new
@@ -24,6 +24,7 @@ public:
 
 private:
   double n_old, n_new; // cardinality
+  uint32_t max_counter_value, max_degree;
 
   struct BetaGenerator {
     int sum;
@@ -120,49 +121,14 @@ private:
     return ret;
   }
 
-public:
-  EMFSD_ld() {}
+  void calculate_single_degree(vector<double> &nt, int xi) {
+    nt.resize(this->max_counter_value + 1);
+    std::fill(nt.begin(), nt.end(), 0.0);
 
-  void set_counters(uint32_t max_counter_value,
-                    vector<vector<uint32_t>> counters) {
-
-    counter_dist.resize(max_counter_value + 1);
-    std::fill(counter_dist.begin(), counter_dist.end(), 0);
-    // Inital guess for # of flows
-    // double n_new = 0.0; // # of flows (Cardinality)
-    for (size_t d = 0; d < counters.size(); d++) {
-      n_new += counters[d].size();
-      for (size_t i = 0; i < counters[d].size(); i++) {
-        counter_dist[counters[d][i]]++;
-      }
-    }
-    w = n_new;
-
-    // Inital guess for Flow Size Distribution (Phi)
-    this->dist_new.resize(max_counter_value + 1);
-    for (auto &degree : counters) {
-      for (auto count : degree) {
-        this->dist_new[count]++;
-      }
-    }
-    ns.resize(counter_dist.size());
-    for (uint32_t i = 1; i < counter_dist.size(); ++i) {
-      this->dist_new[i] = counter_dist[i] / double(w - counter_dist[0]);
-      ns[i] = counter_dist[i];
-    }
-  }
-
-  void next_epoch() {
-    dist_old = this->dist_new;
-    n_old = n_new;
-
-    double lambda = n_old / double(w);
-
-    std::fill(ns.begin(), ns.end(), 0);
-
-    for (uint32_t i = 1; i < counter_dist.size(); ++i) {
+    double lambda = n_old * xi / double(w);
+    for (uint32_t i = 1; i < counter_dist[xi].size(); ++i) {
       // enum how to form val:i
-      if (counter_dist[i] == 0) {
+      if (counter_dist[xi][i] == 0) {
         continue;
       }
       BetaGenerator alpha(i), beta(i);
@@ -174,19 +140,87 @@ public:
       while (beta.get_next()) {
         double p = get_p_from_beta(beta, lambda, dist_old, n_old);
         for (int j = 0; j < beta.now_flow_num; ++j) {
-          ns[beta.now_result[j]] += counter_dist[i] * p / sum_p;
+          ns[beta.now_result[j]] += counter_dist[xi][i] * p / sum_p;
         }
       }
     }
 
     n_new = 0.0;
-    for (uint32_t i = 1; i < counter_dist.size(); i++) {
+    for (uint32_t i = 1; i < counter_dist[xi].size(); i++) {
       n_new += ns[i];
     }
-    for (uint32_t i = 1; i < counter_dist.size(); i++) {
+    for (uint32_t i = 1; i < counter_dist[xi].size(); i++) {
       dist_new[i] = ns[i] / n_new;
     }
 
+    n_sum = n_new;
+  }
+
+public:
+  EMFSD_ld() {}
+
+  void set_counters(uint32_t max_counter_value,
+                    vector<vector<uint32_t>> counters, uint32_t w0) {
+
+    this->max_counter_value = max_counter_value;
+    this->max_degree = counters.size();
+
+    this->counter_dist.resize(max_degree + 1);
+    for (size_t d = 0; d < max_degree; d++) {
+      this->counter_dist[d].resize(max_counter_value + 1);
+      std::fill(this->counter_dist[d].begin(), this->counter_dist[d].end(), 0);
+    }
+    // Inital guess for # of flows
+    // double n_new = 0.0; // # of flows (Cardinality)
+    for (size_t d = 0; d < counters.size(); d++) {
+      n_new += counters[d].size();
+      for (size_t i = 0; i < counters[d].size(); i++) {
+        this->counter_dist[d][counters[d][i]]++;
+      }
+    }
+    this->w = w0;
+
+    // Inital guess for Flow Size Distribution (Phi)
+    this->dist_new.resize(max_counter_value + 1);
+    // this->dist_old.resize(max_counter_value + 1);
+    for (auto &degree : counters) {
+      for (auto count : degree) {
+        this->dist_new[count]++;
+      }
+    }
+    this->ns.resize(max_counter_value + 1);
+    for (size_t d = 0; d < max_degree; d++) {
+      for (size_t i = 1; i < this->counter_dist.size(); ++i) {
+        this->dist_new[i] += this->counter_dist[d][i] /
+                             double(this->w - this->counter_dist[d][0]);
+        this->ns[i] += this->counter_dist[d][i];
+      }
+    }
+  }
+
+  void next_epoch() {
+    dist_old = dist_new;
+    n_old = n_new;
+
+    double lambda = n_old / double(w);
+
+    std::fill(ns.begin(), ns.end(), 0);
+    vector<vector<double>> nt;
+    nt.resize(max_degree + 1);
+
+    for (size_t d = 0; d < max_degree; d++) {
+      this->calculate_single_degree(nt[d], d);
+    }
+    n_new = 0.0;
+    for (size_t d = 0; d < max_degree; d++) {
+      for (uint32_t i = 1; i < max_counter_value; i++) {
+        ns[i] += nt[d][i];
+        n_new += nt[d][i];
+      }
+    }
+    for (uint32_t i = 1; i < max_counter_value; i++) {
+      dist_new[i] = ns[i] / n_new;
+    }
     n_sum = n_new;
     // for (auto &x : ns) {
     //   std::cout << x << " ";

@@ -22,20 +22,21 @@ int main() {
   glob_t glob_res;
   memset(&glob_res, 0, sizeof(glob_res));
   glob("data/*.dat", GLOB_TILDE, NULL, &glob_res);
-  vector<std::string> filenames;
+  vector<string> filenames(glob_res.gl_pathc);
   for (size_t i = 0; i < glob_res.gl_pathc; ++i) {
-    filenames.push_back(std::string(glob_res.gl_pathv[i]));
+    filenames[i] = string(glob_res.gl_pathv[i]);
   }
+  globfree(&glob_res);
 
   // Load in traces
-  TRACE traces[std::size(filenames)];
+  vector<TRACE> traces(filenames.size());
   unordered_map<string, TRACE> data_traces;
-  std::size_t i = 0;
-  for (auto f : filenames) {
+  size_t i = 0;
+  string dir = "data/";
+  string dat = ".dat";
+  for (string &f : filenames) {
     std::cout << f << std::endl;
     data_parser.get_traces(f.data(), traces[i]);
-    string dir = "data/";
-    string dat = ".dat";
     string::size_type k = f.find(dir);
     if (k != string::npos) {
       f.erase(k, dir.length());
@@ -56,7 +57,7 @@ int main() {
     vector<PDS *> stages;
     // CuckooHash cuckoo(10, 1024, name_set, 0, 0);
     // stages.push_back(&cuckoo);
-    FCM_Sketch fcm(4, 3, 8, trace.size() * 0.0005 / 60, name_set, 0, 0);
+    FCM_Sketch fcm(1024, 3, 16, trace.size() * 0.0005 / 60, name_set, 0, 0);
     stages.push_back(&fcm);
     Simulator sim(stages, stages.size(), 1);
     // Default length of CAIDA traces is 60s

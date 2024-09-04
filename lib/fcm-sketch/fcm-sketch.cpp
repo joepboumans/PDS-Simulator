@@ -224,6 +224,7 @@ vector<double> FCM_Sketch::get_distribution() {
   //   }
   //   std::cout << std::endl;
   // }
+
   EMFSD_ld EM;
   EM.set_counters(max_counter_value, max_degree, virtual_counters,
                   this->stages_sz[0]);

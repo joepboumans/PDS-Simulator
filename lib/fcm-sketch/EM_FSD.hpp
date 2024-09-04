@@ -124,14 +124,14 @@ private:
     return ret;
   }
 
-  void calculate_single_degree(vector<double> &nt, int xi) {
+  void calculate_single_degree(vector<double> &nt, int d) {
     nt.resize(this->max_counter_value + 1);
     std::fill(nt.begin(), nt.end(), 0.0);
 
-    double lambda = n_old * xi / double(w);
-    for (uint32_t i = 1; i < counter_dist[xi].size(); ++i) {
+    double lambda = n_old * d / double(w);
+    for (uint32_t i = 0; i < counter_dist[d].size(); i++) {
       // enum how to form val:i
-      if (counter_dist[xi][i] == 0) {
+      if (counter_dist[d][i] == 0) {
         continue;
       }
       BetaGenerator alpha(i), beta(i);
@@ -143,16 +143,16 @@ private:
       while (beta.get_next()) {
         double p = get_p_from_beta(beta, lambda, dist_old, n_old);
         for (int j = 0; j < beta.now_flow_num; ++j) {
-          ns[beta.now_result[j]] += counter_dist[xi][i] * p / sum_p;
+          nt[beta.now_result[j]] += counter_dist[d][i] * p / sum_p;
         }
       }
     }
 
     double accum = std::accumulate(nt.begin(), nt.end(), 0.0);
-    if (counter_dist[xi].size() != 0)
+    if (counter_dist[d].size() != 0)
       printf("[EM_FCM] ******** degree %2d is "
              "finished...(accum:%10.1f) **********\n",
-             xi, accum);
+             d, accum);
   }
 
 public:
@@ -206,18 +206,19 @@ public:
     nt.resize(max_degree + 1);
     std::fill(ns.begin(), ns.end(), 0);
 
-    std::thread threads[max_degree];
-    for (size_t t = 0; t < max_degree; t++) {
-      threads[t] = std::thread(&EMFSD_ld::calculate_single_degree, *this,
-                               std::ref(nt[t]), t);
-    }
-    for (size_t t = 0; t < max_degree; t++) {
-      threads[t].join();
+    // std::thread threads[max_degree];
+    // for (size_t t = 0; t < max_degree; t++) {
+    //   threads[t] = std::thread(&EMFSD_ld::calculate_single_degree, *this,
+    //                            std::ref(nt[t]), t);
+    // }
+    // for (size_t t = 0; t < max_degree; t++) {
+    //   threads[t].join();
+    // }
+
+    for (size_t d = 0; d < max_degree; d++) {
+      this->calculate_single_degree(nt[d], d);
     }
 
-    // for (size_t d = 0; d < max_degree; d++) {
-    //   this->calculate_single_degree(nt[d], d);
-    // }
     n_new = 0.0;
     for (size_t d = 0; d < max_degree; d++) {
       for (uint32_t i = 1; i < max_counter_value; i++) {
@@ -228,7 +229,6 @@ public:
     for (uint32_t i = 1; i < max_counter_value; i++) {
       dist_new[i] = ns[i] / n_new;
     }
-    n_sum = n_new;
     for (auto &x : ns) {
       std::cout << x << " ";
     }

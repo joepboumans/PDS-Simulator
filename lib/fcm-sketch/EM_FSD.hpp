@@ -171,7 +171,7 @@ public:
     }
     // Inital guess for # of flows
     // double n_new = 0.0; // # of flows (Cardinality)
-    for (size_t d = 0; d < counters.size(); d++) {
+    for (size_t d = 0; d < max_degree; d++) {
       n_new += counters[d].size();
       for (size_t i = 0; i < counters[d].size(); i++) {
         this->counter_dist[d][counters[d][i]]++;

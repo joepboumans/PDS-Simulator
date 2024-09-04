@@ -2,7 +2,7 @@
 #define _FCM_SKETCH_CPP
 
 #include "fcm-sketch.hpp"
-#include "EM_FCM.h"
+#include "EM_FSD.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
@@ -97,14 +97,14 @@ void FCM_Sketch::analyze(int epoch) {
 
   // Flow Size Distribution (Weighted Mean Relative Error)
   double wmre = 0.0;
-  map<uint32_t, uint32_t> true_fsd;
-  map<uint32_t, uint32_t> e_fsd;
+  vector<uint32_t> true_fsd;
 
   for (const auto &[tuple, count] : this->true_data) {
     // // Flow Size Distribution (Weighted Mean Relative Error)
-    // true_fsd[count]++;
-    // e_fsd[this->lookup(s_tuple)]++;
-    //
+    if (true_fsd.size() < count) {
+      true_fsd.resize(count + 1);
+    }
+    true_fsd[count]++;
     // // Flow Size Estimation (Average Relative Error, Average Absolute Error)
     int diff = count - this->lookup(tuple);
 
@@ -144,10 +144,21 @@ void FCM_Sketch::analyze(int epoch) {
   }
   this->f1 = 2 * ((recall * precision) / (precision + recall));
 
-  this->get_distribution();
-
-  EM_FCM<0, 2048, 255, 65535> *em_fsd_algo =
-      new EM_FCM<0, 2048, 255, 65535>(); // new
+  this->wmre = 0.0;
+  double wmre_nom = 0.0;
+  double wmre_denom = 0.0;
+  // WMRE - Flow Size Distribution
+  vector<double> em_fsd = this->get_distribution();
+  for (size_t i = 0; i < true_fsd.size(); i++) {
+    if (true_fsd[i] == 0) {
+      continue;
+    }
+    wmre_nom += std::abs(true_fsd[i] - em_fsd[i]);
+    wmre_denom += double(true_fsd[i] + em_fsd[i]) / 2;
+  }
+  this->wmre = wmre_nom / wmre_denom;
+  printf("WMRD : %f\n", this->wmre);
+  printf("True FSD size : %zu\n", true_fsd.size());
   // char msg[200];
   // sprintf(msg,
   //         "\tTP:%i\tFP:%i\tRecall:%.3f\tPrecision:%.3f\tF1:%.3f\tAAE:%.3f\tARE:"
@@ -163,23 +174,22 @@ void FCM_Sketch::analyze(int epoch) {
   this->fcsv << csv << std::endl;
 }
 
-void FCM_Sketch::get_distribution() {
+vector<double> FCM_Sketch::get_distribution() {
   // stage, idx, (count, degree)
   vector<vector<vector<uint32_t>>> summary(this->n_stages);
+  // stage, idx of entry, idx of merging paths/predecessors
+  vector<vector<vector<uint32_t>>> collision_paths(this->n_stages);
   // degree, idx, count
   vector<vector<uint32_t>> virtual_counters(std::pow(this->k, this->n_stages));
-  // stage, idx of entry, idx of merging paths/predecessors
-  // vector<vector<vector<uint32_t>>> colliding_paths(this->n_stages);
   uint32_t max_counter_value = 0;
 
   for (size_t stage = 0; stage < this->n_stages; stage++) {
     summary[stage].resize(this->stages_sz[stage], vector<uint32_t>(2, 0));
+    collision_paths[stage].resize(this->stages_sz[stage]);
 
     for (size_t i = 0; i < this->stages_sz[stage]; i++) {
       summary[stage][i][0] = this->stages[stage][i].count;
       summary[stage][i][1] = 1;
-      max_counter_value =
-          std::max(max_counter_value, this->stages[stage][i].count);
 
       if (stage > 0) {
         // Add overflow from previous stages
@@ -189,7 +199,7 @@ void FCM_Sketch::get_distribution() {
             // Add childs degree and count
             summary[stage][i][1] += summary[stage - 1][child_idx][1];
             summary[stage][i][0] += summary[stage - 1][child_idx][0];
-            // colliding_paths[stage][i].push_back(child_idx);
+            collision_paths[stage][i].push_back(child_idx);
           }
         }
       }
@@ -197,6 +207,7 @@ void FCM_Sketch::get_distribution() {
       // If not overflowing and not 0, add to VCs with degree
       if (!this->stages[stage][i].overflow && summary[stage][i][0] > 0) {
         virtual_counters[summary[stage][i][1]].push_back(summary[stage][i][0]);
+        max_counter_value = std::max(max_counter_value, summary[stage][i][0]);
       }
     }
   }
@@ -211,8 +222,10 @@ void FCM_Sketch::get_distribution() {
     }
     std::cout << std::endl;
   }
+  EMFSD_ld EM;
+  EM.set_counters(max_counter_value, virtual_counters);
+  EM.next_epoch();
+  vector<double> result = EM.ns;
+  return result;
 }
-
-void FCM_Sketch::init_MLE(vector<vector<uint32_t>> virtual_counters,
-                          vector<vector<vector<uint32_t>>> colliding_paths) {}
 #endif // !_FCM_SKETCH_CPP

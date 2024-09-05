@@ -38,17 +38,16 @@ struct FIVE_TUPLE {
   }
 
   operator string() {
-    char c_ftuple[sizeof(FIVE_TUPLE)];
-    memcpy(c_ftuple, this, sizeof(FIVE_TUPLE));
-    string s_ftuple;
-    s_ftuple.assign(c_ftuple, sizeof(FIVE_TUPLE));
-    return s_ftuple;
+    char ftuple[sizeof(FIVE_TUPLE)];
+    memcpy(ftuple, this, sizeof(FIVE_TUPLE));
+    return ftuple;
   }
 
   FIVE_TUPLE() {}
   FIVE_TUPLE(string s_tuple) {
-    const char *c_tuple = s_tuple.c_str();
-    memcpy(this, c_tuple, sizeof(FIVE_TUPLE));
+    for (size_t i = 0; i < s_tuple.size(); i++) {
+      this->num_array[i] = reinterpret_cast<char>(s_tuple[i]);
+    }
   }
 
   FIVE_TUPLE &operator++() {

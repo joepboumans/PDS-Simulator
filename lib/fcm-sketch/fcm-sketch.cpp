@@ -195,12 +195,17 @@ vector<double> FCM_Sketch::get_distribution() {
       if (stage > 0) {
         // Add overflow from previous stages
         for (size_t k = 0; k < this->k; k++) {
+          uint32_t sum = 0;
           uint32_t child_idx = i * this->k + k;
           if (this->stages[stage - 1][child_idx].overflow) {
             // Add childs degree and count
             summary[stage][i][1] += summary[stage - 1][child_idx][1];
             summary[stage][i][0] += summary[stage - 1][child_idx][0];
-            collision_paths[stage][i].push_back(child_idx);
+            sum = summary[stage][i][0];
+          }
+          if (sum != 0) {
+            collision_paths[stage].push_back(
+                vector<uint32_t>{(uint32_t)i, child_idx});
           }
         }
       }

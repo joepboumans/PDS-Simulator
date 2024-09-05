@@ -100,6 +100,167 @@ private:
     }
   };
 
+  struct BetaGenerator_HD {
+    int sum;                            // value
+    int beta_degree;                    // degree
+    vector<vector<uint32_t>> thres;     // list of <. . .>
+    vector<uint32_t> counter_overflows; // List of overflow values per stage
+    int in_beta_degree;
+    int now_flow_num;
+    int flow_num_limit;
+    vector<int> now_result;
+    explicit BetaGenerator_HD(int _sum, vector<vector<uint32_t>> _thres,
+                              int _degree)
+        : sum(_sum), beta_degree(_degree) {
+      // must initialize now_flow_num as 0
+      now_flow_num = 0;
+      in_beta_degree = 0;
+      thres = _thres; // interpretation of threshold
+
+      /**** For large dataset and cutoff ****/
+      if (sum > 1100)
+        flow_num_limit = beta_degree;
+      else if (sum > 550)
+        flow_num_limit = std::max(beta_degree, 3);
+      else
+        flow_num_limit = std::max(beta_degree, 4);
+
+      // Note that the counters of degree D (> 1) includes at least D flows.
+      // But, the combinatorial complexity also increases to O(N^D), which takes
+      // a lot of time. To truncate the compexity, we introduce a simplified
+      // version that prohibits the number of flows less than D. As
+      // explained in the paper, its effect is quite limited as the number of
+      // such counters are only a few.
+
+      // "in_beta_degree" keeps the original beta_degree
+      // 15k, 15k, 7k
+      if (beta_degree >= 4 and sum < 10000) {
+        in_beta_degree = beta_degree;
+        flow_num_limit = 3;
+        beta_degree = 3;
+      } else if (beta_degree >= 4 and sum >= 10000) {
+        in_beta_degree = beta_degree;
+        flow_num_limit = 2;
+        beta_degree = 2;
+      } else if (beta_degree == 3 and sum > 5000) {
+        in_beta_degree = beta_degree;
+        flow_num_limit = 2;
+        beta_degree = 2;
+      }
+    }
+
+    bool get_new_comb() {
+      // input: now, always flow num >= 2..
+      for (int j = now_flow_num - 2; j >= 0; --j) {
+        int t = ++now_result[j];
+        for (int k = j + 1; k < now_flow_num - 1; ++k) {
+          now_result[k] = t;
+        }
+        int partial_sum = 0;
+        for (int k = 0; k < now_flow_num - 1; ++k) {
+          partial_sum += now_result[k];
+        }
+        int remain = sum - partial_sum;
+        if (remain >= now_result[now_flow_num - 2]) {
+          now_result[now_flow_num - 1] = remain;
+          return true;
+        }
+      }
+      return false;
+    }
+
+    bool get_next() {
+      // Need to test it is available combination or not, based on newsk_thres
+      // (bayesian)
+      while (now_flow_num <= flow_num_limit) {
+        switch (now_flow_num) {
+        case 0:
+          now_flow_num = 1;
+          now_result.resize(1);
+          now_result[0] = sum;
+          /*****************************/
+          if (beta_degree == 1) // will never be occured
+            return true;
+          /*****************************/
+        case 1:
+          now_flow_num = 2;
+          now_result[0] = 0;
+        default: // fall through
+          now_result.resize(now_flow_num);
+          if (get_new_comb()) {
+            /******* condition_check *******/
+            // There need to more or equal numbers to the degree of VC
+            if (now_flow_num < beta_degree) {
+              continue;
+            }
+            // The numbers must exceed the first layer threshhold
+            for (int i = 0; i < now_flow_num; ++i) {
+              if (now_result[i] <= 255)
+                continue;
+            }
+            if (in_beta_degree == 0) {
+              // if (condition_check_fcm())
+              //   return true;
+            } else if (in_beta_degree == 3) {
+              if (condition_check_fcm_simple2())
+                return true;
+              // } else if (beta_degree == 3) {
+              //   if (condition_check_fcm_simple4to3())
+              //     return true;
+            } else if (beta_degree == 2) {
+              if (condition_check_fcm_simple4to2())
+                return true;
+            }
+            /*****************************/
+          } else { // no more combination -> go to next flow number
+            now_flow_num++;
+            for (int i = 0; i < now_flow_num - 2; ++i) {
+              now_result[i] = 1;
+            }
+            now_result[now_flow_num - 2] = 0;
+          }
+        }
+      }
+      return false;
+    }
+
+    bool condition_check_fcm_simple4to2() {
+      // layer 2, degree 2
+      // In this setting, degree == 2 and num_flow == 2 (but regard the origianl
+      // flow num should be 3, to reduce overestimate)
+      int num_cond_l2 =
+          thres.size() - in_beta_degree; // here, simplified is origianl degree
+      if (num_cond_l2 == 0) {            // if no layer 2 condition
+        return true;
+      } else if (num_cond_l2 == 1) { // if one condition
+        if (now_result[0] + now_result[1] <= 65535 + 3 * 255)
+          return false;
+      } else { // if two conditions
+        if (now_result[0] <= 65535 + 255 or now_result[1] <= 65535 + 2 * 255)
+          return false;
+      }
+      return true;
+    }
+
+    bool condition_check_fcm_simple2() {
+      // layer 2
+      // if (beta_degree == 2){ // if degree 2
+      int num_cond_l2 =
+          thres.size() - in_beta_degree; // here, simplified is origianl degree
+      if (num_cond_l2 == 0) {            // if no layer 2 condition
+        return true;
+      } else if (num_cond_l2 == 1) { // if one condition
+        if (now_result[0] + now_result[1] <= 65535 + 2 * 255)
+          return false;
+      } else { // if two conditions
+        if (now_result[0] <= 65535 + 255 or now_result[1] <= 65535 + 2 * 255)
+          return false;
+      }
+      // }
+      return true;
+    }
+  };
+
   int factorial(int n) {
     if (n == 0 || n == 1)
       return 1;

@@ -46,6 +46,7 @@ int main() {
       f.erase(j, dat.length());
     }
     data_traces[f] = traces[i++];
+    std::cout << traces[0][0] << std::endl;
     break;
   }
 

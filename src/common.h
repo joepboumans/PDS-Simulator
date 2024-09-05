@@ -107,9 +107,8 @@ struct FIVE_TUPLE {
 struct tupleHash {
   std::size_t operator()(const FIVE_TUPLE &k) const {
     // static BOBHash32 hasher(750);
-
     return XXH32(k.num_array, sizeof(FIVE_TUPLE), 0);
-    // return hasher.run(c_ftuple, sizeof(FIVE_TUPLE));
+    // return hasher.run((const char *)k.num_array, sizeof(FIVE_TUPLE));
   }
 };
 

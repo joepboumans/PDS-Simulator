@@ -6,9 +6,6 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
-#include <iterator>
-#include <map>
-#include <vector>
 
 uint32_t FCM_Sketch::hashing(FIVE_TUPLE key, uint32_t k) {
   static char c_ftuple[sizeof(FIVE_TUPLE)];

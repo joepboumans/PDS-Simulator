@@ -101,7 +101,7 @@ TEST_CASE("Analysis - F1", "[CM][analysis][F1]") {
       count_min.insert(tuple + 3);
       count_min.insert(tuple + 4);
     }
-    tuple.protocol++;
+    tuple.num_array[12]++;
     for (size_t i = 0; i < 500; i++) {
       count_min.insert(tuple);
       tuple++;
@@ -118,7 +118,7 @@ TEST_CASE("Analysis - F1", "[CM][analysis][F1]") {
         count_min.insert(tuple + j);
       }
     }
-    tuple.protocol++;
+    tuple.num_array[12]++;
     for (size_t i = 0; i < 10000; i++) {
       count_min.insert(tuple);
       tuple++;

@@ -20,26 +20,20 @@ using std::string;
 using std::vector;
 
 struct FIVE_TUPLE {
-  unsigned char srcIp[4] = {0, 0, 0, 0};
-  unsigned char dstIp[4] = {0, 0, 0, 0};
-  unsigned char srcPort[2] = {0, 0};
-  unsigned char dstPort[2] = {0, 0};
-  unsigned char protocol = 0;
+  uint8_t num_array[13] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
   friend std::ostream &operator<<(std::ostream &os, FIVE_TUPLE const &tuple) {
+    uint32_t srcPort = ((tuple.num_array[8] << 8) | tuple.num_array[9]);
+    uint32_t dstPort = ((tuple.num_array[10] << 8) | tuple.num_array[11]);
+    uint32_t protocol = tuple.num_array[12];
     char srcIp[16];
-    sprintf(srcIp, "%i.%i.%i.%i", (int)tuple.srcIp[0], (int)tuple.srcIp[1],
-            (int)tuple.srcIp[2], (int)tuple.srcIp[3]);
-    char destIp[16];
-    sprintf(destIp, "%i.%i.%i.%i", (int)tuple.dstIp[0], (int)tuple.dstIp[1],
-            (int)tuple.dstIp[2], (int)tuple.dstIp[3]);
-    char srcPort[6];
-    sprintf(srcPort, "%i", (int)((tuple.srcPort[0] << 8) | tuple.srcPort[1]));
-    char dstPort[6];
-    sprintf(dstPort, "%i", (int)((tuple.dstPort[0] << 8) | tuple.dstPort[1]));
-    char protocol[6];
-    sprintf(protocol, "%i", (int)tuple.protocol);
-    return os << srcIp << ":" << srcPort << "|" << destIp << ":" << dstPort
+    sprintf(srcIp, "%i.%i.%i.%i", tuple.num_array[0], tuple.num_array[1],
+            tuple.num_array[2], tuple.num_array[3]);
+    char dstIp[16];
+    sprintf(dstIp, "%i.%i.%i.%i", tuple.num_array[4], tuple.num_array[5],
+            tuple.num_array[6], tuple.num_array[7]);
+
+    return os << srcIp << ":" << srcPort << "|" << dstIp << ":" << dstPort
               << "|" << protocol;
   }
 
@@ -58,42 +52,14 @@ struct FIVE_TUPLE {
   }
 
   FIVE_TUPLE &operator++() {
-    for (auto &src : this->srcIp) {
-      if (src >= std::numeric_limits<unsigned char>::max()) {
-        src++;
+    for (size_t i = 0; i < 13; i++) {
+      if (this->num_array[i] >= std::numeric_limits<unsigned char>::max()) {
+        this->num_array[i]++;
         continue;
       }
-      src++;
+      this->num_array[i]++;
       return *this;
     }
-    for (auto &dst : this->dstIp) {
-      if (dst >= std::numeric_limits<unsigned char>::max()) {
-        dst++;
-        continue;
-      }
-      dst++;
-      return *this;
-    }
-    for (auto &src : this->srcPort) {
-      if (src >= std::numeric_limits<unsigned char>::max()) {
-        src++;
-        continue;
-      }
-      src++;
-      return *this;
-    }
-    for (auto &dst : this->dstPort) {
-      if (dst >= std::numeric_limits<unsigned char>::max()) {
-        dst++;
-        continue;
-      }
-      dst++;
-      return *this;
-    }
-    if (this->protocol >= std::numeric_limits<unsigned char>::max()) {
-      return *this;
-    }
-    this->protocol++;
     return *this;
   }
 
@@ -105,43 +71,14 @@ struct FIVE_TUPLE {
 
   FIVE_TUPLE operator+(int i) {
     FIVE_TUPLE new_tuple = *this;
-    for (auto &src : new_tuple.srcIp) {
-      if (src >= std::numeric_limits<unsigned char>::max()) {
-        src += i;
+    for (size_t i = 0; i < 13; i++) {
+      if (new_tuple.num_array[i] >= std::numeric_limits<unsigned char>::max()) {
+        new_tuple.num_array[i] += i;
         continue;
       }
-      src += i;
+      new_tuple.num_array[i] += i;
       return new_tuple;
     }
-    for (auto &dst : new_tuple.dstIp) {
-      if (dst >= std::numeric_limits<unsigned char>::max()) {
-        dst += i;
-        continue;
-      }
-      dst += i;
-      return new_tuple;
-    }
-    for (auto &src : new_tuple.srcPort) {
-      if (src >= std::numeric_limits<unsigned char>::max()) {
-        src += i;
-        continue;
-      }
-      src += i;
-      return new_tuple;
-    }
-    for (auto &dst : new_tuple.dstPort) {
-      if (dst >= std::numeric_limits<unsigned char>::max()) {
-        dst += i;
-        continue;
-      }
-      dst += i;
-      return new_tuple;
-    }
-    if (new_tuple.protocol >= std::numeric_limits<unsigned char>::max()) {
-      new_tuple.protocol += i;
-      return new_tuple;
-    }
-    new_tuple.protocol += i;
     return new_tuple;
   }
 
@@ -151,38 +88,16 @@ struct FIVE_TUPLE {
   }
 
   FIVE_TUPLE operator^(FIVE_TUPLE tup) {
-    for (size_t i = 0; i < 4; i++) {
-      this->srcIp[i] ^= tup.srcIp[i];
-      this->dstIp[i] ^= tup.dstIp[i];
+    for (size_t i = 0; i < 13; i++) {
+      this->num_array[i] ^= tup.num_array[i];
     }
-    for (size_t i = 0; i < 2; i++) {
-      this->srcPort[i] ^= tup.srcPort[i];
-      this->dstPort[i] ^= tup.dstPort[i];
-    }
-    this->protocol ^= tup.protocol;
     return *this;
   }
 
   auto operator<=>(const FIVE_TUPLE &) const = default;
   bool operator==(const FIVE_TUPLE &rhs) const {
-
-    if (this->protocol != rhs.protocol) {
-      return false;
-    }
-
-    for (size_t i = 0; i < 4; i++) {
-      if (this->srcIp[i] != rhs.srcIp[i]) {
-        return false;
-      }
-      if (this->dstIp[i] != rhs.dstIp[i]) {
-        return false;
-      }
-    }
-    for (size_t i = 0; i < 2; i++) {
-      if (this->srcPort[i] != rhs.srcPort[i]) {
-        return false;
-      }
-      if (this->dstPort[i] != rhs.dstPort[i]) {
+    for (size_t i = 0; i < 13; i++) {
+      if (this->num_array[i] != rhs.num_array[i]) {
         return false;
       }
     }
@@ -193,10 +108,8 @@ struct FIVE_TUPLE {
 struct tupleHash {
   std::size_t operator()(const FIVE_TUPLE &k) const {
     // static BOBHash32 hasher(750);
-    static char c_ftuple[sizeof(FIVE_TUPLE)];
-    memcpy(c_ftuple, &k, sizeof(FIVE_TUPLE));
 
-    return XXH32(c_ftuple, sizeof(FIVE_TUPLE), 0);
+    return XXH32(k.num_array, sizeof(FIVE_TUPLE), 0);
     // return hasher.run(c_ftuple, sizeof(FIVE_TUPLE));
   }
 };

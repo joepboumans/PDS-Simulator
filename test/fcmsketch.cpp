@@ -100,7 +100,7 @@ TEST_CASE("Analysis - F1", "[CM][analysis][F1]") {
       fcm.insert(tuple + 3);
       fcm.insert(tuple + 4);
     }
-    tuple.protocol++;
+    tuple.num_array[12]++;
     for (size_t i = 0; i < 500; i++) {
       fcm.insert(tuple);
       tuple++;
@@ -117,7 +117,7 @@ TEST_CASE("Analysis - F1", "[CM][analysis][F1]") {
         fcm.insert(tuple + j);
       }
     }
-    tuple.protocol++;
+    tuple.num_array[12]++;
     for (size_t i = 0; i < 10000; i++) {
       fcm.insert(tuple);
       tuple++;

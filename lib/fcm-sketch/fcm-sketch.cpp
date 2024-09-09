@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <sys/types.h>
+#include <vector>
 
 uint32_t FCM_Sketch::hashing(FIVE_TUPLE key, uint32_t k) {
   static char c_ftuple[sizeof(FIVE_TUPLE)];
@@ -172,37 +174,56 @@ void FCM_Sketch::analyze(int epoch) {
 }
 
 vector<double> FCM_Sketch::get_distribution() {
-  // stage, idx, (count, degree)
+  // stage, idx, (count, degree, min_value)
   vector<vector<vector<uint32_t>>> summary(this->n_stages);
-  // stage, idx of entry, idx of merging paths/predecessors
-  vector<vector<vector<uint32_t>>> collision_paths(this->n_stages);
-  // degree, idx, count
+  // degree, count value, n
   vector<vector<uint32_t>> virtual_counters(std::pow(this->k, this->n_stages));
+  // stage, idx, layer, collisions, min value
+  vector<vector<vector<vector<uint32_t>>>> overflow_paths(this->n_stages);
+  // degree, count value, layer, collision, min counter value
+  vector<vector<vector<vector<uint32_t>>>> thresholds(
+      std::pow(this->k, this->n_stages));
   uint32_t max_counter_value = 0;
   uint32_t max_degree = 0;
 
   for (size_t stage = 0; stage < this->n_stages; stage++) {
-    summary[stage].resize(this->stages_sz[stage], vector<uint32_t>(2, 0));
-    collision_paths[stage].resize(this->stages_sz[stage]);
+    summary[stage].resize(this->stages_sz[stage], vector<uint32_t>(3, 0));
+    overflow_paths[stage].resize(this->stages_sz[stage]);
 
     for (size_t i = 0; i < this->stages_sz[stage]; i++) {
       summary[stage][i][0] = this->stages[stage][i].count;
       summary[stage][i][1] = 1;
+      if (this->stages[stage][i].overflow) {
+        summary[stage][i][2] = this->stage_overflows[stage];
+      }
 
       if (stage > 0) {
         // Add overflow from previous stages
+        uint32_t overflown = 0;
+        bool pred_overflown = false;
         for (size_t k = 0; k < this->k; k++) {
-          uint32_t sum = 0;
           uint32_t child_idx = i * this->k + k;
+          // Add childs degree, count and min_value
           if (this->stages[stage - 1][child_idx].overflow) {
-            // Add childs degree and count
             summary[stage][i][1] += summary[stage - 1][child_idx][1];
             summary[stage][i][0] += summary[stage - 1][child_idx][0];
-            sum = summary[stage][i][0];
+            summary[stage][i][2] += summary[stage - 1][child_idx][2];
+            overflown++;
           }
-          if (sum != 0) {
-            collision_paths[stage][i].push_back(child_idx);
+          // If any of my predecessors have overflown, add them to my overflown
+          // paths
+          if (overflow_paths[stage - 1][child_idx].size() > 0) {
+            pred_overflown = true;
+            for (auto &p : overflow_paths[stage - 1][child_idx]) {
+              overflow_paths[stage][i].push_back(p);
+            }
           }
+        }
+        // If more than one has been overflown or my pred has overflown and I
+        // have overflown, add me to the threshold as well
+        if (overflown > 0 or
+            (pred_overflown and this->stages[stage][i].overflow)) {
+          overflow_paths[stage][i].push_back({overflown, summary[stage][i][2]});
         }
       }
 
@@ -211,26 +232,52 @@ vector<double> FCM_Sketch::get_distribution() {
         if (stage == 0) {
           summary[stage][i][1] -= 1;
         }
-        virtual_counters[summary[stage][i][1]].push_back(summary[stage][i][0]);
-        max_counter_value = std::max(max_counter_value, summary[stage][i][0]);
-        max_degree = std::max(max_degree, summary[stage][i][1]);
+        uint32_t count = summary[stage][i][0];
+        uint32_t degree = summary[stage][i][1];
+        // Add entry to VC with its degree [1] and count [0]
+        virtual_counters[degree].push_back(count);
+        max_counter_value = std::max(max_counter_value, count);
+        max_degree = std::max(max_degree, degree);
+
+        // Only higher stages can have collisions
+        if (stage == 0) {
+          continue;
+        }
+        thresholds[degree].push_back(overflow_paths[stage][i]);
       }
     }
   }
-  for (size_t st = 0; st < collision_paths.size(); st++) {
-    std::cout << "Stage " << st << std::endl;
-    for (size_t i = 0; i < collision_paths[st].size(); i++) {
-      if (collision_paths[st][i].size() <= 1) {
-        collision_paths[st][i].clear();
-        continue;
-      }
-      std::cout << i << ": ";
-      for (auto &x : collision_paths[st][i]) {
-        std::cout << x << " ";
+
+  for (size_t d = 0; d < thresholds.size(); d++) {
+    if (thresholds[d].size() == 0) {
+      continue;
+    }
+    std::cout << "Degree: " << d << std::endl;
+    for (size_t i = 0; i < thresholds[d].size(); i++) {
+      std::cout << "i " << i << ": ";
+      for (size_t l = 0; l < thresholds[d][i].size(); l++) {
+        for (auto &col : thresholds[d][i][l]) {
+          std::cout << col << " ";
+        }
       }
       std::cout << std::endl;
     }
   }
+  // exit(0);
+  // for (size_t st = 1; st < overflow_paths.size(); st++) {
+  //   std::cout << "Stage " << st << std::endl;
+  //   for (size_t i = 0; i < overflow_paths[st].size(); i++) {
+  //     if (overflow_paths[st][i].size() <= 1) {
+  //       overflow_paths[st][i].clear();
+  //       continue;
+  //     }
+  //     std::cout << i << ": ";
+  //     for (auto &x : overflow_paths[st][i]) {
+  //       std::cout << x << " ";
+  //     }
+  //     std::cout << std::endl;
+  //   }
+  // }
 
   // for (size_t st = 0; st < virtual_counters.size(); st++) {
   //   if (virtual_counters[st].size() == 0) {

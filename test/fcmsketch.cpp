@@ -128,3 +128,18 @@ TEST_CASE("Analysis - F1", "[CM][analysis][F1]") {
     REQUIRE(fcm.recall <= 1.0);
   }
 }
+
+TEST_CASE("FSD Test", "[CM][analysis][fsd]") {
+  FCM_Sketch fcm(1, 3, 2, 1, "test", 0, 0);
+  REQUIRE(fcm.average_absolute_error == 0);
+  REQUIRE(fcm.average_relative_error == 0);
+  FIVE_TUPLE tuple, tuple2;
+  tuple2.num_array[11] = 10;
+  tuple2.num_array[2] = 10;
+  for (size_t i = 0; i < 256; i++) {
+    fcm.insert(tuple);
+    fcm.insert(tuple2);
+  }
+  fcm.print_sketch();
+  fcm.analyze(0);
+}

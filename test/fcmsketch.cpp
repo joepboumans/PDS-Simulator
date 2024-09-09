@@ -136,7 +136,7 @@ TEST_CASE("FSD Test", "[CM][analysis][fsd]") {
   FIVE_TUPLE tuple, tuple2;
   tuple2.num_array[11] = 10;
   tuple2.num_array[2] = 10;
-  for (size_t i = 0; i < 256; i++) {
+  for (size_t i = 0; i < 65535 + 256; i++) {
     fcm.insert(tuple);
     fcm.insert(tuple2);
   }

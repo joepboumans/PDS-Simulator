@@ -192,7 +192,9 @@ vector<double> FCM_Sketch::get_distribution() {
 
     for (size_t i = 0; i < this->stages_sz[stage]; i++) {
       summary[stage][i][0] = this->stages[stage][i].count;
-      summary[stage][i][1] = 1;
+      if (stage == 0) {
+        summary[stage][i][1] = 1;
+      }
       if (this->stages[stage][i].overflow) {
         summary[stage][i][2] = this->stage_overflows[stage];
       }
@@ -200,6 +202,7 @@ vector<double> FCM_Sketch::get_distribution() {
       if (stage > 0) {
         // Add overflow from previous stages
         uint32_t overflown = 0;
+        uint32_t imm_overflow = 0;
         bool pred_overflown = false;
         for (size_t k = 0; k < this->k; k++) {
           uint32_t child_idx = i * this->k + k;
@@ -208,6 +211,7 @@ vector<double> FCM_Sketch::get_distribution() {
             summary[stage][i][1] += summary[stage - 1][child_idx][1];
             summary[stage][i][0] += summary[stage - 1][child_idx][0];
             summary[stage][i][2] += summary[stage - 1][child_idx][2];
+            imm_overflow += summary[stage - 1][child_idx][2];
             overflown++;
           }
           // If any of my predecessors have overflown, add them to my overflown
@@ -223,15 +227,13 @@ vector<double> FCM_Sketch::get_distribution() {
         // have overflown, add me to the threshold as well
         if (overflown > 0 or
             (pred_overflown and this->stages[stage][i].overflow)) {
-          overflow_paths[stage][i].push_back({overflown, summary[stage][i][2]});
+          overflow_paths[stage][i].insert(overflow_paths[stage][i].begin(),
+                                          {overflown, imm_overflow});
         }
       }
 
-      // If not overflowing and not 0, add to VCs with degree
+      // If not overflown and non-zero, we are at the end of the path
       if (!this->stages[stage][i].overflow && summary[stage][i][0] > 0) {
-        if (stage == 0) {
-          summary[stage][i][1] -= 1;
-        }
         uint32_t count = summary[stage][i][0];
         uint32_t degree = summary[stage][i][1];
         // Add entry to VC with its degree [1] and count [0]
@@ -279,16 +281,16 @@ vector<double> FCM_Sketch::get_distribution() {
   //   }
   // }
 
-  // for (size_t st = 0; st < virtual_counters.size(); st++) {
-  //   if (virtual_counters[st].size() == 0) {
-  //     continue;
-  //   }
-  //   std::cout << "Degree: " << st << std::endl;
-  //   for (auto &val : virtual_counters[st]) {
-  //     std::cout << " " << val;
-  //   }
-  //   std::cout << std::endl;
-  // }
+  for (size_t st = 0; st < virtual_counters.size(); st++) {
+    if (virtual_counters[st].size() == 0) {
+      continue;
+    }
+    std::cout << "Degree: " << st << std::endl;
+    for (auto &val : virtual_counters[st]) {
+      std::cout << " " << val;
+    }
+    std::cout << std::endl;
+  }
   std::cout << "Maximum degree is: " << max_degree << std::endl;
 
   EMFSD EM(this->stages_sz);

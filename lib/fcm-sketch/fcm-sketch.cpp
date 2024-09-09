@@ -201,8 +201,7 @@ vector<double> FCM_Sketch::get_distribution() {
             sum = summary[stage][i][0];
           }
           if (sum != 0) {
-            collision_paths[stage].push_back(
-                vector<uint32_t>{(uint32_t)i, child_idx});
+            collision_paths[stage][i].push_back(child_idx);
           }
         }
       }
@@ -216,6 +215,20 @@ vector<double> FCM_Sketch::get_distribution() {
         max_counter_value = std::max(max_counter_value, summary[stage][i][0]);
         max_degree = std::max(max_degree, summary[stage][i][1]);
       }
+    }
+  }
+  for (size_t st = 0; st < collision_paths.size(); st++) {
+    std::cout << "Stage " << st << std::endl;
+    for (size_t i = 0; i < collision_paths[st].size(); i++) {
+      if (collision_paths[st][i].size() <= 1) {
+        collision_paths[st][i].clear();
+        continue;
+      }
+      std::cout << i << ": ";
+      for (auto &x : collision_paths[st][i]) {
+        std::cout << x << " ";
+      }
+      std::cout << std::endl;
     }
   }
 

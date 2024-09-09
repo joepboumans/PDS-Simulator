@@ -12,11 +12,13 @@
 #include <iostream>
 #include <limits>
 #include <ostream>
+#include <vector>
 
 class FCM_Sketch : public PDS {
 private:
   vector<vector<Counter>> stages;
   vector<uint32_t> stages_sz;
+  vector<uint32_t> stage_overflows;
   uint32_t n_stages;
   uint32_t k;
   BOBHash32 hash;
@@ -31,7 +33,8 @@ public:
   FCM_Sketch(uint32_t n_roots, uint32_t n_stages, uint32_t k,
              uint32_t hh_threshold, string trace, uint32_t n_stage,
              uint32_t n_struct)
-      : PDS(trace, n_stage, n_struct), stages(n_stages), stages_sz(n_stages) {
+      : PDS(trace, n_stage, n_struct), stages(n_stages), stages_sz(n_stages),
+        stage_overflows(n_stages) {
 
     // Defaults and hash
     this->hash.initialize(750 + n_struct);
@@ -44,12 +47,11 @@ public:
     // Maximum 32 bit counter
     uint32_t max_bits = 32;
     uint32_t max_count = std::numeric_limits<uint32_t>::max();
-    uint32_t max_counter[n_stages];
     uint32_t mem = 0;
     for (int i = n_stages - 1; i >= 0; --i) {
       mem += n_roots * max_bits;
       this->stages_sz[i] = n_roots;
-      max_counter[i] = max_count;
+      this->stage_overflows[i] = max_count;
       // std::cout << i << ":Number of roots: " << n_roots << std::endl;
       // std::cout << i << ":Max counter: " << max_count << std::endl;
       n_roots *= k;
@@ -70,7 +72,7 @@ public:
     // Setup stages accoording to k * n_roots over the stages
     for (size_t i = 0; i < n_stages; i++) {
       for (size_t j = 0; j < this->stages_sz[i]; j++) {
-        this->stages[i].push_back(Counter(max_counter[i]));
+        this->stages[i].push_back(Counter(this->stage_overflows[i]));
       }
     }
   }

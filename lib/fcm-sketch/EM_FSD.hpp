@@ -614,13 +614,13 @@ public:
 
     std::thread threads[max_degree];
     for (size_t t = 0; t < max_degree; t++) {
-      if (t == 0) {
-        threads[t] = std::thread(&EMFSD::calculate_single_degree, *this,
-                                 std::ref(nt[t]), t);
-      } else {
-        threads[t] = std::thread(&EMFSD::calculate_higher_degree, *this,
-                                 std::ref(nt[t]), t);
-      }
+      // if (t == 0) {
+      threads[t] = std::thread(&EMFSD::calculate_single_degree, *this,
+                               std::ref(nt[t]), t);
+      // } else {
+      //   threads[t] = std::thread(&EMFSD::calculate_higher_degree, *this,
+      //                            std::ref(nt[t]), t);
+      // }
     }
     for (size_t t = 0; t < max_degree; t++) {
       threads[t].join();

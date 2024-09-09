@@ -231,7 +231,7 @@ vector<double> FCM_Sketch::get_distribution() {
   // }
   std::cout << "Maximum degree is: " << max_degree << std::endl;
 
-  EMFSD_ld EM;
+  EMFSD EM(this->stages_sz);
   EM.set_counters(max_counter_value, max_degree, virtual_counters,
                   this->stages_sz[0]);
   EM.next_epoch();

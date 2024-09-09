@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <functional>
 #include <sys/types.h>
 #include <vector>
 
@@ -225,10 +226,11 @@ vector<double> FCM_Sketch::get_distribution() {
         }
         // If more than one has been overflown or my pred has overflown and I
         // have overflown, add me to the threshold as well
-        if (overflown > 0 or
-            (pred_overflown and this->stages[stage][i].overflow)) {
+        if (overflown > 1 or pred_overflown) {
           overflow_paths[stage][i].insert(overflow_paths[stage][i].begin(),
                                           {overflown, imm_overflow});
+          // std::sort(overflow_paths[stage][i].begin(),
+          //           overflow_paths[stage][i].end(), std::greater<>());
         }
       }
 
@@ -242,7 +244,7 @@ vector<double> FCM_Sketch::get_distribution() {
         max_degree = std::max(max_degree, degree);
 
         // Only higher stages can have collisions
-        if (stage == 0) {
+        if (stage == 0 or degree < 2) {
           continue;
         }
         thresholds[degree].push_back(overflow_paths[stage][i]);

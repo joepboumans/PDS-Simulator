@@ -237,16 +237,16 @@ vector<double> FCM_Sketch::get_distribution() {
       // If not overflown and non-zero, we are at the end of the path
       if (!this->stages[stage][i].overflow && summary[stage][i][0] > 0) {
         uint32_t count = summary[stage][i][0];
-        uint32_t degree = summary[stage][i][1];
+        uint32_t degree = summary[stage][i][1] - 1;
         // Add entry to VC with its degree [1] and count [0]
         virtual_counters[degree].push_back(count);
         max_counter_value = std::max(max_counter_value, count);
         max_degree = std::max(max_degree, degree);
 
         // Only higher stages can have collisions
-        if (stage == 0 or degree < 2) {
-          continue;
-        }
+        // if (stage == 0) {
+        //   continue;
+        // }
         thresholds[degree].push_back(overflow_paths[stage][i]);
       }
     }

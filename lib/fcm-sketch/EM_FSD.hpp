@@ -1,6 +1,7 @@
 #ifndef _EMALGORITHM_FCM_HPP
 #define _EMALGORITHM_FCM_HPP
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <functional>
@@ -31,17 +32,18 @@ public:
   EMFSD(vector<uint32_t> szes, vector<vector<vector<vector<uint32_t>>>> thresh,
         uint32_t max_counter_value, uint32_t max_degree,
         vector<vector<uint32_t>> counters)
-      : stage_sz(szes), thresholds(thresh),
-        max_counter_value(max_counter_value) {
-
+      : stage_sz(szes), max_counter_value(max_counter_value) {
     // Sizing
     max_degree++;
     this->max_degree = max_degree;
 
+    // Setup distribution and the thresholds for it
     counter_dist.resize(max_degree);
+    thresholds.resize(max_degree);
     for (size_t d = 0; d < max_degree; d++) {
       counter_dist[d].resize(max_counter_value);
       std::fill(counter_dist[d].begin(), counter_dist[d].end(), 0);
+      thresholds[d].resize(max_counter_value);
     }
     // Inital guess for # of flows
     // double n_new = 0.0; // # of flows (Cardinality)
@@ -49,6 +51,7 @@ public:
       n_new += counters[d].size();
       for (size_t i = 0; i < counters[d].size(); i++) {
         counter_dist[d][counters[d][i]]++;
+        thresholds[d][counters[d][i]] = thresh[d][i];
       }
     }
     w = this->stage_sz[0];
@@ -276,10 +279,6 @@ private:
     }
 
     bool condition_check_fcm() {
-      // check number of flows should be more or equal than degree...
-      if (now_flow_num < beta_degree)
-        return false; // exit for next comb.
-
       if (beta_degree == now_flow_num) {
         // degree 2, num 2,, or degree 3, num 3
         // layer 1
@@ -579,8 +578,8 @@ private:
       if (counter_dist[d][i] == 0) {
         continue;
       }
-      vector<vector<uint32_t>> dummy;
-      BetaGenerator_HD alpha(i, dummy, d), beta(i, dummy, d);
+      BetaGenerator_HD alpha(i, this->thresholds[d][i], d),
+          beta(i, this->thresholds[d][i], d);
       double sum_p = 0;
       while (alpha.get_next()) {
         double p = get_p_from_beta(alpha, lambda, dist_old, n_old);
@@ -625,11 +624,11 @@ public:
     // }
 
     for (size_t d = 0; d < max_degree; d++) {
-      // if (d == 1) {
-      this->calculate_single_degree(nt[d], d);
-      // } else {
-      //   this->calculate_higher_degree(nt[d], d);
-      // }
+      if (d == 0) {
+        this->calculate_single_degree(nt[d], d);
+      } else {
+        this->calculate_higher_degree(nt[d], d);
+      }
     }
 
     n_new = 0.0;

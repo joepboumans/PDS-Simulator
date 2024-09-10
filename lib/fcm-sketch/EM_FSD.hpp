@@ -21,13 +21,53 @@ class EMFSD {
   vector<vector<uint32_t>> counter_dist; // initial counter values
   vector<double> dist_old, dist_new;     // for ratio \phi
   vector<uint32_t> stage_sz;
+  vector<vector<vector<vector<uint32_t>>>> thresholds;
 
 public:
   vector<double> ns; // for integer n
   double n_sum;      // n_new
   double card_init;  // initial cardinality by MLE
   bool inited = false;
-  EMFSD(vector<uint32_t> szes) : stage_sz(szes){};
+  EMFSD(vector<uint32_t> szes, vector<vector<vector<vector<uint32_t>>>> thresh,
+        uint32_t max_counter_value, uint32_t max_degree,
+        vector<vector<uint32_t>> counters)
+      : stage_sz(szes), thresholds(thresh),
+        max_counter_value(max_counter_value) {
+
+    // Sizing
+    max_degree++;
+    this->max_degree = max_degree;
+
+    counter_dist.resize(max_degree);
+    for (size_t d = 0; d < max_degree; d++) {
+      counter_dist[d].resize(max_counter_value);
+      std::fill(counter_dist[d].begin(), counter_dist[d].end(), 0);
+    }
+    // Inital guess for # of flows
+    // double n_new = 0.0; // # of flows (Cardinality)
+    for (size_t d = 0; d < max_degree; d++) {
+      n_new += counters[d].size();
+      for (size_t i = 0; i < counters[d].size(); i++) {
+        counter_dist[d][counters[d][i]]++;
+      }
+    }
+    w = this->stage_sz[0];
+
+    // Inital guess for Flow Size Distribution (Phi)
+    dist_new.resize(max_counter_value + 1);
+    for (auto &degree : counters) {
+      for (auto count : degree) {
+        dist_new[count]++;
+      }
+    }
+    ns.resize(max_counter_value + 1);
+    for (size_t d = 0; d < max_degree; d++) {
+      for (size_t i = 0; i < counter_dist.size(); i++) {
+        dist_new[i] += counter_dist[d][i] / double(w - counter_dist[d][0]);
+        ns[i] += counter_dist[d][i];
+      }
+    }
+  };
 
 private:
   double n_old,
@@ -89,14 +129,12 @@ private:
         default:
           now_result.resize(now_flow_num);
           if (get_new_comb()) {
-            // if (sum > 20) {
-            //   for (auto &x : now_result) {
-            //     std::cout << x << " ";
-            //   }
-            //   std::cout << std::endl;
-            //   if (now_flow_num > 3) {
-            //     exit(0);
-            //   }
+            // for (auto &x : now_result) {
+            //   std::cout << x << " ";
+            // }
+            // std::cout << std::endl;
+            // if (now_flow_num > 3) {
+            //   exit(0);
             // }
             return true;
           } else {
@@ -563,46 +601,6 @@ private:
   }
 
 public:
-  EMFSD() {}
-
-  void set_counters(uint32_t max_counter_value, uint32_t max_degree,
-                    vector<vector<uint32_t>> counters, uint32_t w0) {
-
-    this->max_counter_value = max_counter_value;
-    max_degree += 1;
-    this->max_degree = max_degree;
-
-    counter_dist.resize(max_degree);
-    for (size_t d = 0; d < max_degree; d++) {
-      counter_dist[d].resize(max_counter_value);
-      std::fill(counter_dist[d].begin(), counter_dist[d].end(), 0);
-    }
-    // Inital guess for # of flows
-    // double n_new = 0.0; // # of flows (Cardinality)
-    for (size_t d = 0; d < max_degree; d++) {
-      n_new += counters[d].size();
-      for (size_t i = 0; i < counters[d].size(); i++) {
-        counter_dist[d][counters[d][i]]++;
-      }
-    }
-    w = w0;
-
-    // Inital guess for Flow Size Distribution (Phi)
-    dist_new.resize(max_counter_value + 1);
-    for (auto &degree : counters) {
-      for (auto count : degree) {
-        dist_new[count]++;
-      }
-    }
-    ns.resize(max_counter_value + 1);
-    for (size_t d = 0; d < max_degree; d++) {
-      for (size_t i = 0; i < counter_dist.size(); i++) {
-        dist_new[i] += counter_dist[d][i] / double(w - counter_dist[d][0]);
-        ns[i] += counter_dist[d][i];
-      }
-    }
-  }
-
   void next_epoch() {
     double lambda = n_old / double(w);
     dist_old = dist_new;
@@ -612,27 +610,27 @@ public:
     nt.resize(max_degree + 1);
     std::fill(ns.begin(), ns.end(), 0);
 
-    std::thread threads[max_degree];
-    for (size_t t = 0; t < max_degree; t++) {
-      // if (t == 0) {
-      threads[t] = std::thread(&EMFSD::calculate_single_degree, *this,
-                               std::ref(nt[t]), t);
-      // } else {
-      //   threads[t] = std::thread(&EMFSD::calculate_higher_degree, *this,
-      //                            std::ref(nt[t]), t);
-      // }
-    }
-    for (size_t t = 0; t < max_degree; t++) {
-      threads[t].join();
-    }
-
-    // for (size_t d = 0; d < max_degree; d++) {
-    //   if (d == 1) {
-    //     this->calculate_single_degree(nt[d], d);
+    // std::thread threads[max_degree];
+    // for (size_t t = 0; t < max_degree; t++) {
+    //   if (t == 0) {
+    //     threads[t] = std::thread(&EMFSD::calculate_single_degree, *this,
+    //                              std::ref(nt[t]), t);
     //   } else {
-    //     this->calculate_higher_degree(nt[d], d);
+    //     threads[t] = std::thread(&EMFSD::calculate_higher_degree, *this,
+    //                              std::ref(nt[t]), t);
     //   }
     // }
+    // for (size_t t = 0; t < max_degree; t++) {
+    //   threads[t].join();
+    // }
+
+    for (size_t d = 0; d < max_degree; d++) {
+      // if (d == 1) {
+      this->calculate_single_degree(nt[d], d);
+      // } else {
+      //   this->calculate_higher_degree(nt[d], d);
+      // }
+    }
 
     n_new = 0.0;
     for (size_t d = 0; d < max_degree; d++) {
@@ -644,10 +642,12 @@ public:
     for (uint32_t i = 0; i < max_counter_value; i++) {
       dist_new[i] = ns[i] / n_new;
     }
-    //   for (auto &x : ns) {
-    //     std::cout << x << " ";
-    //   }
-    //   std::cout << std::endl;
+    for (auto &x : ns) {
+      if (x != 0.0) {
+        std::cout << x << " ";
+      }
+    }
+    std::cout << std::endl;
   }
 };
 #endif

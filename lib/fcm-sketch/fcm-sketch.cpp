@@ -11,13 +11,12 @@
 #include <vector>
 
 uint32_t FCM_Sketch::hashing(FIVE_TUPLE key, uint32_t k) {
-  static char c_ftuple[sizeof(FIVE_TUPLE)];
-  memcpy(c_ftuple, &key, sizeof(FIVE_TUPLE));
-  return hash.run(c_ftuple, sizeof(FIVE_TUPLE)) % this->stages_sz[k];
+  return hash.run((const char *)key.num_array, sizeof(FIVE_TUPLE)) %
+         this->stages_sz[k];
 }
 
 uint32_t FCM_Sketch::insert(FIVE_TUPLE tuple) {
-  this->true_data[(string)tuple]++;
+  this->true_data[tuple]++;
 
   uint32_t hash_idx = this->hashing(tuple, 0);
   uint32_t c = 0;
@@ -149,12 +148,12 @@ void FCM_Sketch::analyze(int epoch) {
   double wmre_denom = 0.0;
   // WMRE - Flow Size Distribution
   vector<double> em_fsd = this->get_distribution();
-  for (size_t i = 0; i < true_fsd.size(); i++) {
-    if (true_fsd[i] == 0) {
-      continue;
-    }
-    wmre_nom += std::abs(true_fsd[i] - em_fsd[i]);
-    wmre_denom += double(true_fsd[i] + em_fsd[i]) / 2;
+  uint32_t max_len = std::max(true_fsd.size(), em_fsd.size());
+  true_fsd.resize(max_len);
+  em_fsd.resize(max_len);
+  for (size_t i = 0; i < max_len; i++) {
+    wmre_nom += std::abs(double(true_fsd[i] - em_fsd[i]));
+    wmre_denom += double((true_fsd[i] + em_fsd[i]) / 2);
   }
   this->wmre = wmre_nom / wmre_denom;
   printf("WMRD : %f\n", this->wmre);
@@ -227,10 +226,11 @@ vector<double> FCM_Sketch::get_distribution() {
         // If more than one has been overflown or my pred has overflown and I
         // have overflown, add me to the threshold as well
         if (overflown > 1 or pred_overflown) {
-          overflow_paths[stage][i].insert(overflow_paths[stage][i].begin(),
-                                          {overflown, imm_overflow});
-          // std::sort(overflow_paths[stage][i].begin(),
-          //           overflow_paths[stage][i].end(), std::greater<>());
+          overflow_paths[stage][i].insert(
+              overflow_paths[stage][i].begin(),
+              {(uint32_t)stage, overflown, imm_overflow});
+          std::sort(overflow_paths[stage][i].begin(),
+                    overflow_paths[stage][i].end(), std::greater<>());
         }
       }
 
@@ -258,16 +258,16 @@ vector<double> FCM_Sketch::get_distribution() {
     }
     std::cout << "Degree: " << d << std::endl;
     for (size_t i = 0; i < thresholds[d].size(); i++) {
-      std::cout << "i " << i << ": ";
+      std::cout << "i " << i << ":";
       for (size_t l = 0; l < thresholds[d][i].size(); l++) {
         for (auto &col : thresholds[d][i][l]) {
-          std::cout << col << " ";
+          std::cout << " " << col;
         }
+        std::cout << ",";
       }
       std::cout << std::endl;
     }
   }
-  // exit(0);
   // for (size_t st = 1; st < overflow_paths.size(); st++) {
   //   std::cout << "Stage " << st << std::endl;
   //   for (size_t i = 0; i < overflow_paths[st].size(); i++) {
@@ -295,10 +295,11 @@ vector<double> FCM_Sketch::get_distribution() {
   }
   std::cout << "Maximum degree is: " << max_degree << std::endl;
 
-  EMFSD EM(this->stages_sz);
-  EM.set_counters(max_counter_value, max_degree, virtual_counters,
-                  this->stages_sz[0]);
+  EMFSD EM(this->stages_sz, thresholds, max_counter_value, max_degree,
+           virtual_counters);
   EM.next_epoch();
-  return EM.ns;
+  EM.next_epoch();
+  vector<double> output = EM.ns;
+  return output;
 }
 #endif // !_FCM_SKETCH_CPP

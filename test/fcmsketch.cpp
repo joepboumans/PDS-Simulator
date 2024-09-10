@@ -130,17 +130,20 @@ TEST_CASE("Analysis - F1", "[CM][analysis][F1]") {
 }
 
 TEST_CASE("FSD Test", "[CM][analysis][fsd]") {
-  FCM_Sketch fcm(1, 3, 2, 1, "test", 0, 0);
+  FCM_Sketch fcm(1, 5, 2, 1, "test", 0, 0);
   REQUIRE(fcm.average_absolute_error == 0);
   REQUIRE(fcm.average_relative_error == 0);
-  FIVE_TUPLE t, t2, t3;
+  FIVE_TUPLE t, t2, t3, t4;
   t3.num_array[12] = 10;
   t2.num_array[11] = 10;
   t2.num_array[2] = 10;
   for (size_t i = 0; i < 65535 + 255; i++) {
     fcm.insert(t);
     fcm.insert(t2);
-    fcm.insert(t3);
+    // fcm.insert(t3);
+  }
+  for (size_t i = 0; i < 100; i++) {
+    fcm.insert(t4++);
   }
   fcm.print_sketch();
   fcm.analyze(0);

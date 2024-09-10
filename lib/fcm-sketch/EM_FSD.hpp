@@ -162,11 +162,13 @@ private:
     int in_beta_degree;
     int now_flow_num;
     int flow_num_limit;
+    int correct_combinations = 0;
     vector<int> now_result;
     explicit BetaGenerator_HD(int _sum, vector<vector<uint32_t>> _thres,
                               int _degree)
         : sum(_sum), beta_degree(_degree) {
       // must initialize now_flow_num as 0
+      beta_degree++;
       now_flow_num = 0;
       in_beta_degree = 0;
       thres = _thres; // interpretation of threshold
@@ -234,7 +236,10 @@ private:
           now_result[0] = sum;
           /*****************************/
           if (beta_degree == 1) // will never be occured
+          {
+            std::cout << "[ERROR] Beta degree is 1" << std::endl;
             return true;
+          }
           /*****************************/
         case 1:
           now_flow_num = 2;
@@ -253,17 +258,23 @@ private:
                 continue;
             }
             if (in_beta_degree == 0) {
-              if (condition_check_fcm())
+              if (condition_check_fcm()) {
+                correct_combinations++;
                 return true;
-            } else if (in_beta_degree == 3) {
-              if (condition_check_fcm_simple2())
-                return true;
-              // } else if (beta_degree == 3) {
-              //   if (condition_check_fcm_simple4to3())
+              }
+              // } else if (in_beta_degree == 3) {
+              //   if (condition_check_fcm_simple2()) {
+              //     correct_combinations++;
               //     return true;
-            } else if (beta_degree == 2) {
-              if (condition_check_fcm_simple4to2())
-                return true;
+              //   }
+              //   // } else if (beta_degree == 3) {
+              //   //   if (condition_check_fcm_simple4to3())
+              //   //     return true;
+              // } else if (beta_degree == 2) {
+              //   if (condition_check_fcm_simple4to2()) {
+              //     correct_combinations++;
+              //     return true;
+              //   }
             }
             /*****************************/
           } else { // no more combination -> go to next flow number
@@ -275,119 +286,142 @@ private:
           }
         }
       }
+      std::cout << "Correct combinations " << correct_combinations << std::endl;
       return false;
     }
 
     bool condition_check_fcm() {
       if (beta_degree == now_flow_num) {
+        for (auto &t : thres) {
+          uint32_t layer = t[0];
+          uint32_t colls = t[1];
+          uint32_t min_val = t[2];
+          uint32_t passes = 0;
+          for (uint32_t i = 0; i < now_flow_num; ++i) {
+            if (now_result[i] > min_val) {
+              passes++;
+            }
+          }
+          // Combination has not large enough values to meet all conditions
+          // E.g. it needs have 2 values large than the L2 threshold +
+          // predecessor (min_value)
+          if (passes < colls) {
+            return false;
+          }
+        }
+        return true;
         // degree 2, num 2,, or degree 3, num 3
         // layer 1
-        for (int i = 0; i < now_flow_num; ++i) {
-          if (now_result[i] <= this->counter_overflows[0])
-            return false;
-        }
-
-        // layer 2
-        int num_cond_l2 = thres.size() - beta_degree;
-        if (num_cond_l2 == 0) { // if no condition on layer 2
-          return true;
-        } else if (num_cond_l2 == 1) { // if one condition
-          if (thres[beta_degree][1] != beta_degree) {
-            printf("[ERROR] condition is not correct");
-          }
-
-          int val = 0;
-          for (int j = 0; j < thres[beta_degree][1]; ++j)
-            val += now_result[j];
-
-          if (val <= thres[beta_degree][2])
-            return false;
-        } else if (num_cond_l2 ==
-                   2) { // if (num_cond_l2 == 2){ // for two conditions
-          int thres_l2_1 = thres[beta_degree][2];
-          int thres_l2_2 = thres[beta_degree + 1][2];
-          if (beta_degree == 2) { // degree 2
-            if (now_result[0] <= thres_l2_1 or now_result[1] <= thres_l2_2) {
-              return false;
-            }
-          } else { // degree 3
-            int val_1 = 0;
-            int val_2 = 0;
-            for (int i = 0; i < thres[beta_degree][1]; ++i)
-              val_1 += now_result[i];
-            for (int i = thres[beta_degree][1];
-                 i < thres[beta_degree][1] + thres[beta_degree + 1][1]; ++i)
-              val_2 += now_result[i];
-
-            if (val_1 <= thres_l2_1 or val_2 <= thres_l2_2) {
-              return false;
-            }
-          }
-        } else { // only when degree 3
-          if (now_result[0] <= thres[beta_degree][2] or
-              now_result[1] <= thres[beta_degree + 1][2] or
-              now_result[2] <= thres[beta_degree + 2][2])
-            return false;
-        }
-        return true; // if no violation, it is a good permutation!
-      } else if (beta_degree + 1 == now_flow_num) {
-        // degree 2, num 3
-        // layer 1
-        if (now_result[0] + now_result[1] <= this->counter_overflows[0] or
-            now_result[2] <= this->counter_overflows[0])
-          return false;
-
-        // layer 2
-        int num_cond_l2 = thres.size() - beta_degree;
-        if (num_cond_l2 == 0) { // if no condition on layer 2
-          return true;
-        } else if (num_cond_l2 == 1) { // if one condition
-          int val = 0;
-          for (int j = 0; j < thres[beta_degree][1]; ++j)
-            val += now_result[j];
-          if (val <= thres[beta_degree][2])
-            return false;
-        } else { // if two conditions
-          if (now_result[0] + now_result[1] <= thres[beta_degree][2] or
-              now_result[2] <= thres[beta_degree + 1][2])
-            return false;
-        }
-      } else if (beta_degree + 2 == now_flow_num) {
-        // degree 2, num 4
-        // layer 1
-        if (now_result[3] > this->counter_overflows[0]) {
-          if (now_result[0] + now_result[1] + now_result[2] <=
-              this->counter_overflows[0])
-            return false;
-        } else {
-          if (now_result[0] + now_result[3] <= this->counter_overflows[0] or
-              now_result[1] + now_result[2] <= this->counter_overflows[0])
-            return false;
-        }
-
-        // layer 2
-        int num_cond_l2 = thres.size() - beta_degree;
-        if (num_cond_l2 == 0) { // if no condition
-          return true;
-        } else if (num_cond_l2 == 1) { // if one condition
-          int val = 0;
-          for (int j = 0; j < thres[beta_degree][1]; ++j)
-            val += now_result[j];
-          if (val <= thres[beta_degree][2])
-            return false;
-        } else { // if two conditions
-          int thres_l2_1 = thres[beta_degree][2];
-          int thres_l2_2 = thres[beta_degree + 1][2];
-
-          if (now_result[3] > thres_l2_2) {
-            if (now_result[0] + now_result[1] + now_result[2] <= thres_l2_1)
-              return false;
-          } else {
-            if (now_result[0] + now_result[3] <= thres_l2_1 or
-                now_result[1] + now_result[2] <= thres_l2_2)
-              return false;
-          }
-        }
+        //   for (int i = 0; i < now_flow_num; ++i) {
+        //     if (now_result[i] <= this->counter_overflows[0])
+        //       return false;
+        //   }
+        //
+        //   // layer 2
+        //   int num_cond_l2 = thres.size() - beta_degree;
+        //   if (num_cond_l2 == 0) { // if no condition on layer 2
+        //     return true;
+        //   } else if (num_cond_l2 == 1) { // if one condition
+        //     if (thres[beta_degree][1] != beta_degree) {
+        //       printf("[ERROR] condition is not correct");
+        //     }
+        //
+        //     int val = 0;
+        //     for (int j = 0; j < thres[beta_degree][1]; ++j)
+        //       val += now_result[j];
+        //
+        //     if (val <= thres[beta_degree][2])
+        //       return false;
+        //   } else if (num_cond_l2 ==
+        //              2) { // if (num_cond_l2 == 2){ // for two conditions
+        //     int thres_l2_1 = thres[beta_degree][2];
+        //     int thres_l2_2 = thres[beta_degree + 1][2];
+        //     if (beta_degree == 2) { // degree 2
+        //       if (now_result[0] <= thres_l2_1 or now_result[1] <= thres_l2_2)
+        //       {
+        //         return false;
+        //       }
+        //     } else { // degree 3
+        //       int val_1 = 0;
+        //       int val_2 = 0;
+        //       for (int i = 0; i < thres[beta_degree][1]; ++i)
+        //         val_1 += now_result[i];
+        //       for (int i = thres[beta_degree][1];
+        //            i < thres[beta_degree][1] + thres[beta_degree + 1][1];
+        //            ++i)
+        //         val_2 += now_result[i];
+        //
+        //       if (val_1 <= thres_l2_1 or val_2 <= thres_l2_2) {
+        //         return false;
+        //       }
+        //     }
+        //   } else { // only when degree 3
+        //     if (now_result[0] <= thres[beta_degree][2] or
+        //         now_result[1] <= thres[beta_degree + 1][2] or
+        //         now_result[2] <= thres[beta_degree + 2][2])
+        //       return false;
+        //   }
+        //   return true; // if no violation, it is a good permutation!
+        // } else if (beta_degree + 1 == now_flow_num) {
+        //   // degree 2, num 3
+        //   // layer 1
+        //   if (now_result[0] + now_result[1] <= this->counter_overflows[0] or
+        //       now_result[2] <= this->counter_overflows[0])
+        //     return false;
+        //
+        //   // layer 2
+        //   int num_cond_l2 = thres.size() - beta_degree;
+        //   if (num_cond_l2 == 0) { // if no condition on layer 2
+        //     return true;
+        //   } else if (num_cond_l2 == 1) { // if one condition
+        //     int val = 0;
+        //     for (int j = 0; j < thres[beta_degree][1]; ++j)
+        //       val += now_result[j];
+        //     if (val <= thres[beta_degree][2])
+        //       return false;
+        //   } else { // if two conditions
+        //     if (now_result[0] + now_result[1] <= thres[beta_degree][2] or
+        //         now_result[2] <= thres[beta_degree + 1][2])
+        //       return false;
+        //   }
+        // } else if (beta_degree + 2 == now_flow_num) {
+        //   // degree 2, num 4
+        //   // layer 1
+        //   if (now_result[3] > this->counter_overflows[0]) {
+        //     if (now_result[0] + now_result[1] + now_result[2] <=
+        //         this->counter_overflows[0])
+        //       return false;
+        //   } else {
+        //     if (now_result[0] + now_result[3] <= this->counter_overflows[0]
+        //     or
+        //         now_result[1] + now_result[2] <= this->counter_overflows[0])
+        //       return false;
+        //   }
+        //
+        //   // layer 2
+        //   int num_cond_l2 = thres.size() - beta_degree;
+        //   if (num_cond_l2 == 0) { // if no condition
+        //     return true;
+        //   } else if (num_cond_l2 == 1) { // if one condition
+        //     int val = 0;
+        //     for (int j = 0; j < thres[beta_degree][1]; ++j)
+        //       val += now_result[j];
+        //     if (val <= thres[beta_degree][2])
+        //       return false;
+        //   } else { // if two conditions
+        //     int thres_l2_1 = thres[beta_degree][2];
+        //     int thres_l2_2 = thres[beta_degree + 1][2];
+        //
+        //     if (now_result[3] > thres_l2_2) {
+        //       if (now_result[0] + now_result[1] + now_result[2] <=
+        //       thres_l2_1)
+        //         return false;
+        //     } else {
+        //       if (now_result[0] + now_result[3] <= thres_l2_1 or
+        //           now_result[1] + now_result[2] <= thres_l2_2)
+        //         return false;
+        //     }
+        //   }
       }
       return true; // if no violation, it is a good permutation!
     }

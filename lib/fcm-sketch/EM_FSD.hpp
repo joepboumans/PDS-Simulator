@@ -253,8 +253,8 @@ private:
                 continue;
             }
             if (in_beta_degree == 0) {
-              // if (condition_check_fcm())
-              //   return true;
+              if (condition_check_fcm())
+                return true;
             } else if (in_beta_degree == 3) {
               if (condition_check_fcm_simple2())
                 return true;

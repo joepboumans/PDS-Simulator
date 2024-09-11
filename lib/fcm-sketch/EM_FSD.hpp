@@ -311,19 +311,19 @@ private:
           uint32_t passes = 0;
           vector<bool> perms(now_flow_num);
           for (uint32_t i = 0; i < now_flow_num; ++i) {
-            std::cout << now_result[i] << " > " << min_val << "\t";
+            // std::cout << now_result[i] << " > " << min_val << "\t";
             if (now_result[i] > min_val) {
               passes++;
             }
           }
-          std::cout << std::endl;
+          // std::cout << std::endl;
           // Combination has not large enough values to meet all
           // conditions
           // E.g. it needs have 2 values large than the L2 threshold +
           // predecessor (min_value)
           if (passes < colls) {
-            std::cout << "Didn't have enough passes, " << passes << " < "
-                      << colls << std::endl;
+            // std::cout << "Didn't have enough passes, " << passes << " < "
+            //           << colls << std::endl;
             return false;
           }
         }

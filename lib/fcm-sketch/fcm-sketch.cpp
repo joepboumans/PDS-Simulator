@@ -218,8 +218,7 @@ vector<double> FCM_Sketch::get_distribution() {
           if (this->stages[stage - 1][child_idx].overflow) {
             summary[stage][i][0] += summary[stage - 1][child_idx][0];
             summary[stage][i][1] += summary[stage - 1][child_idx][1];
-            summary[stage][i][2] =
-                this->stage_overflows[stage] + summary[stage - 1][child_idx][2];
+            summary[stage][i][2] += summary[stage - 1][child_idx][2];
             overflown++;
             // If any of my predecessors have overflown, add them to my
             // overflown paths

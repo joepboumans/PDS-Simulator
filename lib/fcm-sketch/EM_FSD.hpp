@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <cstdlib>
 #include <functional>
 #include <iostream>
 #include <numeric>
@@ -34,20 +35,19 @@ public:
         vector<vector<uint32_t>> counters)
       : stage_sz(szes), max_counter_value(max_counter_value) {
     // Sizing
-    max_degree++;
     this->max_degree = max_degree;
 
     // Setup distribution and the thresholds for it
-    counter_dist.resize(max_degree);
-    thresholds.resize(max_degree);
-    for (size_t d = 0; d < max_degree; d++) {
-      counter_dist[d].resize(max_counter_value);
+    counter_dist.resize(max_degree + 1);
+    thresholds.resize(max_degree + 1);
+    for (size_t d = 0; d <= max_degree; d++) {
+      counter_dist[d].resize(max_counter_value + 1);
       std::fill(counter_dist[d].begin(), counter_dist[d].end(), 0);
-      thresholds[d].resize(max_counter_value);
+      thresholds[d].resize(max_counter_value + 1);
     }
     // Inital guess for # of flows
     // double n_new = 0.0; // # of flows (Cardinality)
-    for (size_t d = 0; d < max_degree; d++) {
+    for (size_t d = 0; d <= max_degree; d++) {
       n_new += counters[d].size();
       for (size_t i = 0; i < counters[d].size(); i++) {
         counter_dist[d][counters[d][i]]++;
@@ -70,6 +70,12 @@ public:
         ns[i] += counter_dist[d][i];
       }
     }
+    double accumulate = std::accumulate(counter_dist[max_degree].begin(),
+                                        counter_dist[max_degree].end(), 0.0);
+    std::cout << "Max degree size " << accumulate << std::endl;
+    accumulate =
+        std::accumulate(counter_dist[3].begin(), counter_dist[3].end(), 0.0);
+    std::cout << "Max degree size " << accumulate;
   };
 
 private:
@@ -132,13 +138,6 @@ private:
         default:
           now_result.resize(now_flow_num);
           if (get_new_comb()) {
-            // for (auto &x : now_result) {
-            //   std::cout << x << " ";
-            // }
-            // std::cout << std::endl;
-            // if (now_flow_num > 3) {
-            //   exit(0);
-            // }
             return true;
           } else {
             now_flow_num++;
@@ -160,19 +159,23 @@ private:
     vector<vector<uint32_t>> thres;     // list of <. . .>
     vector<uint32_t> counter_overflows; // List of overflow values per stage
     int in_beta_degree;
+    bool use_reduction;
     int now_flow_num;
     int flow_num_limit;
     int correct_combinations = 0;
     vector<int> now_result;
     explicit BetaGenerator_HD(int _sum, vector<vector<uint32_t>> _thres,
-                              int _degree)
-        : sum(_sum), beta_degree(_degree) {
+                              vector<uint32_t> _overflows, int _degree)
+        : sum(_sum), beta_degree(_degree), thres(_thres),
+          counter_overflows(_overflows) {
       // must initialize now_flow_num as 0
-      beta_degree++;
       now_flow_num = 0;
       in_beta_degree = 0;
-      thres = _thres; // interpretation of threshold
+      use_reduction = false;
 
+      if (beta_degree > 2) {
+        std::cout << "Larger degree " << beta_degree << std::endl;
+      }
       /**** For large dataset and cutoff ****/
       if (sum > 1100)
         flow_num_limit = beta_degree;
@@ -191,14 +194,17 @@ private:
       // "in_beta_degree" keeps the original beta_degree
       // 15k, 15k, 7k
       if (beta_degree >= 4 and sum < 10000) {
+        use_reduction = true;
         in_beta_degree = beta_degree;
         flow_num_limit = 3;
         beta_degree = 3;
       } else if (beta_degree >= 4 and sum >= 10000) {
+        use_reduction = true;
         in_beta_degree = beta_degree;
         flow_num_limit = 2;
         beta_degree = 2;
       } else if (beta_degree == 3 and sum > 5000) {
+        use_reduction = true;
         in_beta_degree = beta_degree;
         flow_num_limit = 2;
         beta_degree = 2;
@@ -235,9 +241,9 @@ private:
           now_result.resize(1);
           now_result[0] = sum;
           /*****************************/
-          if (beta_degree == 1) // will never be occured
+          if (beta_degree == 0) // will never be occured
           {
-            std::cout << "[ERROR] Beta degree is 1" << std::endl;
+            std::cout << "[ERROR] Beta degree is 0" << std::endl;
             return true;
           }
           /*****************************/
@@ -247,36 +253,23 @@ private:
         default: // fall through
           now_result.resize(now_flow_num);
           if (get_new_comb()) {
-            /******* condition_check *******/
+            // Validate the combinations
             // There need to more or equal numbers to the degree of VC
             if (now_flow_num < beta_degree) {
               continue;
             }
-            // The numbers must exceed the first layer threshhold
-            for (int i = 0; i < now_flow_num; ++i) {
-              if (now_result[i] <= 255)
-                continue;
-            }
-            if (in_beta_degree == 0) {
+            if (!use_reduction) {
               if (condition_check_fcm()) {
                 correct_combinations++;
                 return true;
               }
-              // } else if (in_beta_degree == 3) {
-              //   if (condition_check_fcm_simple2()) {
-              //     correct_combinations++;
-              //     return true;
-              //   }
-              //   // } else if (beta_degree == 3) {
-              //   //   if (condition_check_fcm_simple4to3())
-              //   //     return true;
-              // } else if (beta_degree == 2) {
-              //   if (condition_check_fcm_simple4to2()) {
-              //     correct_combinations++;
-              //     return true;
-              //   }
+              // Some flows are very larges and/or have
+            } else {
+              if (condition_check_fcm_reduction()) {
+                correct_combinations++;
+                return true;
+              }
             }
-            /*****************************/
           } else { // no more combination -> go to next flow number
             now_flow_num++;
             for (int i = 0; i < now_flow_num - 2; ++i) {
@@ -286,19 +279,19 @@ private:
           }
         }
       }
-      std::cout << "Correct combinations " << correct_combinations << std::endl;
+      // std::cout << "Correct combinations " << correct_combinations <<
+      // std::endl;
       return false;
     }
 
     bool condition_check_fcm() {
       if (beta_degree == now_flow_num) {
         for (auto &t : thres) {
-          uint32_t layer = t[0];
-          uint32_t colls = t[1];
-          uint32_t min_val = t[2];
+          uint32_t colls = t[0];
+          uint32_t min_val = t[1];
           uint32_t passes = 0;
           for (uint32_t i = 0; i < now_flow_num; ++i) {
-            if (now_result[i] > min_val) {
+            if (now_result[i] >= min_val) {
               passes++;
             }
           }
@@ -309,124 +302,37 @@ private:
             return false;
           }
         }
+        // More flows than degrees, so the flows are split up and thus we need
+        // to sum some of the values
+      } else {
+        for (auto &t : thres) {
+          uint32_t colls = t[0];
+          uint32_t min_val = t[1];
+          uint32_t passes = 0;
+          vector<bool> perms(now_flow_num);
+          for (uint32_t i = 0; i < now_flow_num; ++i) {
+            std::cout << now_result[i] << " > " << min_val << "\t";
+            if (now_result[i] > min_val) {
+              passes++;
+            }
+          }
+          std::cout << std::endl;
+          // Combination has not large enough values to meet all
+          // conditions
+          // E.g. it needs have 2 values large than the L2 threshold +
+          // predecessor (min_value)
+          if (passes < colls) {
+            std::cout << "Didn't have enough passes, " << passes << " < "
+                      << colls << std::endl;
+            return false;
+          }
+        }
         return true;
-        // degree 2, num 2,, or degree 3, num 3
-        // layer 1
-        //   for (int i = 0; i < now_flow_num; ++i) {
-        //     if (now_result[i] <= this->counter_overflows[0])
-        //       return false;
-        //   }
-        //
-        //   // layer 2
-        //   int num_cond_l2 = thres.size() - beta_degree;
-        //   if (num_cond_l2 == 0) { // if no condition on layer 2
-        //     return true;
-        //   } else if (num_cond_l2 == 1) { // if one condition
-        //     if (thres[beta_degree][1] != beta_degree) {
-        //       printf("[ERROR] condition is not correct");
-        //     }
-        //
-        //     int val = 0;
-        //     for (int j = 0; j < thres[beta_degree][1]; ++j)
-        //       val += now_result[j];
-        //
-        //     if (val <= thres[beta_degree][2])
-        //       return false;
-        //   } else if (num_cond_l2 ==
-        //              2) { // if (num_cond_l2 == 2){ // for two conditions
-        //     int thres_l2_1 = thres[beta_degree][2];
-        //     int thres_l2_2 = thres[beta_degree + 1][2];
-        //     if (beta_degree == 2) { // degree 2
-        //       if (now_result[0] <= thres_l2_1 or now_result[1] <= thres_l2_2)
-        //       {
-        //         return false;
-        //       }
-        //     } else { // degree 3
-        //       int val_1 = 0;
-        //       int val_2 = 0;
-        //       for (int i = 0; i < thres[beta_degree][1]; ++i)
-        //         val_1 += now_result[i];
-        //       for (int i = thres[beta_degree][1];
-        //            i < thres[beta_degree][1] + thres[beta_degree + 1][1];
-        //            ++i)
-        //         val_2 += now_result[i];
-        //
-        //       if (val_1 <= thres_l2_1 or val_2 <= thres_l2_2) {
-        //         return false;
-        //       }
-        //     }
-        //   } else { // only when degree 3
-        //     if (now_result[0] <= thres[beta_degree][2] or
-        //         now_result[1] <= thres[beta_degree + 1][2] or
-        //         now_result[2] <= thres[beta_degree + 2][2])
-        //       return false;
-        //   }
-        //   return true; // if no violation, it is a good permutation!
-        // } else if (beta_degree + 1 == now_flow_num) {
-        //   // degree 2, num 3
-        //   // layer 1
-        //   if (now_result[0] + now_result[1] <= this->counter_overflows[0] or
-        //       now_result[2] <= this->counter_overflows[0])
-        //     return false;
-        //
-        //   // layer 2
-        //   int num_cond_l2 = thres.size() - beta_degree;
-        //   if (num_cond_l2 == 0) { // if no condition on layer 2
-        //     return true;
-        //   } else if (num_cond_l2 == 1) { // if one condition
-        //     int val = 0;
-        //     for (int j = 0; j < thres[beta_degree][1]; ++j)
-        //       val += now_result[j];
-        //     if (val <= thres[beta_degree][2])
-        //       return false;
-        //   } else { // if two conditions
-        //     if (now_result[0] + now_result[1] <= thres[beta_degree][2] or
-        //         now_result[2] <= thres[beta_degree + 1][2])
-        //       return false;
-        //   }
-        // } else if (beta_degree + 2 == now_flow_num) {
-        //   // degree 2, num 4
-        //   // layer 1
-        //   if (now_result[3] > this->counter_overflows[0]) {
-        //     if (now_result[0] + now_result[1] + now_result[2] <=
-        //         this->counter_overflows[0])
-        //       return false;
-        //   } else {
-        //     if (now_result[0] + now_result[3] <= this->counter_overflows[0]
-        //     or
-        //         now_result[1] + now_result[2] <= this->counter_overflows[0])
-        //       return false;
-        //   }
-        //
-        //   // layer 2
-        //   int num_cond_l2 = thres.size() - beta_degree;
-        //   if (num_cond_l2 == 0) { // if no condition
-        //     return true;
-        //   } else if (num_cond_l2 == 1) { // if one condition
-        //     int val = 0;
-        //     for (int j = 0; j < thres[beta_degree][1]; ++j)
-        //       val += now_result[j];
-        //     if (val <= thres[beta_degree][2])
-        //       return false;
-        //   } else { // if two conditions
-        //     int thres_l2_1 = thres[beta_degree][2];
-        //     int thres_l2_2 = thres[beta_degree + 1][2];
-        //
-        //     if (now_result[3] > thres_l2_2) {
-        //       if (now_result[0] + now_result[1] + now_result[2] <=
-        //       thres_l2_1)
-        //         return false;
-        //     } else {
-        //       if (now_result[0] + now_result[3] <= thres_l2_1 or
-        //           now_result[1] + now_result[2] <= thres_l2_2)
-        //         return false;
-        //     }
-        //   }
       }
       return true; // if no violation, it is a good permutation!
     }
 
-    bool condition_check_fcm_simple4to3() {
+    bool condition_check_fcm_reduction() {
       // check number of flows should be more or equal than degree...
       if (now_flow_num < beta_degree)
         return false; // exit for next comb.
@@ -436,95 +342,30 @@ private:
         if (now_result[i] <= this->counter_overflows[0])
           return false;
       }
-
-      // layer 2, degree 3
-      // In this setting, degree == 3, num_flow == 3
-      int num_cond_l2 = thres.size() - in_beta_degree;
-      if (num_cond_l2 == 0) { // if no layer 2 condition
-        return true;
-      } else if (num_cond_l2 == 1) { // if one condition
-        int val = 0;
-        for (int j = 0; j < now_flow_num; ++j)
-          val += now_result[j];
-        if (val <= this->counter_overflows[1] + 3 * this->counter_overflows[0])
+      // Run over threshold until more than 2 collisions are found
+      for (auto &t : thres) {
+        uint32_t colls = t[0];
+        colls = std::min((int)colls, beta_degree);
+        uint32_t min_val = t[1];
+        uint32_t passes = 0;
+        for (uint32_t i = 0; i < now_flow_num; ++i) {
+          if (now_result[i] >= min_val) {
+            passes++;
+          }
+        }
+        // Combination has not large enough values to meet all conditions
+        // E.g. it needs have 2 values large than the L2 threshold +
+        // predecessor (min_value)
+        if (passes < colls) {
+          // std::cout << "Didn't have enough passes, " << passes << " < "
+          //           << colls << std::endl;
           return false;
-      } else if (num_cond_l2 == 2) { // if two conditions
-        if (now_result[0] + now_result[1] <=
-                this->counter_overflows[1] + 2 * this->counter_overflows[0] or
-            now_result[2] <=
-                this->counter_overflows[1] + this->counter_overflows[0])
-          return false;
-      } else { // if num_cond_l2 == 3, 3 conditions
-        for (int i = 0; i < now_flow_num; ++i) {
-          if (now_result[i] <=
-              this->counter_overflows[1] + 3 * this->counter_overflows[0])
-            return false;
+        }
+        // Exit early
+        if (colls > 1) {
+          break;
         }
       }
-      return true;
-    }
-
-    bool condition_check_fcm_simple4to2() {
-      // check number of flows should be more or equal than degree...
-      if (now_flow_num < beta_degree)
-        return false; // exit for next comb.
-
-      // layer 1 check
-      for (int i = 0; i < now_flow_num; ++i) {
-        if (now_result[i] <= this->counter_overflows[0])
-          return false;
-      }
-
-      // layer 2, degree 2
-      // In this setting, degree == 2 and num_flow == 2 (but regard the
-      // origianl flow num should be 3, to reduce overestimate)
-      int num_cond_l2 =
-          thres.size() - in_beta_degree; // here, simplified is origianl
-      if (num_cond_l2 == 0) {            // if no layer 2 condition
-        return true;
-      } else if (num_cond_l2 == 1) { // if one condition
-        if (now_result[0] + now_result[1] <=
-            this->counter_overflows[1] + 3 * this->counter_overflows[0])
-          return false;
-      } else { // if two conditions
-        if (now_result[0] <=
-                this->counter_overflows[1] + this->counter_overflows[0] or
-            now_result[1] <=
-                this->counter_overflows[1] + 2 * this->counter_overflows[0])
-          return false;
-      }
-      return true;
-    }
-
-    bool condition_check_fcm_simple2() {
-      // check number of flows should be more or equal than degree...
-      if (now_flow_num < beta_degree)
-        return false; // exit for next comb.
-
-      // layer 1 check
-      for (int i = 0; i < now_flow_num; ++i) {
-        if (now_result[i] <= this->counter_overflows[0])
-          return false;
-      }
-
-      // layer 2
-      // if (beta_degree == 2){ // if degree 2
-      int num_cond_l2 =
-          thres.size() - in_beta_degree; // here, simplified is origianl
-      if (num_cond_l2 == 0) {            // if no layer 2 condition
-        return true;
-      } else if (num_cond_l2 == 1) { // if one condition
-        if (now_result[0] + now_result[1] <=
-            this->counter_overflows[1] + 2 * this->counter_overflows[0])
-          return false;
-      } else { // if two conditions
-        if (now_result[0] <=
-                this->counter_overflows[1] + this->counter_overflows[0] or
-            now_result[1] <=
-                this->counter_overflows[1] + 2 * this->counter_overflows[0])
-          return false;
-      }
-      // }
       return true;
     }
   };
@@ -547,8 +388,11 @@ private:
       uint32_t fi = kv.second;
       uint32_t si = kv.first;
       double lambda_i = now_n * (now_dist[si]) / w;
+      // printf("si %i, fi %i, now_n %f, now_dist %f,  lambda_i %f ", si, fi,
+      //        now_n, now_dist[si], lambda_i);
       ret *= (std::pow(lambda_i, fi)) / factorial(fi);
     }
+    // std::cout << std::endl;
 
     return ret;
   }
@@ -565,8 +409,11 @@ private:
       uint32_t fi = kv.second;
       uint32_t si = kv.first;
       double lambda_i = now_n * (now_dist[si]) / w;
+      // printf("si %i, fi %i, now_n %f, now_dist %f,  lambda_i %f ", si, fi,
+      //        now_n, now_dist[si], lambda_i);
       ret *= (std::pow(lambda_i, fi)) / factorial(fi);
     }
+    // std::cout << std::endl;
 
     return ret;
   }
@@ -606,18 +453,25 @@ private:
     nt.resize(this->max_counter_value + 1);
     std::fill(nt.begin(), nt.end(), 0.0);
 
+    printf("Running for degree %2d with a size of %zu\n", d,
+           counter_dist[d].size());
     double lambda = n_old * d / double(w);
     for (uint32_t i = 0; i < counter_dist[d].size(); i++) {
       // enum how to form val:i
       if (counter_dist[d][i] == 0) {
         continue;
       }
-      BetaGenerator_HD alpha(i, this->thresholds[d][i], d),
-          beta(i, this->thresholds[d][i], d);
+      BetaGenerator_HD alpha(i, this->thresholds[d][i], this->stage_sz, d),
+          beta(i, this->thresholds[d][i], this->stage_sz, d);
       double sum_p = 0;
       while (alpha.get_next()) {
         double p = get_p_from_beta(alpha, lambda, dist_old, n_old);
         sum_p += p;
+      }
+      if (sum_p == 0) {
+        std::cout << "Sum is zero, stop calc" << std::endl;
+        std::cout << "At " << i << " with degree " << d << std::endl;
+        continue;
       }
       while (beta.get_next()) {
         double p = get_p_from_beta(beta, lambda, dist_old, n_old);
@@ -657,7 +511,7 @@ public:
     //   threads[t].join();
     // }
 
-    for (size_t d = 0; d < max_degree; d++) {
+    for (size_t d = 0; d <= max_degree; d++) {
       if (d == 0) {
         this->calculate_single_degree(nt[d], d);
       } else {

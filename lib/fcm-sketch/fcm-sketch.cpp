@@ -214,14 +214,14 @@ vector<double> FCM_Sketch::get_distribution() {
         bool child_overflown = false;
         for (size_t k = 0; k < this->k; k++) {
           uint32_t child_idx = i * this->k + k;
-          // Add childs count, degree and min_value
+          // Add childs count, degree and min_value to current counter
           if (this->stages[stage - 1][child_idx].overflow) {
             summary[stage][i][0] += summary[stage - 1][child_idx][0];
             summary[stage][i][1] += summary[stage - 1][child_idx][1];
             summary[stage][i][2] += summary[stage - 1][child_idx][2];
-            overflown++;
             // If any of my predecessors have overflown, add them to my
             // overflown paths
+            overflown++;
             child_overflown = true;
             for (size_t j = 0; j < overflow_paths[stage - 1][child_idx].size();
                  j++) {
@@ -261,39 +261,40 @@ vector<double> FCM_Sketch::get_distribution() {
     }
   }
 
-  for (size_t d = 0; d < thresholds.size(); d++) {
-    if (thresholds[d].size() == 0) {
-      continue;
-    }
-    std::cout << "Degree: " << d << std::endl;
-    for (size_t i = 0; i < thresholds[d].size(); i++) {
-      std::cout << "i " << i << ":";
-      for (size_t l = 0; l < thresholds[d][i].size(); l++) {
-        std::cout << "\t" << l;
-        for (auto &col : thresholds[d][i][l]) {
-          std::cout << " " << col;
-        }
-      }
-      std::cout << std::endl;
-    }
-  }
-
-  for (size_t st = 0; st < virtual_counters.size(); st++) {
-    if (virtual_counters[st].size() == 0) {
-      continue;
-    }
-    std::cout << "Degree: " << st << std::endl;
-    for (auto &val : virtual_counters[st]) {
-      std::cout << " " << val;
-    }
-    std::cout << std::endl;
-  }
-  std::cout << "Maximum degree is: " << max_degree << std::endl;
+  // for (size_t d = 0; d < thresholds.size(); d++) {
+  //   if (thresholds[d].size() == 0) {
+  //     continue;
+  //   }
+  //   std::cout << "Degree: " << d << std::endl;
+  //   for (size_t i = 0; i < thresholds[d].size(); i++) {
+  //     std::cout << "i " << i << ":";
+  //     for (size_t l = 0; l < thresholds[d][i].size(); l++) {
+  //       std::cout << "\t" << l;
+  //       for (auto &col : thresholds[d][i][l]) {
+  //         std::cout << " " << col;
+  //       }
+  //     }
+  //     std::cout << std::endl;
+  //   }
+  // }
+  //
+  // for (size_t st = 0; st < virtual_counters.size(); st++) {
+  //   if (virtual_counters[st].size() == 0) {
+  //     continue;
+  //   }
+  //   std::cout << "Degree: " << st << std::endl;
+  //   for (auto &val : virtual_counters[st]) {
+  //     std::cout << " " << val;
+  //   }
+  //   std::cout << std::endl;
+  // }
+  // std::cout << "Maximum degree is: " << max_degree << std::endl;
 
   EMFSD EM(this->stages_sz, thresholds, max_counter_value, max_degree,
            virtual_counters);
-  EM.next_epoch();
-  // EM.next_epoch();
+  for (size_t i = 0; i < 3; i++) {
+    EM.next_epoch();
+  }
   vector<double> output = EM.ns;
   return output;
 }

@@ -57,9 +57,9 @@ int main() {
     vector<PDS *> stages;
     // CuckooHash cuckoo(10, 1024, name_set, 0, 0);
     // stages.push_back(&cuckoo);
-    FCM_Sketch fcm(1024, 4, 16, trace.size() * 0.0005 / 60, name_set, 0, 0);
+    FCM_Sketch fcm(4096, 3, 8, trace.size() * 0.0005 / 60, name_set, 0, 0);
     stages.push_back(&fcm);
-    Simulator sim(stages, stages.size(), 1);
+    Simulator sim(stages, stages.size(), 15);
     // Default length of CAIDA traces is 60s
     sim.run(trace, 60);
   }

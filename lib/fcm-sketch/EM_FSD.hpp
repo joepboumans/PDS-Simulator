@@ -8,6 +8,7 @@
 #include <functional>
 #include <iostream>
 #include <numeric>
+#include <ostream>
 #include <sys/types.h>
 #include <thread>
 #include <unistd.h>
@@ -29,6 +30,7 @@ public:
   vector<double> ns; // for integer n
   double n_sum;      // n_new
   double card_init;  // initial cardinality by MLE
+  uint32_t iter = 0;
   bool inited = false;
   EMFSD(vector<uint32_t> szes, vector<vector<vector<vector<uint32_t>>>> thresh,
         uint32_t max_counter_value, uint32_t max_degree,
@@ -72,10 +74,6 @@ public:
     }
     double accumulate = std::accumulate(counter_dist[max_degree].begin(),
                                         counter_dist[max_degree].end(), 0.0);
-    std::cout << "Max degree size " << accumulate << std::endl;
-    accumulate =
-        std::accumulate(counter_dist[3].begin(), counter_dist[3].end(), 0.0);
-    std::cout << "Max degree size " << accumulate;
   };
 
 private:
@@ -158,11 +156,9 @@ private:
     int beta_degree;                    // degree
     vector<vector<uint32_t>> thres;     // list of <. . .>
     vector<uint32_t> counter_overflows; // List of overflow values per stage
-    int in_beta_degree;
     bool use_reduction;
     int now_flow_num;
     int flow_num_limit;
-    int correct_combinations = 0;
     vector<int> now_result;
     explicit BetaGenerator_HD(int _sum, vector<vector<uint32_t>> _thres,
                               vector<uint32_t> _overflows, int _degree)
@@ -170,12 +166,8 @@ private:
           counter_overflows(_overflows) {
       // must initialize now_flow_num as 0
       now_flow_num = 0;
-      in_beta_degree = 0;
       use_reduction = false;
 
-      if (beta_degree > 2) {
-        std::cout << "Larger degree " << beta_degree << std::endl;
-      }
       /**** For large dataset and cutoff ****/
       if (sum > 1100)
         flow_num_limit = beta_degree;
@@ -191,21 +183,17 @@ private:
       // explained in the paper, its effect is quite limited as the number of
       // such counters are only a few.
 
-      // "in_beta_degree" keeps the original beta_degree
       // 15k, 15k, 7k
       if (beta_degree >= 4 and sum < 10000) {
         use_reduction = true;
-        in_beta_degree = beta_degree;
         flow_num_limit = 3;
         beta_degree = 3;
       } else if (beta_degree >= 4 and sum >= 10000) {
         use_reduction = true;
-        in_beta_degree = beta_degree;
         flow_num_limit = 2;
         beta_degree = 2;
       } else if (beta_degree == 3 and sum > 5000) {
         use_reduction = true;
-        in_beta_degree = beta_degree;
         flow_num_limit = 2;
         beta_degree = 2;
       }
@@ -260,13 +248,11 @@ private:
             }
             if (!use_reduction) {
               if (condition_check_fcm()) {
-                correct_combinations++;
                 return true;
               }
               // Some flows are very larges and/or have
             } else {
               if (condition_check_fcm_reduction()) {
-                correct_combinations++;
                 return true;
               }
             }
@@ -309,25 +295,74 @@ private:
           uint32_t colls = t[0];
           uint32_t min_val = t[1];
           uint32_t passes = 0;
-          vector<bool> perms(now_flow_num);
-          for (uint32_t i = 0; i < now_flow_num; ++i) {
-            // std::cout << now_result[i] << " > " << min_val << "\t";
-            if (now_result[i] > min_val) {
-              passes++;
+          bool found_permutation = false;
+
+          uint32_t delta = now_flow_num - beta_degree + 1;
+          if (now_result[now_flow_num - 1] >= min_val) {
+
+            vector<uint32_t> perms(now_result.size() - 1);
+            for (size_t i = 0; i < perms.size(); i++) {
+              perms[i] = now_result[i];
+            }
+
+            do {
+              uint32_t local_passes = 1;
+              uint32_t val =
+                  std::accumulate(perms.begin(), perms.begin() + delta - 1, 0);
+              if (val >= min_val) {
+                local_passes++;
+              }
+              for (uint32_t i = delta; i < now_flow_num - 1; ++i) {
+                if (perms[i] >= min_val) {
+                  local_passes++;
+                }
+              }
+              // Found a good permutation
+              if (local_passes >= colls) {
+                found_permutation = true;
+                break;
+              }
+            } while (std::next_permutation(perms.begin(), perms.end()));
+          } else {
+            for (size_t delta_i = 2; delta_i <= delta; delta_i++) {
+              // If the first deltas and remainder do not exceed the threshold
+              // the generated combination is always wrong
+              uint32_t val = std::accumulate(
+                  now_result.begin(), now_result.begin() + delta_i - 1, 0);
+              if (val + now_result[now_flow_num - 1] < min_val) {
+                continue;
+              }
+              vector<uint32_t> perms(now_result.size() - delta_i);
+              for (size_t i = delta_i; i < perms.size(); i++) {
+                perms[i] = now_result[i];
+              }
+
+              bool found_permutation = false;
+              do {
+                uint32_t local_passes = 1;
+                uint32_t val = std::accumulate(perms.begin(), perms.end(), 0);
+                if (val >= min_val) {
+                  local_passes++;
+                }
+                for (uint32_t i = delta_i; i < now_flow_num - 1; ++i) {
+                  if (perms[i] >= min_val) {
+                    local_passes++;
+                  }
+                }
+                // Found a good permutation
+                if (local_passes >= colls) {
+                  found_permutation = true;
+                  break;
+                }
+              } while (std::next_permutation(perms.begin(), perms.end()));
             }
           }
-          // std::cout << std::endl;
-          // Combination has not large enough values to meet all
-          // conditions
-          // E.g. it needs have 2 values large than the L2 threshold +
-          // predecessor (min_value)
-          if (passes < colls) {
-            // std::cout << "Didn't have enough passes, " << passes << " < "
-            //           << colls << std::endl;
+          // No possible permutation that holds for this threshold so
+          // invalid combination
+          if (!found_permutation) {
             return false;
           }
         }
-        return true;
       }
       return true; // if no violation, it is a good permutation!
     }
@@ -342,7 +377,8 @@ private:
         if (now_result[i] <= this->counter_overflows[0])
           return false;
       }
-      // Run over threshold until more than 2 collisions are found
+      // Run over threshold until more than 2 collisions are found and start
+      // from there
       for (auto &t : thres) {
         uint32_t colls = t[0];
         colls = std::min((int)colls, beta_degree);
@@ -422,6 +458,9 @@ private:
     nt.resize(this->max_counter_value + 1);
     std::fill(nt.begin(), nt.end(), 0.0);
 
+    printf("[EM_FCM] Running for degree %2d with a size of %zu\n", d,
+           counter_dist[d].size());
+
     double lambda = n_old * d / double(w);
     for (uint32_t i = 0; i < counter_dist[d].size(); i++) {
       // enum how to form val:i
@@ -453,7 +492,7 @@ private:
     nt.resize(this->max_counter_value + 1);
     std::fill(nt.begin(), nt.end(), 0.0);
 
-    printf("Running for degree %2d with a size of %zu\n", d,
+    printf("[EM_FCM] Running for degree %2d with a size of %zu\n", d,
            counter_dist[d].size());
     double lambda = n_old * d / double(w);
     for (uint32_t i = 0; i < counter_dist[d].size(); i++) {
@@ -469,8 +508,8 @@ private:
         sum_p += p;
       }
       if (sum_p == 0) {
-        std::cout << "Sum is zero, stop calc" << std::endl;
-        std::cout << "At " << i << " with degree " << d << std::endl;
+        // std::cout << "Sum is zero, stop calc" << std::endl;
+        // std::cout << "At " << i << " with degree " << d << std::endl;
         continue;
       }
       while (beta.get_next()) {
@@ -497,27 +536,29 @@ public:
     nt.resize(max_degree + 1);
     std::fill(ns.begin(), ns.end(), 0);
 
-    // std::thread threads[max_degree];
-    // for (size_t t = 0; t < max_degree; t++) {
-    //   if (t == 0) {
-    //     threads[t] = std::thread(&EMFSD::calculate_single_degree, *this,
-    //                              std::ref(nt[t]), t);
-    //   } else {
-    //     threads[t] = std::thread(&EMFSD::calculate_higher_degree, *this,
-    //                              std::ref(nt[t]), t);
-    //   }
-    // }
-    // for (size_t t = 0; t < max_degree; t++) {
-    //   threads[t].join();
-    // }
-
-    for (size_t d = 0; d <= max_degree; d++) {
-      if (d == 0) {
-        this->calculate_single_degree(nt[d], d);
+    // Simple Multi thread
+    std::thread threads[max_degree + 1];
+    for (size_t t = 0; t <= max_degree; t++) {
+      if (t == 0) {
+        threads[t] = std::thread(&EMFSD::calculate_single_degree, *this,
+                                 std::ref(nt[t]), t);
       } else {
-        this->calculate_higher_degree(nt[d], d);
+        threads[t] = std::thread(&EMFSD::calculate_higher_degree, *this,
+                                 std::ref(nt[t]), t);
       }
     }
+    for (size_t t = 0; t <= max_degree; t++) {
+      threads[t].join();
+    }
+
+    // Single threaded
+    // for (size_t d = 0; d <= max_degree; d++) {
+    //   if (d == 0) {
+    //     this->calculate_single_degree(nt[d], d);
+    //   } else {
+    //     this->calculate_higher_degree(nt[d], d);
+    //   }
+    // }
 
     n_new = 0.0;
     for (size_t d = 0; d < max_degree; d++) {
@@ -529,12 +570,15 @@ public:
     for (uint32_t i = 0; i < max_counter_value; i++) {
       dist_new[i] = ns[i] / n_new;
     }
-    for (auto &x : ns) {
-      if (x != 0.0) {
-        std::cout << x << " ";
-      }
-    }
-    std::cout << std::endl;
+
+    printf("[EM_FCM - iter %2d] Intermediate cardianlity : %9.1f\n\n", iter,
+           n_new);
+    // for (auto &x : ns) {
+    //   if (x != 0.0) {
+    //     std::cout << x << " ";
+    //   }
+    // }
+    // std::cout << std::endl;
   }
 };
 #endif

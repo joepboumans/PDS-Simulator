@@ -292,9 +292,9 @@ vector<double> FCM_Sketch::get_distribution() {
 
   EMFSD EM(this->stages_sz, thresholds, max_counter_value, max_degree,
            virtual_counters);
-  // for (size_t i = 0; i < 100; i++) {
-  //   EM.next_epoch();
-  // }
+  for (size_t i = 0; i < 3; i++) {
+    EM.next_epoch();
+  }
   vector<double> output = EM.ns;
   return output;
 }

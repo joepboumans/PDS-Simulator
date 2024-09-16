@@ -4,6 +4,7 @@
 #include "common.h"
 #include <bitset>
 #include <cassert>
+#include <cstdint>
 #include <cstdio>
 #include <fstream>
 #include <iostream>
@@ -31,16 +32,21 @@ public:
     std::cout << "Found end" << std::endl;
     uint32_t sz = ftell(this->fin);
     fseek(this->fin, 0L, SEEK_SET);
-    std::cout << "Size of trace " << this->filename << ": " << sz << std::endl;
+    std::cout << "Total size of dataset " << this->filename << ": " << sz
+              << std::endl;
 
+    trace.resize(sz / sizeof(FIVE_TUPLE));
+    std::cout << "Size trace " << trace.size() << std::endl;
     // Create 5-tuple and trace
     FIVE_TUPLE tin;
     // Load trace with 5-tuple
     if (this->fin == NULL) {
       std::cout << "ERROR: Input file is NULL" << std::endl;
     }
+    uint32_t i = 0;
     while (fread(&tin, 1, sizeof(FIVE_TUPLE), this->fin)) {
-      trace.push_back(tin);
+      trace[i++] = tin;
+      // trace.push_back(tin);
     }
 
     return 0;
@@ -48,28 +54,7 @@ public:
 
 private:
   char filename[100];
-  char path_to_file[200];
   FILE *fin;
-
-  uint32_t download_data_traces() {
-    char command[200];
-    sprintf(command, "%s %s%s",
-            "wget https://www.dropbox.com/s/bajuqha884cxgwl/data1.dat -P",
-            get_current_dir_name(), "/data/");
-    std::cout << "\033[1;31m A sample data (at data/) does not exist, so start "
-                 "to download (~260 MB)...\033[0m"
-              << std::endl;
-
-    int wget_result = std::system(command);
-    std::cout << "Download result " << wget_result << std::endl;
-    if (!this->check_for_traces()) {
-      std::cout << "\033[1;31m Download is failed. Please see the "
-                   "src/data-parser.h\033[0m"
-                << std::endl;
-    }
-
-    return wget_result;
-  }
 
   uint32_t check_for_traces() {
     struct stat buffer;

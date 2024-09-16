@@ -14,7 +14,7 @@
 #include <sys/types.h>
 
 uint32_t CountMin::insert(FIVE_TUPLE tuple) {
-  this->true_data[(string)tuple]++;
+  this->true_data[tuple]++;
   bool hh_overflow = true;
 
   for (size_t i = 0; i < this->n_hash; i++) {
@@ -31,9 +31,7 @@ uint32_t CountMin::insert(FIVE_TUPLE tuple) {
 }
 
 uint32_t CountMin::hashing(FIVE_TUPLE key, uint32_t k) {
-  char c_ftuple[sizeof(FIVE_TUPLE)];
-  memcpy(c_ftuple, &key, sizeof(FIVE_TUPLE));
-  return this->hash[k].run(c_ftuple, 4) % this->columns;
+  return this->hash[k].run((const char *)key.num_array, 4) % this->columns;
 }
 
 uint32_t CountMin::lookup(FIVE_TUPLE tuple) {
@@ -60,13 +58,12 @@ void CountMin::analyze(int epoch) {
   map<uint32_t, uint32_t> true_fsd;
   map<uint32_t, uint32_t> e_fsd;
 
-  for (const auto &[s_tuple, count] : this->true_data) {
+  for (const auto &[tuple, count] : this->true_data) {
     // Flow Size Distribution (Weighted Mean Relative Error)
     true_fsd[count]++;
-    e_fsd[this->lookup(s_tuple)]++;
+    e_fsd[this->lookup(tuple)]++;
 
     // Flow Size Estimation (Average Relative Error, Average Absolute Error)
-    FIVE_TUPLE tuple(s_tuple);
     int diff = count - this->lookup(tuple);
 
     this->average_absolute_error += std::abs(diff);
@@ -74,7 +71,7 @@ void CountMin::analyze(int epoch) {
 
     // Heavy Hitter Detection (F1 Score)
     if (count > this->hh_threshold) {
-      if (auto search = this->HH_candidates.find(s_tuple);
+      if (auto search = this->HH_candidates.find(tuple);
           search != this->HH_candidates.end()) {
         true_pos++;
       } else {
@@ -82,7 +79,7 @@ void CountMin::analyze(int epoch) {
       }
       continue;
     }
-    if (auto search = this->HH_candidates.find(s_tuple);
+    if (auto search = this->HH_candidates.find(tuple);
         search == this->HH_candidates.end()) {
       true_neg++;
     } else {

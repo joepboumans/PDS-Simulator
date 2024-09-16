@@ -469,19 +469,29 @@ private:
       }
       BetaGenerator alpha(i), beta(i);
       double sum_p = 0;
-      while (alpha.get_next()) {
-        double p = get_p_from_beta(alpha, lambda, dist_old, n_old);
-        sum_p += p;
-      }
-      while (beta.get_next()) {
-        double p = get_p_from_beta(beta, lambda, dist_old, n_old);
-        for (int j = 0; j < beta.now_flow_num; ++j) {
-          nt[beta.now_result[j]] += counter_dist[d][i] * p / sum_p;
-        }
-      }
+      // while (alpha.get_next()) {
+      //   double p = get_p_from_beta(alpha, lambda, dist_old, n_old);
+      //   sum_p += p;
+      // }
+      // if (sum_p == 0) {
+      //   continue;
+      // }
+      // while (beta.get_next()) {
+      //   double p = get_p_from_beta(beta, lambda, dist_old, n_old);
+      //   for (int j = 0; j < beta.now_flow_num; ++j) {
+      //     nt[beta.now_result[j]] += counter_dist[d][i] * p / sum_p;
+      //   }
+      // }
     }
 
     double accum = std::accumulate(nt.begin(), nt.end(), 0.0);
+    if (accum != accum) {
+      std::cout << "Accum is Nan" << std::endl;
+      for (auto &x : nt) {
+        std::cout << x << " ";
+      }
+      std::cout << std::endl;
+    }
     if (counter_dist[d].size() != 0)
       printf("[EM_FCM] ******** degree %2d is "
              "finished...(accum:%10.1f) **********\n",
@@ -503,21 +513,21 @@ private:
       BetaGenerator_HD alpha(i, this->thresholds[d][i], this->stage_sz, d),
           beta(i, this->thresholds[d][i], this->stage_sz, d);
       double sum_p = 0;
-      while (alpha.get_next()) {
-        double p = get_p_from_beta(alpha, lambda, dist_old, n_old);
-        sum_p += p;
-      }
-      if (sum_p == 0) {
-        // std::cout << "Sum is zero, stop calc" << std::endl;
-        // std::cout << "At " << i << " with degree " << d << std::endl;
-        continue;
-      }
-      while (beta.get_next()) {
-        double p = get_p_from_beta(beta, lambda, dist_old, n_old);
-        for (int j = 0; j < beta.now_flow_num; ++j) {
-          nt[beta.now_result[j]] += counter_dist[d][i] * p / sum_p;
-        }
-      }
+      // while (alpha.get_next()) {
+      //   double p = get_p_from_beta(alpha, lambda, dist_old, n_old);
+      //   sum_p += p;
+      // }
+      // if (sum_p == 0) {
+      //   // std::cout << "Sum is zero, stop calc" << std::endl;
+      //   // std::cout << "At " << i << " with degree " << d << std::endl;
+      //   continue;
+      // }
+      // while (beta.get_next()) {
+      //   double p = get_p_from_beta(beta, lambda, dist_old, n_old);
+      //   for (int j = 0; j < beta.now_flow_num; ++j) {
+      //     nt[beta.now_result[j]] += counter_dist[d][i] * p / sum_p;
+      //   }
+      // }
     }
     double accum = std::accumulate(nt.begin(), nt.end(), 0.0);
     if (counter_dist[d].size() != 0)
@@ -537,31 +547,31 @@ public:
     std::fill(ns.begin(), ns.end(), 0);
 
     // Simple Multi thread
-    std::thread threads[max_degree + 1];
-    for (size_t t = 0; t <= max_degree; t++) {
-      if (t == 0) {
-        threads[t] = std::thread(&EMFSD::calculate_single_degree, *this,
-                                 std::ref(nt[t]), t);
-      } else {
-        threads[t] = std::thread(&EMFSD::calculate_higher_degree, *this,
-                                 std::ref(nt[t]), t);
-      }
-    }
-    for (size_t t = 0; t <= max_degree; t++) {
-      threads[t].join();
-    }
-
-    // Single threaded
-    // for (size_t d = 0; d <= max_degree; d++) {
-    //   if (d == 0) {
-    //     this->calculate_single_degree(nt[d], d);
+    // std::thread threads[max_degree + 1];
+    // for (size_t t = 0; t <= max_degree; t++) {
+    //   if (t == 0) {
+    //     threads[t] = std::thread(&EMFSD::calculate_single_degree, *this,
+    //                              std::ref(nt[t]), t);
     //   } else {
-    //     this->calculate_higher_degree(nt[d], d);
+    //     threads[t] = std::thread(&EMFSD::calculate_higher_degree, *this,
+    //                              std::ref(nt[t]), t);
     //   }
     // }
+    // for (size_t t = 0; t <= max_degree; t++) {
+    //   threads[t].join();
+    // }
+
+    // Single threaded
+    for (size_t d = 0; d <= max_degree; d++) {
+      if (d == 0) {
+        this->calculate_single_degree(nt[d], d);
+      } else {
+        this->calculate_higher_degree(nt[d], d);
+      }
+    }
 
     n_new = 0.0;
-    for (size_t d = 0; d < max_degree; d++) {
+    for (size_t d = 0; d <= max_degree; d++) {
       for (uint32_t i = 0; i < max_counter_value; i++) {
         ns[i] += nt[d][i];
         n_new += nt[d][i];
@@ -573,12 +583,6 @@ public:
 
     printf("[EM_FCM - iter %2d] Intermediate cardianlity : %9.1f\n\n", iter,
            n_new);
-    // for (auto &x : ns) {
-    //   if (x != 0.0) {
-    //     std::cout << x << " ";
-    //   }
-    // }
-    // std::cout << std::endl;
   }
 };
 #endif

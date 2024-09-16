@@ -12,7 +12,7 @@
 #include <sys/types.h>
 
 uint32_t CuckooHash::insert(FIVE_TUPLE tuple) {
-  this->true_data[(string)tuple]++;
+  this->true_data[tuple]++;
   // If it is present CHT do not insert
   if (!this->lookup(tuple)) {
     // Not seen before, or out of table, considerd as new unique and send to

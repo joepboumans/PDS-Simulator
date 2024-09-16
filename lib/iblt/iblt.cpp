@@ -5,14 +5,12 @@
 #include <cstdint>
 
 uint32_t IBLT::hashing(FIVE_TUPLE key, uint32_t k) {
-  char c_ftuple[sizeof(FIVE_TUPLE)];
-  memcpy(c_ftuple, &key, sizeof(FIVE_TUPLE));
-  return this->hash[k].run(c_ftuple, 4) % this->length;
+  return this->hash[k].run((const char *)key.num_array, 4) % this->length;
 }
 
 uint32_t IBLT::insert(FIVE_TUPLE tuple) {
   // Record true data
-  this->true_data[(string)tuple]++;
+  this->true_data[tuple]++;
 
   for (size_t i = 0; i < this->n_hash; i++) {
     int hash_idx = this->hashing(tuple, i);

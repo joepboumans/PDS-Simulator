@@ -1,4 +1,4 @@
-#include "lib/count-min/count-min.h"
+// #include "lib/count-min/count-min.h"
 #include "lib/cuckoo-hash/cuckoo-hash.h"
 #include "lib/fcm-sketch/fcm-sketch.hpp"
 #include "lib/iblt/iblt.h"
@@ -12,21 +12,26 @@
 #include <glob.h>
 #include <iostream>
 #include <iterator>
+#include <malloc.h>
 #include <ostream>
 #include <unordered_map>
 #include <vector>
 
 int main() {
+  // mallopt(M_PERTURB, 0x7D);
   dataParser data_parser;
   // Get data files
-  glob_t glob_res;
-  memset(&glob_res, 0, sizeof(glob_res));
-  glob("data/*.dat", GLOB_TILDE, NULL, &glob_res);
-  vector<string> filenames(glob_res.gl_pathc);
-  for (size_t i = 0; i < glob_res.gl_pathc; ++i) {
-    filenames[i] = string(glob_res.gl_pathv[i]);
+  glob_t *glob_res = new glob_t;
+  if (memset(glob_res, 0, sizeof(glob_t)) == NULL) {
+    std::cout << "Glob init failed" << std::endl;
+    exit(1);
   }
-  globfree(&glob_res);
+  glob("data/*.dat", GLOB_TILDE, NULL, glob_res);
+  vector<string> filenames(glob_res->gl_pathc);
+  for (size_t i = 0; i < glob_res->gl_pathc; ++i) {
+    filenames[i] = string(glob_res->gl_pathv[i]);
+  }
+  globfree(glob_res);
 
   // Load in traces
   vector<TRACE> traces(filenames.size());
@@ -46,7 +51,6 @@ int main() {
       f.erase(j, dat.length());
     }
     data_traces[f] = traces[i++];
-    break;
   }
 
   std::cout << "------" << std::endl;
@@ -57,11 +61,11 @@ int main() {
     vector<PDS *> stages;
     // CuckooHash cuckoo(10, 1024, name_set, 0, 0);
     // stages.push_back(&cuckoo);
-    FCM_Sketch fcm(4096, 3, 8, trace.size() * 0.0005 / 60, name_set, 0, 0);
+    FCM_Sketch fcm(128, 4, 8, trace.size() * 0.0005 / 60, name_set, 0, 0);
     stages.push_back(&fcm);
-    Simulator sim(stages, stages.size(), 15);
+    Simulator sim(stages, stages.size(), 1);
     // Default length of CAIDA traces is 60s
-    sim.run(trace, 60);
+    sim.run(trace, 1);
   }
 
   std::cout << "------" << std::endl;

@@ -42,11 +42,17 @@ struct FIVE_TUPLE {
     memcpy(ftuple, this, sizeof(FIVE_TUPLE));
     return ftuple;
   }
+  operator uint8_t *() { return this->num_array; }
 
   FIVE_TUPLE() {}
   FIVE_TUPLE(string s_tuple) {
     for (size_t i = 0; i < s_tuple.size(); i++) {
       this->num_array[i] = reinterpret_cast<char>(s_tuple[i]);
+    }
+  }
+  FIVE_TUPLE(uint8_t *array_tuple) {
+    for (size_t i = 0; i < 13; i++) {
+      this->num_array[i] = array_tuple[i];
     }
   }
 

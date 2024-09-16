@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
-#include <functional>
+#include <iostream>
 #include <sys/types.h>
 #include <vector>
 
@@ -34,7 +34,7 @@ uint32_t FCM_Sketch::insert(FIVE_TUPLE tuple) {
     curr_counter->increment();
     c += curr_counter->count;
     if (c > this->hh_threshold) {
-      this->HH_candidates.insert((string)tuple);
+      this->HH_candidates.insert(tuple);
     }
     break;
   }
@@ -151,12 +151,12 @@ void FCM_Sketch::analyze(int epoch) {
   uint32_t max_len = std::max(true_fsd.size(), em_fsd.size());
   true_fsd.resize(max_len);
   em_fsd.resize(max_len);
-  for (size_t i = 0; i < max_len; i++) {
+  for (size_t i = 0; i < true_fsd.size(); i++) {
     wmre_nom += std::abs(double(true_fsd[i] - em_fsd[i]));
     wmre_denom += double((true_fsd[i] + em_fsd[i]) / 2);
   }
   this->wmre = wmre_nom / wmre_denom;
-  printf("WMRD : %f\n", this->wmre);
+  printf("WMRE : %f\n", this->wmre);
   printf("True FSD size : %zu\n", true_fsd.size());
   // char msg[200];
   // sprintf(msg,
@@ -292,9 +292,9 @@ vector<double> FCM_Sketch::get_distribution() {
 
   EMFSD EM(this->stages_sz, thresholds, max_counter_value, max_degree,
            virtual_counters);
-  for (size_t i = 0; i < 3; i++) {
-    EM.next_epoch();
-  }
+  // for (size_t i = 0; i < 100; i++) {
+  //   EM.next_epoch();
+  // }
   vector<double> output = EM.ns;
   return output;
 }

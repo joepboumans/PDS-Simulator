@@ -3,6 +3,7 @@
 
 #include "common.h"
 #include <cstdint>
+#include <filesystem>
 #include <fstream>
 #include <unordered_map>
 
@@ -10,7 +11,8 @@
 
 class PDS {
 public:
-  std::unordered_map<FIVE_TUPLE, uint32_t, tupleHash> true_data;
+  std::unordered_map<uint8_t *, uint32_t> true_data;
+  // std::unordered_map<FIVE_TUPLE, uint32_t, tupleHash> true_data;
   string name = "NOT SET";
   string trace_name = "NOT SET";
   uint32_t mem_sz;
@@ -64,14 +66,18 @@ public:
   void setName(string in) { this->name = in; }
   virtual void setName() { this->name = "NOT SET"; }
   void setupLogging() {
+    string name_dir = "results/" + this->name;
+    if (!std::filesystem::is_directory(name_dir)) {
+      std::filesystem::create_directory(name_dir);
+    }
     if (this->rows == 0) {
-      sprintf(this->filename_csv, "results/%s_%s_%i_%i_%i.csv",
-              this->trace_name.c_str(), this->name.c_str(), this->n_stage,
+      sprintf(this->filename_csv, "results/%s/%s_%i_%i_%i.csv",
+              this->name.c_str(), this->trace_name.c_str(), this->n_stage,
               this->n_struct, this->mem_sz);
     } else {
-      sprintf(this->filename_csv, "results/%s_%s_%i_%i_%i_%i.csv",
-              this->trace_name.c_str(), this->name.c_str(), this->n_stage,
-              this->n_struct, this->rows, this->columns);
+      sprintf(this->filename_csv, "results/%s/%s_%i_%i_%i_%i_%i.csv",
+              this->name.c_str(), this->trace_name.c_str(), this->n_stage,
+              this->n_struct, this->rows, this->columns, this->mem_sz);
     }
     // Remove previous csv file
     std::remove(filename_csv);

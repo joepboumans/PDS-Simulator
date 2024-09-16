@@ -63,9 +63,9 @@ int main() {
     // stages.push_back(&cuckoo);
     FCM_Sketch fcm(128, 4, 8, trace.size() * 0.0005 / 60, name_set, 0, 0);
     stages.push_back(&fcm);
-    Simulator sim(stages, stages.size(), 1);
+    Simulator sim(stages, stages.size(), 60);
     // Default length of CAIDA traces is 60s
-    sim.run(trace, 1);
+    sim.run(trace, 5);
   }
 
   std::cout << "------" << std::endl;

@@ -7,27 +7,22 @@
 
 int Simulator::run(const TRACE &trace, unsigned int duration) {
   unsigned long num_pkts = trace.size();
-  unsigned long line_rate = std::ceil((float)num_pkts / duration); // per second
-  unsigned long packets_per_epoch = this->epoch_len * line_rate;
-  std::cout << "Starting run with " << this->n_pds << " stages over "
+  unsigned long line_rate =
+      std::floor((float)num_pkts / this->epoch_len); // per
+  unsigned long packets_per_epoch = line_rate;
+  std::cout << "Starting run with " << this->n_pds << " stage(s over "
             << num_pkts << " packets" << " with a line rate of " << line_rate
-            << " p/s over " << duration / this->epoch_len << " epochs"
-            << std::endl;
+            << " p/s over " << duration << " epoch(s)" << std::endl;
 
   auto start = std::chrono::high_resolution_clock::now();
   // Split into epochs for simulations
-  for (size_t i = 0; i < num_pkts; i += (packets_per_epoch)) {
-    int epoch = (int)i / packets_per_epoch;
-    std::cout << "\rEpoch: " << epoch << std::flush;
-    if (i + packets_per_epoch < num_pkts) {
-      this->insert(trace, i, i + packets_per_epoch);
-    } else {
-      // Skip left over the last, not complete epoch
-      break;
-    }
+  for (size_t i = 0; i < duration; i++) {
+    // std::cout << "\rEpoch: " << i << std::flush;
+    std::cout << "\rEpoch: " << i << std::endl;
+    this->insert(trace, i * packets_per_epoch, (i + 1) * packets_per_epoch);
     // Store data, analyze data and reset the PDS
     for (auto p : this->pds) {
-      p->analyze(epoch);
+      p->analyze(i);
       p->reset();
     }
   }

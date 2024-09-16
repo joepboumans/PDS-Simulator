@@ -46,7 +46,6 @@ public:
     uint32_t i = 0;
     while (fread(&tin, 1, sizeof(FIVE_TUPLE), this->fin)) {
       trace[i++] = tin;
-      // trace.push_back(tin);
     }
 
     return 0;

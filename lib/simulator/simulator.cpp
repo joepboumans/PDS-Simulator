@@ -7,10 +7,9 @@
 
 int Simulator::run(const TRACE &trace, unsigned int duration) {
   unsigned long num_pkts = trace.size();
-  unsigned long line_rate =
-      std::floor((float)num_pkts / this->epoch_len); // per
+  unsigned long line_rate = std::floor(num_pkts / this->epoch_len) - 1; // per
   unsigned long packets_per_epoch = line_rate;
-  std::cout << "Starting run with " << this->n_pds << " stage(s over "
+  std::cout << "Starting run with " << this->n_pds << " stage(s) over "
             << num_pkts << " packets" << " with a line rate of " << line_rate
             << " p/s over " << duration << " epoch(s)" << std::endl;
 

@@ -2,11 +2,9 @@
 #define _DATA_PARSER_H_
 
 #include "common.h"
-#include <bitset>
 #include <cassert>
 #include <cstdint>
 #include <cstdio>
-#include <fstream>
 #include <iostream>
 #include <sys/stat.h>
 #include <unistd.h>

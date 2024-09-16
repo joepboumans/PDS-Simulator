@@ -129,7 +129,7 @@ public:
 
   uint32_t insert(FIVE_TUPLE tuple) {
     // Record true data
-    this->true_data[tuple.num_array]++;
+    this->true_data[tuple]++;
 
     // Perform hashing
     bool tuple_inserted = false;
@@ -165,7 +165,7 @@ public:
                   uint32_t n_struct)
       : BloomFilter(sz, k, trace, n_stage, n_struct) {}
   uint32_t insert(FIVE_TUPLE tuple) {
-    this->true_data[tuple.num_array]++;
+    this->true_data[tuple]++;
 
     for (size_t i = 0; i < this->n_hash; i++) {
       int hash_idx = this->hashing(tuple, i);

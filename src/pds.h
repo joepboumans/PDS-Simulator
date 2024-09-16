@@ -11,8 +11,7 @@
 
 class PDS {
 public:
-  std::unordered_map<uint8_t *, uint32_t> true_data;
-  // std::unordered_map<FIVE_TUPLE, uint32_t, tupleHash> true_data;
+  std::unordered_map<FIVE_TUPLE, uint32_t, tupleHash> true_data;
   string name = "NOT SET";
   string trace_name = "NOT SET";
   uint32_t mem_sz;

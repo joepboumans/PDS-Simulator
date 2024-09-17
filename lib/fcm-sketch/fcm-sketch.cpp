@@ -39,7 +39,7 @@ uint32_t FCM_Sketch::insert(FIVE_TUPLE tuple) {
     }
     break;
   }
-  return 0;
+  return 1;
 }
 
 uint32_t FCM_Sketch::lookup(FIVE_TUPLE tuple) {
@@ -101,6 +101,7 @@ void FCM_Sketch::analyze(int epoch) {
                        [](const pair_type &p1, const pair_type &p2) {
                          return p1.second < p2.second;
                        });
+
   vector<uint32_t> true_fsd(max_count->second + 1);
   double wmre = 0.0;
 

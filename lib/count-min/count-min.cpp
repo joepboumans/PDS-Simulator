@@ -27,11 +27,12 @@ uint32_t CountMin::insert(FIVE_TUPLE tuple) {
   if (hh_overflow) {
     this->HH_candidates.insert((string)tuple);
   }
-  return 0;
+  return 1;
 }
 
 uint32_t CountMin::hashing(FIVE_TUPLE key, uint32_t k) {
-  return this->hash[k].run((const char *)key.num_array, 4) % this->columns;
+  return this->hash[k].run((const char *)key.num_array, sizeof(FIVE_TUPLE)) %
+         this->columns;
 }
 
 uint32_t CountMin::lookup(FIVE_TUPLE tuple) {
@@ -61,13 +62,14 @@ void CountMin::analyze(int epoch) {
                          return p1.second < p2.second;
                        });
   vector<uint32_t> true_fsd(max_count->second + 1);
-  vector<uint32_t> e_fsd(max_count->second + 1);
   double wmre = 0.0;
+
+  uint32_t max_lookup = 0;
 
   for (const auto &[tuple, count] : this->true_data) {
     // Flow Size Distribution (Weighted Mean Relative Error)
     true_fsd[count]++;
-    e_fsd[this->lookup(tuple)]++;
+    max_lookup = max(max_lookup, this->lookup(tuple));
 
     // Flow Size Estimation (Average Relative Error, Average Absolute Error)
     int diff = count - this->lookup(tuple);
@@ -91,6 +93,10 @@ void CountMin::analyze(int epoch) {
     } else {
       false_pos++;
     }
+  }
+  vector<uint32_t> e_fsd(max_lookup + 1);
+  for (const auto &[tuple, count] : this->true_data) {
+    e_fsd[this->lookup(tuple)]++;
   }
 
   this->average_absolute_error = this->average_absolute_error / n;

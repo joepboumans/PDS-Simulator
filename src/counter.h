@@ -6,9 +6,10 @@ class Counter {
 public:
   uint32_t count = 0;
   uint32_t max_count;
+  uint32_t max_reg;
   bool overflow = false;
   Counter() {}
-  Counter(uint32_t max) { this->max_count = max; }
+  Counter(uint32_t max) : max_count(max - 1), max_reg(max) {}
 
   uint32_t increment(uint32_t c = 1) {
     if (this->overflow) {
@@ -17,6 +18,7 @@ public:
     this->count += c;
     if (this->count >= this->max_count) {
       this->overflow = true;
+      this->count = this->max_reg;
     }
     return 0;
   }
@@ -24,6 +26,7 @@ public:
   uint32_t decrement(uint32_t c = 1) {
     if (this->overflow) {
       this->overflow = false;
+      this->count = this->max_count - 1;
     }
     if (this->count > 0) {
       this->count -= c;

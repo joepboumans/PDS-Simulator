@@ -2,8 +2,10 @@
 #define _EMALGORITHM_FCM_HPP
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
 #include <cstdlib>
 #include <functional>
 #include <iostream>
@@ -18,7 +20,6 @@
 using std::unordered_map;
 using std::vector;
 
-// Degree = 1
 class EMFSD {
   uint32_t w;                            // width of counters
   vector<vector<uint32_t>> counter_dist; // initial counter values
@@ -36,8 +37,7 @@ public:
   EMFSD(vector<uint32_t> szes, vector<vector<vector<vector<uint32_t>>>> thresh,
         uint32_t max_counter_value, uint32_t max_degree,
         vector<vector<uint32_t>> counters)
-      : stage_sz(szes), max_counter_value(max_counter_value),
-        counters(counters), max_degree(max_degree) {
+      : stage_sz(szes), counters(counters), max_degree(max_degree) {
 
     // Setup distribution and the thresholds for it
     counter_dist.resize(counters.size());
@@ -46,12 +46,17 @@ public:
       if (counters[d].size() == 0) {
         continue;
       }
-      counter_dist[d].resize(max_counter_value + 1);
+      int max_val =
+          (int)(*std::max_element(counters[d].begin(), counters[d].end()));
+      this->max_counter_value =
+          (this->max_counter_value > max_val ? this->max_counter_value
+                                             : max_val);
+      counter_dist[d].resize(this->max_counter_value + 1);
       std::fill(counter_dist[d].begin(), counter_dist[d].end(), 0);
-      thresholds[d].resize(max_counter_value + 1);
+      thresholds[d].resize(this->max_counter_value + 1);
     }
     // Inital guess for # of flows
-    // double n_new = 0.0; // # of flows (Cardinality)
+    n_new = 0.0; // # of flows (Cardinality)
     for (size_t d = 0; d <= max_degree; d++) {
       n_new += counters[d].size();
       for (size_t i = 0; i < counters[d].size(); i++) {
@@ -99,7 +104,7 @@ private:
       if (sum > 600) {
         flow_num_limit = 2;
       } else if (sum > 250)
-        flow_num_limit = 3;
+        flow_num_limit = 2;
       else if (sum > 100)
         flow_num_limit = 4;
       else if (sum > 50)
@@ -431,11 +436,8 @@ private:
       uint32_t fi = kv.second;
       uint32_t si = kv.first;
       double lambda_i = now_n * (now_dist[si]) / w;
-      // printf("si %i, fi %i, now_n %f, now_dist %f,  lambda_i %f ", si, fi,
-      //        now_n, now_dist[si], lambda_i);
       ret *= (std::pow(lambda_i, fi)) / factorial(fi);
     }
-    // std::cout << std::endl;
 
     return ret;
   }
@@ -452,11 +454,8 @@ private:
       uint32_t fi = kv.second;
       uint32_t si = kv.first;
       double lambda_i = now_n * (now_dist[si]) / w;
-      // printf("si %i, fi %i, now_n %f, now_dist %f,  lambda_i %f ", si, fi,
-      //        now_n, now_dist[si], lambda_i);
       ret *= (std::pow(lambda_i, fi)) / factorial(fi);
     }
-    // std::cout << std::endl;
 
     return ret;
   }
@@ -476,17 +475,26 @@ private:
       }
       BetaGenerator alpha(i), beta(i);
       double sum_p = 0;
+      vector<double> imm_p;
+      vector<vector<double>> imm_now_results;
       while (alpha.get_next()) {
         double p = get_p_from_beta(alpha, lambda, dist_old, n_old);
         sum_p += p;
+        imm_p.push_back(p);
+        vector<double> p_results(std::begin(alpha.now_result),
+                                 std::end(alpha.now_result));
+        imm_now_results.push_back(p_results);
       }
       if (sum_p == 0) {
+        imm_p.pop_back();
+        imm_now_results.pop_back();
         continue;
-      }
-      while (beta.get_next()) {
-        double p = get_p_from_beta(beta, lambda, dist_old, n_old);
-        for (int j = 0; j < beta.now_flow_num; ++j) {
-          nt[beta.now_result[j]] += counter_dist[d][i] * p / sum_p;
+      } else {
+        for (size_t j = 0; j < imm_p.size(); j++) {
+          double p = imm_p[j];
+          for (size_t x = 0; x < imm_now_results[j].size(); x++) {
+            nt[imm_now_results[j][x]] += counter_dist[d][i] * p / sum_p;
+          }
         }
       }
     }
@@ -520,14 +528,21 @@ private:
       BetaGenerator_HD alpha(i, this->thresholds[d][i], this->stage_sz, d),
           beta(i, this->thresholds[d][i], this->stage_sz, d);
       double sum_p = 0;
+      uint32_t iter = 0;
       while (alpha.get_next()) {
         double p = get_p_from_beta(alpha, lambda, dist_old, n_old);
         sum_p += p;
+        iter++;
       }
       if (sum_p == 0) {
-        // std::cout << "Sum is zero, stop calc" << std::endl;
-        // std::cout << "At " << i << " with degree " << d << std::endl;
-        continue;
+        if (iter > 0) {
+          uint32_t temp_val = this->counters[d][i];
+          vector<vector<uint32_t>> temp_thresh = this->thresholds[d][i];
+          for (auto &t : temp_thresh) {
+            temp_val -= t[1];
+          }
+          nt[temp_val] += 1;
+        }
       }
       while (beta.get_next()) {
         double p = get_p_from_beta(beta, lambda, dist_old, n_old);
@@ -545,6 +560,7 @@ private:
 
 public:
   void next_epoch() {
+    auto start = std::chrono::high_resolution_clock::now();
     double lambda = n_old / double(w);
     dist_old = dist_new;
     n_old = n_new;
@@ -588,8 +604,13 @@ public:
       dist_new[i] = ns[i] / n_new;
     }
 
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto time = duration_cast<std::chrono::milliseconds>(stop - start);
+    std::cout << "[EM_FCM - iter " << iter << "] Compute time : " << time
+              << std::endl;
     printf("[EM_FCM - iter %2d] Intermediate cardianlity : %9.1f\n\n", iter,
            n_new);
+    iter++;
   }
 };
 #endif

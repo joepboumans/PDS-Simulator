@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
 #include <iostream>
 #include <sys/types.h>
 #include <vector>
@@ -146,6 +147,25 @@ void FCM_Sketch::analyze(int epoch) {
   this->wmre = 0.0;
   double wmre_nom = 0.0;
   double wmre_denom = 0.0;
+
+  // Cardinality
+  double avgnum_empty_counter = 0;
+  for (size_t i = 0; i < this->stages_sz[0]; i++) {
+
+    if (this->stages[0][i].count == 0) {
+      avgnum_empty_counter++;
+    }
+  }
+  int em_cardinality =
+      (int)(this->stages_sz[0] *
+            std::log((double)this->stages_sz[0] / avgnum_empty_counter));
+  double err_cardinality =
+      std::abs(em_cardinality - (int)this->true_data.size()) /
+      (double)this->true_data.size();
+
+  printf("RE of Cardinality : %2.6f (Est=%8.0d, true=%8.0d)\n", err_cardinality,
+         em_cardinality, (int)this->true_data.size());
+
   // WMRE - Flow Size Distribution
   vector<double> em_fsd = this->get_distribution();
   uint32_t max_len = std::max(true_fsd.size(), em_fsd.size());
@@ -158,13 +178,6 @@ void FCM_Sketch::analyze(int epoch) {
   this->wmre = wmre_nom / wmre_denom;
   printf("WMRE : %f\n", this->wmre);
   printf("True FSD size : %zu\n", true_fsd.size());
-  // char msg[200];
-  // sprintf(msg,
-  //         "\tTP:%i\tFP:%i\tRecall:%.3f\tPrecision:%.3f\tF1:%.3f\tAAE:%.3f\tARE:"
-  //         "%.3f",
-  //         true_pos, false_pos, this->recall, this->precision, this->f1,
-  //         this->average_absolute_error, this->average_relative_error);
-  // std::cout << msg;
   // Save data into csv
   char csv[300];
   sprintf(csv, "%i,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f", epoch,
@@ -174,17 +187,13 @@ void FCM_Sketch::analyze(int epoch) {
 }
 
 vector<double> FCM_Sketch::get_distribution() {
-  // stage, idx, (count, degree, min_value)
-  vector<vector<vector<uint32_t>>> summary(this->n_stages);
-  // degree, count value, n
-  vector<vector<uint32_t>> virtual_counters(std::pow(this->k, this->n_stages));
-  // stage, idx, layer, (collisions, min value)
-  vector<vector<vector<vector<uint32_t>>>> overflow_paths(this->n_stages);
-  // degree, count value, layer, (collision, min counter value)
-  vector<vector<vector<vector<uint32_t>>>> thresholds(
-      std::pow(this->k, this->n_stages));
   uint32_t max_counter_value = 0;
   uint32_t max_degree = 0;
+  // Summarize sketch and find collisions
+  // stage, idx, (count, degree, min_value)
+  vector<vector<vector<uint32_t>>> summary(this->n_stages);
+  // stage, idx, layer, (collisions, min value)
+  vector<vector<vector<vector<uint32_t>>>> overflow_paths(this->n_stages);
 
   // Setup sizes for summary and overflow_paths
   for (size_t stage = 0; stage < this->n_stages; stage++) {
@@ -195,6 +204,12 @@ vector<double> FCM_Sketch::get_distribution() {
       overflow_paths[stage][i].resize(stage + 1, vector<uint32_t>(2, 0));
     }
   }
+  // Create virtual counters based on degree and count
+  // degree, count value, n
+  vector<vector<uint32_t>> virtual_counters(std::pow(this->k, this->n_stages));
+  // degree, count value, layer, (collision, min counter value)
+  vector<vector<vector<vector<uint32_t>>>> thresholds(
+      std::pow(this->k, this->n_stages));
 
   for (size_t stage = 0; stage < this->n_stages; stage++) {
     for (size_t i = 0; i < this->stages_sz[stage]; i++) {
@@ -202,16 +217,18 @@ vector<double> FCM_Sketch::get_distribution() {
       if (stage == 0) {
         summary[stage][i][1] = 1;
       }
+      // If overflown increase the minimal value for the collisions
       if (this->stages[stage][i].overflow) {
         summary[stage][i][2] = this->stage_overflows[stage];
         overflow_paths[stage][i][stage][1] = this->stage_overflows[stage];
       }
 
+      // Start checking childeren from stage 1 and up
       if (stage > 0) {
-        // Add overflow from previous stages
         uint32_t overflown = 0;
         uint32_t imm_overflow = 0;
         bool child_overflown = false;
+        // Loop over all childeren
         for (size_t k = 0; k < this->k; k++) {
           uint32_t child_idx = i * this->k + k;
           // Add childs count, degree and min_value to current counter
@@ -292,7 +309,7 @@ vector<double> FCM_Sketch::get_distribution() {
 
   EMFSD EM(this->stages_sz, thresholds, max_counter_value, max_degree,
            virtual_counters);
-  for (size_t i = 0; i < 3; i++) {
+  for (size_t i = 0; i < 1; i++) {
     EM.next_epoch();
   }
   vector<double> output = EM.ns;

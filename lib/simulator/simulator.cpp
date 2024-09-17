@@ -35,6 +35,9 @@ int Simulator::run(const TRACE &trace, unsigned int duration) {
 
 int Simulator::insert(const TRACE &trace, int start, int end) {
   for (size_t i = start; i < end; i++) {
+    if (i >= trace.size()) {
+      break;
+    }
     FIVE_TUPLE tuple = trace.at(i);
     for (auto p : this->pds) {
       int res = p->insert(tuple);

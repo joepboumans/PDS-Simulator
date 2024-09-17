@@ -54,9 +54,15 @@ void CountMin::analyze(int epoch) {
   int true_pos = 0, false_pos = 0, true_neg = 0, false_neg = 0;
 
   // Flow Size Distribution (Weighted Mean Relative Error)
+  using pair_type = decltype(this->true_data)::value_type;
+  auto max_count =
+      std::max_element(this->true_data.begin(), this->true_data.end(),
+                       [](const pair_type &p1, const pair_type &p2) {
+                         return p1.second < p2.second;
+                       });
+  vector<uint32_t> true_fsd(max_count->second + 1);
+  vector<uint32_t> e_fsd(max_count->second + 1);
   double wmre = 0.0;
-  map<uint32_t, uint32_t> true_fsd;
-  map<uint32_t, uint32_t> e_fsd;
 
   for (const auto &[tuple, count] : this->true_data) {
     // Flow Size Distribution (Weighted Mean Relative Error)

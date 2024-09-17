@@ -91,19 +91,21 @@ void FCM_Sketch::analyze(int epoch) {
   this->average_relative_error = 0;
   double n = this->true_data.size();
 
-  // std::cout << std::endl;
   // Heavy Hitter Detection (F1 Score)
   int true_pos = 0, false_pos = 0, true_neg = 0, false_neg = 0;
 
   // Flow Size Distribution (Weighted Mean Relative Error)
+  using pair_type = decltype(this->true_data)::value_type;
+  auto max_count =
+      std::max_element(this->true_data.begin(), this->true_data.end(),
+                       [](const pair_type &p1, const pair_type &p2) {
+                         return p1.second < p2.second;
+                       });
+  vector<uint32_t> true_fsd(max_count->second + 1);
   double wmre = 0.0;
-  vector<uint32_t> true_fsd;
 
   for (const auto &[tuple, count] : this->true_data) {
     // // Flow Size Distribution (Weighted Mean Relative Error)
-    if (true_fsd.size() < count) {
-      true_fsd.resize(count + 1);
-    }
     true_fsd[count]++;
     // // Flow Size Estimation (Average Relative Error, Average Absolute Error)
     int diff = count - this->lookup(tuple);

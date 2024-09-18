@@ -52,7 +52,7 @@ public:
     this->n = n_struct;
 
     // Setup logging
-    this->csv_header = "epoch,Insertions,Recall,Precision,F1";
+    this->csv_header = "Epoch,Insertions,Recall,Precision,F1";
   }
 
   virtual void setName() { this->name = "BloomFilter"; }

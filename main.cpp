@@ -53,6 +53,7 @@ int main() {
       f.erase(j, dat.length());
     }
     data_traces[f] = traces[i++];
+    break;
   }
 
   std::cout << "------" << std::endl;

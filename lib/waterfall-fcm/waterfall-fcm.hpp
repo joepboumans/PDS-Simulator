@@ -19,7 +19,6 @@ private:
   FCM_Sketch fcm;
   CuckooHash cuckoo;
   uint32_t n_stages;
-  uint32_t k;
   uint32_t em_iters;
 
   uint32_t hh_threshold;
@@ -33,7 +32,7 @@ public:
       : PDS(trace, n_stage, n_struct), fcm(n_roots, n_stages, k, hh_threshold,
                                            em_iters, trace, n_stage, n_struct),
         cuckoo(n_tables, length, trace, n_struct, n_stage), n_stages(n_stages),
-        k(k), em_iters(em_iters), hh_threshold(hh_threshold) {
+        em_iters(em_iters), hh_threshold(hh_threshold) {
 
     // Setup logging
     this->csv_header = "Epoch,Average Relative Error,Average Absolute "
@@ -47,6 +46,7 @@ public:
     std::cout << "Total memory used: " << this->mem_sz << std::endl;
     this->setupLogging();
   }
+  ~WaterfallFCM() { std::cout << "Deconstruct Waterfall" << std::endl; }
 
   uint32_t insert(FIVE_TUPLE tuple);
   uint32_t hashing(FIVE_TUPLE tuple, uint32_t k);
@@ -56,13 +56,15 @@ public:
   void analyze(int epoch);
   double average_absolute_error = 0.0;
   double average_relative_error = 0.0;
-  double f1 = 0.0;
-  double recall = 0.0;
-  double precision = 0.0;
   double wmre = 0.0;
+  double f1_hh = 0.0;
+  double f1_member = 0.0;
+  uint32_t insertions = 0;
 
   void store_data();
   void print_sketch();
+  void get_distribution(set<FIVE_TUPLE> tuples);
+  void set_estimate_fsd(bool onoff);
 };
 
 #endif // !_WATERFALL_FCM_HPP

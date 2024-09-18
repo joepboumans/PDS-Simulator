@@ -1,12 +1,13 @@
-// #include "lib/count-min/count-min.h"
-#include "lib/count-min/count-min.cpp"
-#include "lib/cuckoo-hash/cuckoo-hash.hpp"
-#include "lib/fcm-sketch/fcm-sketch.hpp"
-#include "lib/iblt/iblt.h"
-#include "lib/simulator/simulator.h"
+// #include "count-min.h"
+#include "common.h"
+#include "count-min.cpp"
+#include "cuckoo-hash.hpp"
+#include "data-parser.h"
+#include "fcm-sketch.hpp"
+#include "iblt.h"
+#include "simulator.h"
 #include "src/bloomfilter.h"
-#include "src/common.h"
-#include "src/data-parser.h"
+#include "waterfall-fcm.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -67,8 +68,11 @@ int main() {
     // stages.push_back(&cuckoo);
     // CountMin cm(128, 1024, hh_threshold, name_set, 0, 0);
     // stages.push_back(&cm);
-    FCM_Sketch fcm(6241, 3, 8, hh_threshold, 1, name_set, 0, 0);
-    stages.push_back(&fcm);
+    // FCM_Sketch fcm(6241, 3, 8, hh_threshold, 1, name_set, 0, 0);
+    // stages.push_back(&fcm);
+    WaterfallFCM waterfall =
+        WaterfallFCM(32, 3, 8, hh_threshold, 1, 10, 1024, name_set, 0, 0);
+    stages.push_back(&waterfall);
     Simulator sim(stages, stages.size(), sim_length);
     // Default length of CAIDA traces is 60s
     sim.run(trace, iter);

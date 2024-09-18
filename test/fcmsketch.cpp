@@ -1,4 +1,4 @@
-#include "lib/fcm-sketch/fcm-sketch.hpp"
+#include "fcm-sketch.hpp"
 #include <catch2/catch_test_macros.hpp>
 #include <typeinfo>
 
@@ -18,6 +18,7 @@ TEST_CASE("Analysis test", "[CM][analysis]") {
   FIVE_TUPLE tuple;
   fcm.insert(tuple);
   fcm.insert(tuple);
+  fcm.print_sketch();
   fcm.analyze(0);
   REQUIRE(fcm.average_absolute_error == 0);
   REQUIRE(fcm.average_relative_error == 0);
@@ -29,6 +30,7 @@ TEST_CASE("Analysis test", "[CM][analysis]") {
 TEST_CASE("Analysis - Flow Size", "[CM][analysis][flow-size]") {
   // Optimized layout for test, due to hash mappings
   FCM_Sketch fcm(100, 3, 16, 1024 * 1024 * 10 + 5000 * 3, 1, "test", 0, 0);
+  fcm.estimate_fsd = false;
   REQUIRE(fcm.average_absolute_error == 0);
   REQUIRE(fcm.average_relative_error == 0);
   FIVE_TUPLE tuple;
@@ -145,6 +147,6 @@ TEST_CASE("FSD Test", "[CM][analysis][fsd]") {
   for (size_t i = 0; i < 100; i++) {
     fcm.insert(t4++);
   }
-  fcm.print_sketch();
   fcm.analyze(0);
+  fcm.print_sketch();
 }

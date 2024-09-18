@@ -3,6 +3,7 @@
 
 #include "count-min.h"
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
@@ -129,6 +130,7 @@ void CountMin::analyze(int epoch) {
   // std::cout << epoch << msg << std::endl;
 
   // Flow Size Distribution (Weighted Mean Relative Error)
+  auto start = std::chrono::high_resolution_clock::now();
   double wmre_nom = 0.0;
   double wmre_den = 0.0;
   for (size_t i = 0; i < max(true_fsd.size(), e_fsd.size()); i++) {
@@ -137,13 +139,17 @@ void CountMin::analyze(int epoch) {
     wmre_den += (double)(true_fsd[i] + e_fsd[i]) / 2;
   }
   this->wmre = wmre_nom / wmre_den;
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto time = duration_cast<std::chrono::nanoseconds>(stop - start);
+  uint32_t iters = 1;
   // std::cout << "\tWMRE: " << wmre << std::endl;
 
   // Save data into csv
   char csv[300];
-  sprintf(csv, "%i,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f", epoch,
+  sprintf(csv, "%i,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.4f,%i", epoch,
           this->average_relative_error, this->average_absolute_error,
-          this->wmre, this->recall, this->precision, this->f1);
+          this->wmre, this->recall, this->precision, this->f1,
+          double(time.count()) / 1000, iters);
   this->fcsv << csv << std::endl;
 }
 

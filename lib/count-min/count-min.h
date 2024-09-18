@@ -31,8 +31,9 @@ public:
     this->hh_threshold = hh_threshold;
 
     // Setup logging
-    this->csv_header = "epoch,Average Relative Error,Average Absolute "
-                       "Error,Weighted Mean Relative Error,Recall,Precision,F1";
+    this->csv_header = "Epoch,Average Relative Error,Average Absolute "
+                       "Error,Weighted Mean Relative "
+                       "Error,Recall,Precision,F1,Estimation Time";
     this->name = "CountMin";
     this->trace_name = trace;
     this->columns = columns;

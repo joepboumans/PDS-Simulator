@@ -4,6 +4,7 @@
 #include "fcm-sketch.hpp"
 #include "EM_FSD.hpp"
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
@@ -170,6 +171,7 @@ void FCM_Sketch::analyze(int epoch) {
          em_cardinality, (int)this->true_data.size());
 
   // WMRE - Flow Size Distribution
+  auto start = std::chrono::high_resolution_clock::now();
   vector<double> em_fsd = this->get_distribution();
   uint32_t max_len = std::max(true_fsd.size(), em_fsd.size());
   true_fsd.resize(max_len);
@@ -179,13 +181,17 @@ void FCM_Sketch::analyze(int epoch) {
     wmre_denom += double((true_fsd[i] + em_fsd[i]) / 2);
   }
   this->wmre = wmre_nom / wmre_denom;
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto time = duration_cast<std::chrono::milliseconds>(stop - start);
+
   printf("WMRE : %f\n", this->wmre);
-  printf("True FSD size : %zu\n", true_fsd.size());
+  printf("Total EM time %li ms\n", time.count());
   // Save data into csv
   char csv[300];
-  sprintf(csv, "%i,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f", epoch,
+  sprintf(csv, "%i,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%li,%i", epoch,
           this->average_relative_error, this->average_absolute_error,
-          this->wmre, this->recall, this->precision, this->f1);
+          this->wmre, this->recall, this->precision, this->f1, time.count(),
+          this->em_iters);
   this->fcsv << csv << std::endl;
 }
 
@@ -312,7 +318,7 @@ vector<double> FCM_Sketch::get_distribution() {
 
   EMFSD EM(this->stages_sz, thresholds, max_counter_value, max_degree,
            virtual_counters);
-  for (size_t i = 0; i < 1; i++) {
+  for (size_t i = 0; i < this->em_iters; i++) {
     EM.next_epoch();
   }
   vector<double> output = EM.ns;

@@ -21,6 +21,7 @@ private:
   vector<uint32_t> stage_overflows;
   uint32_t n_stages;
   uint32_t k;
+  uint32_t em_iters;
   BOBHash32 hash;
 
   uint32_t hh_threshold;
@@ -31,16 +32,14 @@ private:
 
 public:
   FCM_Sketch(uint32_t n_roots, uint32_t n_stages, uint32_t k,
-             uint32_t hh_threshold, string trace, uint32_t n_stage,
-             uint32_t n_struct)
+             uint32_t hh_threshold, uint32_t em_iters, string trace,
+             uint32_t n_stage, uint32_t n_struct)
       : PDS(trace, n_stage, n_struct), stages(n_stages), stages_sz(n_stages),
-        stage_overflows(n_stages) {
+        stage_overflows(n_stages), n_stages(n_stages), k(k), em_iters(em_iters),
+        hh_threshold(hh_threshold) {
 
     // Defaults and hash
     this->hash.initialize(750 + n_struct);
-    this->k = k;
-    this->n_stages = n_stages;
-    this->hh_threshold = hh_threshold;
     this->columns = n_roots;
 
     // Calculate max count for counters and length of each stage
@@ -60,8 +59,9 @@ public:
     }
 
     // Setup logging
-    this->csv_header = "epoch,Average Relative Error,Average Absolute "
-                       "Error,Weighted Mean Relative Error,Recall,Precision,F1";
+    this->csv_header = "Epoch,Average Relative Error,Average Absolute "
+                       "Error,Weighted Mean Relative "
+                       "Error,Recall,Precision,F1,Estimation Time,Iterations";
     this->name = "FCM-Sketch";
     this->trace_name = trace;
     this->rows = n_stages;

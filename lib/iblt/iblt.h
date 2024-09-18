@@ -33,7 +33,7 @@ public:
 
     // Setup logging
     this->csv_header =
-        "epoch,Total uniques,Total found,FP,FN,Recall,Precision,F1";
+        "Epoch,Total uniques,Total found,FP,FN,Recall,Precision,F1";
     this->name = "IBLT";
     this->setupLogging();
 

@@ -28,7 +28,7 @@ public:
     this->mem_sz = length * n_tables * 13;
 
     // Setup logging
-    this->csv_header = "epoch,Insertions,Recall,Precision,F1";
+    this->csv_header = "Epoch,Insertions,Recall,Precision,F1";
     this->name = "CuckooHash";
     this->rows = n_tables;
     this->columns = length;

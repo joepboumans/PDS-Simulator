@@ -8,11 +8,11 @@ TEST_CASE("Smoke Test", "[smoke-test]") {
 }
 
 TEST_CASE("Constructor FCM", "[const-fcm]") {
-  FCM_Sketch fcmsketch(3, 3, 8, 1, "test", 0, 0);
+  FCM_Sketch fcmsketch(3, 3, 8, 1, 1, "test", 0, 0);
   REQUIRE(typeid(fcmsketch) == typeid(FCM_Sketch));
 }
 TEST_CASE("Analysis test", "[CM][analysis]") {
-  FCM_Sketch fcm(4, 3, 8, 1, "test", 0, 0);
+  FCM_Sketch fcm(4, 3, 8, 1, 1, "test", 0, 0);
   REQUIRE(fcm.average_absolute_error == 0);
   REQUIRE(fcm.average_relative_error == 0);
   FIVE_TUPLE tuple;
@@ -28,7 +28,7 @@ TEST_CASE("Analysis test", "[CM][analysis]") {
 
 TEST_CASE("Analysis - Flow Size", "[CM][analysis][flow-size]") {
   // Optimized layout for test, due to hash mappings
-  FCM_Sketch fcm(100, 3, 16, 1024 * 1024 * 10 + 5000 * 3, "test", 0, 0);
+  FCM_Sketch fcm(100, 3, 16, 1024 * 1024 * 10 + 5000 * 3, 1, "test", 0, 0);
   REQUIRE(fcm.average_absolute_error == 0);
   REQUIRE(fcm.average_relative_error == 0);
   FIVE_TUPLE tuple;
@@ -65,7 +65,7 @@ TEST_CASE("Analysis - Flow Size", "[CM][analysis][flow-size]") {
 }
 
 TEST_CASE("Analysis - F1", "[CM][analysis][F1]") {
-  FCM_Sketch fcm(32, 3, 8, 512, "test", 0, 0);
+  FCM_Sketch fcm(32, 3, 8, 512, 1, "test", 0, 0);
   FIVE_TUPLE tuple;
 
   SECTION("Single HH") {
@@ -130,7 +130,7 @@ TEST_CASE("Analysis - F1", "[CM][analysis][F1]") {
 }
 
 TEST_CASE("FSD Test", "[CM][analysis][fsd]") {
-  FCM_Sketch fcm(1, 5, 2, 1, "test", 0, 0);
+  FCM_Sketch fcm(1, 5, 2, 1, 1, "test", 0, 0);
   REQUIRE(fcm.average_absolute_error == 0);
   REQUIRE(fcm.average_relative_error == 0);
   FIVE_TUPLE t, t2, t3, t4;

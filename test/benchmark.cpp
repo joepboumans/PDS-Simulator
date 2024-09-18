@@ -71,8 +71,8 @@ TEST_CASE("Benchmark FCM Sketch", "[FCM][Benchmark]") {
       auto roots = GENERATE(8, 16, 32, 64, 128);
 
       vector<PDS *> stage;
-      FCM_Sketch fcm(roots, stages, 8, trace.size() * 0.0005 / 60, "benchmark",
-                     0, 0);
+      FCM_Sketch fcm(roots, stages, 8, trace.size() * 0.0005 / 60, 1,
+                     "benchmark", 0, 0);
       stage.push_back(&fcm);
       Simulator simulator(stage, stage.size(), 1);
       simulator.run(trace, 60);

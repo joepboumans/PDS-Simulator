@@ -160,6 +160,10 @@ void FCM_Sketch::analyze(int epoch) {
       avgnum_empty_counter++;
     }
   }
+  if (avgnum_empty_counter == 0) {
+    printf("[CARD] No empty counters, set to 1 to prevent div by 0\n");
+    avgnum_empty_counter = 1;
+  }
   int em_cardinality =
       (int)(this->stages_sz[0] *
             std::log((double)this->stages_sz[0] / avgnum_empty_counter));
@@ -167,30 +171,33 @@ void FCM_Sketch::analyze(int epoch) {
       std::abs(em_cardinality - (int)this->true_data.size()) /
       (double)this->true_data.size();
 
-  printf("RE of Cardinality : %2.6f (Est=%8.0d, true=%8.0d)\n", err_cardinality,
-         em_cardinality, (int)this->true_data.size());
+  printf("[CARD] RE of Cardinality : %2.6f (Est=%8.0d, true=%8.0d)\n",
+         err_cardinality, em_cardinality, (int)this->true_data.size());
 
+  long em_time = 0;
   // WMRE - Flow Size Distribution
-  auto start = std::chrono::high_resolution_clock::now();
-  vector<double> em_fsd = this->get_distribution();
-  uint32_t max_len = std::max(true_fsd.size(), em_fsd.size());
-  true_fsd.resize(max_len);
-  em_fsd.resize(max_len);
-  for (size_t i = 0; i < true_fsd.size(); i++) {
-    wmre_nom += std::abs(double(true_fsd[i] - em_fsd[i]));
-    wmre_denom += double((true_fsd[i] + em_fsd[i]) / 2);
+  if (this->estimate_fsd) {
+    auto start = std::chrono::high_resolution_clock::now();
+    vector<double> em_fsd = this->get_distribution();
+    uint32_t max_len = std::max(true_fsd.size(), em_fsd.size());
+    true_fsd.resize(max_len);
+    em_fsd.resize(max_len);
+    for (size_t i = 0; i < true_fsd.size(); i++) {
+      wmre_nom += std::abs(double(true_fsd[i] - em_fsd[i]));
+      wmre_denom += double((true_fsd[i] + em_fsd[i]) / 2);
+    }
+    this->wmre = wmre_nom / wmre_denom;
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto time = duration_cast<std::chrono::milliseconds>(stop - start);
+    em_time = time.count();
+    printf("[EM_FSD] WMRE : %f\n", this->wmre);
+    printf("[EM_FSD] Total time %li ms\n", em_time);
   }
-  this->wmre = wmre_nom / wmre_denom;
-  auto stop = std::chrono::high_resolution_clock::now();
-  auto time = duration_cast<std::chrono::milliseconds>(stop - start);
-
-  printf("WMRE : %f\n", this->wmre);
-  printf("Total EM time %li ms\n", time.count());
   // Save data into csv
   char csv[300];
   sprintf(csv, "%i,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%li,%i", epoch,
           this->average_relative_error, this->average_absolute_error,
-          this->wmre, this->recall, this->precision, this->f1, time.count(),
+          this->wmre, this->recall, this->precision, this->f1, em_time,
           this->em_iters);
   this->fcsv << csv << std::endl;
 }
@@ -234,6 +241,7 @@ vector<double> FCM_Sketch::get_distribution() {
 
       // Start checking childeren from stage 1 and up
       if (stage > 0) {
+        // std::cout << "Hey " << stage << std::endl;
         uint32_t overflown = 0;
         uint32_t imm_overflow = 0;
         bool child_overflown = false;
@@ -287,34 +295,36 @@ vector<double> FCM_Sketch::get_distribution() {
     }
   }
 
-  // for (size_t d = 0; d < thresholds.size(); d++) {
-  //   if (thresholds[d].size() == 0) {
-  //     continue;
-  //   }
-  //   std::cout << "Degree: " << d << std::endl;
-  //   for (size_t i = 0; i < thresholds[d].size(); i++) {
-  //     std::cout << "i " << i << ":";
-  //     for (size_t l = 0; l < thresholds[d][i].size(); l++) {
-  //       std::cout << "\t" << l;
-  //       for (auto &col : thresholds[d][i][l]) {
-  //         std::cout << " " << col;
-  //       }
-  //     }
-  //     std::cout << std::endl;
-  //   }
-  // }
-  //
-  // for (size_t st = 0; st < virtual_counters.size(); st++) {
-  //   if (virtual_counters[st].size() == 0) {
-  //     continue;
-  //   }
-  //   std::cout << "Degree: " << st << std::endl;
-  //   for (auto &val : virtual_counters[st]) {
-  //     std::cout << " " << val;
-  //   }
-  //   std::cout << std::endl;
-  // }
+  for (size_t d = 0; d < thresholds.size(); d++) {
+    if (thresholds[d].size() == 0) {
+      continue;
+    }
+    std::cout << "Degree: " << d << std::endl;
+    for (size_t i = 0; i < thresholds[d].size(); i++) {
+      std::cout << "i " << i << ":";
+      for (size_t l = 0; l < thresholds[d][i].size(); l++) {
+        std::cout << "\t" << l;
+        for (auto &col : thresholds[d][i][l]) {
+          std::cout << " " << col;
+        }
+      }
+      std::cout << std::endl;
+    }
+  }
+
+  for (size_t st = 0; st < virtual_counters.size(); st++) {
+    if (virtual_counters[st].size() == 0) {
+      continue;
+    }
+    std::cout << "Degree: " << st << std::endl;
+    for (auto &val : virtual_counters[st]) {
+      std::cout << " " << val;
+    }
+    std::cout << std::endl;
+  }
   // std::cout << "Maximum degree is: " << max_degree << std::endl;
+  // std::cout << "Maximum counter value is: " << max_counter_value <<
+  // std::endl;
 
   EMFSD EM(this->stages_sz, thresholds, max_counter_value, max_degree,
            virtual_counters);

@@ -86,6 +86,7 @@ public:
   double recall = 0.0;
   double precision = 0.0;
   double wmre = 0.0;
+  bool estimate_fsd = true;
   vector<double> get_distribution();
 
   void store_data();

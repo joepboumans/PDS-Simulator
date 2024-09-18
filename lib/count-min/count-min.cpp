@@ -63,7 +63,6 @@ void CountMin::analyze(int epoch) {
                          return p1.second < p2.second;
                        });
   vector<uint32_t> true_fsd(max_count->second + 1);
-  double wmre = 0.0;
 
   uint32_t max_lookup = 0;
 

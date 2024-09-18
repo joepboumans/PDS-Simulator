@@ -1,7 +1,7 @@
 #ifndef _CUCKOO_HASH_CPP
 #define _CUCKOO_HASH_CPP
 
-#include "cuckoo-hash.h"
+#include "cuckoo-hash.hpp"
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
@@ -17,7 +17,7 @@ uint32_t CuckooHash::insert(FIVE_TUPLE tuple) {
   if (!this->lookup(tuple)) {
     // Not seen before, or out of table, considerd as new unique and send to
     // data plane
-    this->tuples.insert((string)tuple);
+    this->tuples.insert(tuple);
     this->insertions++;
 
     FIVE_TUPLE prev_tuple = tuple;
@@ -39,9 +39,8 @@ uint32_t CuckooHash::insert(FIVE_TUPLE tuple) {
 }
 
 uint32_t CuckooHash::hashing(FIVE_TUPLE key, uint32_t k) {
-  char c_ftuple[sizeof(FIVE_TUPLE)];
-  memcpy(c_ftuple, &key, sizeof(FIVE_TUPLE));
-  return this->hash[k].run(c_ftuple, sizeof(FIVE_TUPLE)) % this->length;
+  return hash[k].run((const char *)key.num_array, sizeof(FIVE_TUPLE)) %
+         this->length;
 }
 
 uint32_t CuckooHash::lookup(FIVE_TUPLE tuple) {

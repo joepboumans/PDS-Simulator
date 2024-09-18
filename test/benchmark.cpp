@@ -1,9 +1,9 @@
-#include "lib/count-min/count-min.h"
-#include "lib/cuckoo-hash/cuckoo-hash.h"
-#include "lib/fcm-sketch/fcm-sketch.hpp"
-#include "lib/simulator/simulator.h"
-#include "src/bloomfilter.h"
-#include "src/data-parser.h"
+#include "bloomfilter.h"
+#include "count-min.h"
+#include "cuckoo-hash.hpp"
+#include "data-parser.h"
+#include "fcm-sketch.hpp"
+#include "simulator.h"
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 

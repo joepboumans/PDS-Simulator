@@ -5,7 +5,7 @@ if(UNIX)
   message("This is a ${CMAKE_SYSTEM_NAME} system")
   add_definitions(-DSYSTEM="UNIX")
 elseif(WIN32)
-  message("ThIS is a Windows System")
+  message("This is a Windows System")
   add_definitions(-DSYSTEM="WINDOWS")
 endif()
 
@@ -36,14 +36,22 @@ add_subdirectory(lib/fcm-sketch)
 add_subdirectory(lib/simulator)
 add_subdirectory(lib/iblt)
 add_subdirectory(lib/cuckoo-hash)
+add_subdirectory(lib/waterfall-fcm)
 include_directories(${CMAKE_SOURCE_DIR})
 
 # Added custom hash, not ideal setup like this TODO: Integrate with design
 find_package(xxHash CONFIG REQUIRED)
 
 add_executable(main main.cpp)
-target_link_libraries(main PUBLIC xxHash::xxhash lib-count-min lib-fcm-sketch
-                                  lib-simulator lib-iblt lib-cuckoo-hash)
+target_link_libraries(
+  main
+  PUBLIC xxHash::xxhash
+         lib-count-min
+         lib-fcm-sketch
+         lib-simulator
+         lib-iblt
+         lib-cuckoo-hash
+         lib-waterfall-fcm)
 target_include_directories(main PUBLIC ${CMAKE_SOURCE_DIR}
                                        ${CMAKE_HOME_DIRECTORY})
 target_compile_options(main PRIVATE -Wall -O3)
@@ -67,7 +75,7 @@ foreach(name ${tests})
                                             xxHash::xxhash)
   target_link_libraries(
     ${basename} PUBLIC lib-count-min lib-fcm-sketch lib-simulator lib-iblt
-                       lib-cuckoo-hash)
+                       lib-cuckoo-hash lib-waterfall-fcm)
   target_include_directories(${basename} PUBLIC ${CMAKE_SOURCE_DIR}
                                                 ${CMAKE_HOME_DIRECTORY})
   include(CTest)

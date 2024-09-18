@@ -1,8 +1,8 @@
 #ifndef _SIMULATOR_H
 #define _SIMULATOR_H
 
-#include "../../src/common.h"
-#include "../../src/pds.h"
+#include "common.h"
+#include "pds.h"
 #include <cstdint>
 #include <unordered_map>
 

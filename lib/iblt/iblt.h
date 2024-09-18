@@ -1,9 +1,9 @@
 #ifndef _IBLT_H
 #define _IBLT_H
 
-#include "../../src/BOBHash32.h"
-#include "../../src/common.h"
-#include "../../src/pds.h"
+#include "BOBHash32.h"
+#include "common.h"
+#include "pds.h"
 #include <cstdint>
 #include <sys/types.h>
 

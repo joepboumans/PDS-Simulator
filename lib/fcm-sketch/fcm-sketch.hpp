@@ -1,10 +1,10 @@
 #ifndef _FCM_SKETCH_HPP
 #define _FCM_SKETCH_HPP
 
-#include "../../src/BOBHash32.h"
-#include "../../src/common.h"
-#include "../../src/counter.h"
-#include "../../src/pds.h"
+#include "BOBHash32.h"
+#include "common.h"
+#include "counter.h"
+#include "pds.h"
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -26,9 +26,6 @@ private:
 
   uint32_t hh_threshold;
   std::unordered_set<FIVE_TUPLE, tupleHash> HH_candidates;
-
-  void init_MLE(vector<vector<uint32_t>> virtual_counters,
-                vector<vector<vector<uint32_t>>> colliding_paths);
 
 public:
   FCM_Sketch(uint32_t n_roots, uint32_t n_stages, uint32_t k,

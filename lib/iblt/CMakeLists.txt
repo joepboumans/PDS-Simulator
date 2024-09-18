@@ -1,3 +1,5 @@
 cmake_minimum_required(VERSION 3.12)
 set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
 add_library(lib-iblt STATIC iblt.cpp)
+target_include_directories(lib-iblt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(lib-iblt PRIVATE ${CMAKE_HOME_DIRECTORY}/src/)

@@ -1,6 +1,6 @@
 // #include "lib/count-min/count-min.h"
 #include "lib/count-min/count-min.cpp"
-#include "lib/cuckoo-hash/cuckoo-hash.h"
+#include "lib/cuckoo-hash/cuckoo-hash.hpp"
 #include "lib/fcm-sketch/fcm-sketch.hpp"
 #include "lib/iblt/iblt.h"
 #include "lib/simulator/simulator.h"

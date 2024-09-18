@@ -52,7 +52,6 @@ int main() {
       f.erase(j, dat.length());
     }
     data_traces[f] = traces[i++];
-    break;
   }
 
   std::cout << "------" << std::endl;
@@ -63,12 +62,12 @@ int main() {
   uint32_t iter = 60;
   for (const auto &[name_set, trace] : data_traces) {
     vector<PDS *> stages;
+    uint32_t hh_threshold = trace.size() * 0.0005 / sim_length;
     // CuckooHash cuckoo(10, 1024, name_set, 0, 0);
     // stages.push_back(&cuckoo);
-    CountMin cm(128, 1024, trace.size() * 0.0005 / sim_length, name_set, 0, 0);
-    stages.push_back(&cm);
-    FCM_Sketch fcm(8192, 3, 8, trace.size() * 0.0005 / sim_length, name_set, 0,
-                   0);
+    // CountMin cm(128, 1024, hh_threshold, name_set, 0, 0);
+    // stages.push_back(&cm);
+    FCM_Sketch fcm(6241, 3, 8, hh_threshold, 1, name_set, 0, 0);
     stages.push_back(&fcm);
     Simulator sim(stages, stages.size(), sim_length);
     // Default length of CAIDA traces is 60s

@@ -50,6 +50,7 @@ uint32_t CuckooHash::lookup(FIVE_TUPLE tuple) {
       return 1;
     }
   }
+
   return 0;
 }
 
@@ -79,8 +80,9 @@ void CuckooHash::analyze(int epoch) {
   }
   this->f1 = 2 * ((recall * precision) / (precision + recall));
 
+  std::cout << std::endl;
   char msg[100];
-  sprintf(msg, "\tInsertions:%i\tRecall:%.3f\tPrecision:%.3f\tF1:%.3f",
+  sprintf(msg, "[CHT] Insertions:%i\tRecall:%.3f\tPrecision:%.3f\tF1:%.3f\n",
           this->insertions, this->recall, this->precision, this->f1);
   std::cout << msg;
 

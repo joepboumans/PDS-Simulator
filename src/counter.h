@@ -15,11 +15,12 @@ public:
     if (this->overflow) {
       return 1;
     }
-    this->count += c;
     if (this->count >= this->max_count) {
       this->overflow = true;
       this->count = this->max_reg;
+      return 1;
     }
+    this->count += c;
     return 0;
   }
 

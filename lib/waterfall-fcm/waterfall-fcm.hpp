@@ -46,7 +46,6 @@ public:
     std::cout << "Total memory used: " << this->mem_sz << std::endl;
     this->setupLogging();
   }
-  ~WaterfallFCM() { std::cout << "Deconstruct Waterfall" << std::endl; }
 
   uint32_t insert(FIVE_TUPLE tuple);
   uint32_t hashing(FIVE_TUPLE tuple, uint32_t k);

@@ -74,18 +74,18 @@ struct FIVE_TUPLE {
     return old;
   }
 
-  FIVE_TUPLE operator+(int i) {
-    FIVE_TUPLE new_tuple = *this;
+  FIVE_TUPLE operator+(int z) {
     for (size_t i = 0; i < 13; i++) {
-      if (new_tuple.num_array[i] >= std::numeric_limits<unsigned char>::max()) {
-        new_tuple.num_array[i] += i;
+      if (this->num_array[i] + z >= std::numeric_limits<unsigned char>::max()) {
+        this->num_array[i] += z;
         continue;
       }
-      new_tuple.num_array[i] += i;
-      return new_tuple;
+      this->num_array[i] += z;
+      return *this;
     }
-    return new_tuple;
+    return *this;
   }
+  FIVE_TUPLE operator+=(int z) { return *this + z; }
 
   FIVE_TUPLE operator^=(FIVE_TUPLE tup) {
     *this = *this ^ tup;

@@ -60,8 +60,8 @@ int main() {
   std::cout << "Finished parsing data, starting simulations..." << std::endl;
   std::cout << "------" << std::endl;
 
-  uint32_t sim_length = 60;
-  uint32_t iter = 60;
+  uint32_t sim_length = 30;
+  uint32_t iter = 1;
   for (const auto &[name_set, trace] : data_traces) {
     vector<PDS *> stages;
     uint32_t hh_threshold = trace.size() * 0.0005 / sim_length;
@@ -72,7 +72,7 @@ int main() {
     // FCM_Sketch fcm(6241, 3, 8, hh_threshold, 1, name_set, 0, 0);
     // stages.push_back(&fcm);
     WaterfallFCM waterfall =
-        WaterfallFCM(32, 3, 8, hh_threshold, 1, 10, 1024, name_set, 0, 0);
+        WaterfallFCM(64, 3, 8, hh_threshold, 1, 10, 1024, name_set, 0, 0);
     stages.push_back(&waterfall);
     Simulator sim(stages, stages.size(), sim_length);
     // Default length of CAIDA traces is 60s

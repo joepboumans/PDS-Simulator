@@ -21,7 +21,6 @@ private:
   vector<uint32_t> stage_overflows;
   uint32_t n_stages;
   uint32_t k;
-  uint32_t em_iters;
   BOBHash32 hash;
 
   uint32_t hh_threshold;
@@ -75,6 +74,7 @@ public:
   }
 
   uint32_t insert(FIVE_TUPLE tuple);
+  uint32_t insert(FIVE_TUPLE tuple, uint32_t idx);
   uint32_t hashing(FIVE_TUPLE tuple, uint32_t k);
   uint32_t lookup(FIVE_TUPLE tuple);
   void reset();
@@ -86,6 +86,7 @@ public:
   double recall = 0.0;
   double precision = 0.0;
   double wmre = 0.0;
+  uint32_t em_iters;
   bool estimate_fsd = true;
   vector<double> get_distribution();
 

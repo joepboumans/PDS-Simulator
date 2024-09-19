@@ -24,6 +24,35 @@ uint32_t FCM_Sketch::insert(FIVE_TUPLE tuple) {
   uint32_t c = 0;
   for (size_t s = 0; s < n_stages; s++) {
     Counter *curr_counter = &this->stages[s][hash_idx];
+    if (curr_counter->increment()) {
+      // Check for complete overflow
+      if (s == n_stages - 1) {
+        return 1;
+      }
+      c += curr_counter->count;
+      hash_idx = hash_idx / this->k;
+      continue;
+    }
+    c += curr_counter->count;
+    if (c > this->hh_threshold) {
+      this->HH_candidates.insert(tuple);
+    }
+    break;
+  }
+  return 1;
+}
+
+uint32_t FCM_Sketch::insert(FIVE_TUPLE tuple, uint32_t idx) {
+  this->true_data[tuple]++;
+
+  uint32_t hash_idx = idx;
+  if (hash_idx >= this->stages_sz[0]) {
+    std::cout << "Given idx out of range" << std::endl;
+    exit(1);
+  }
+  uint32_t c = 0;
+  for (size_t s = 0; s < n_stages; s++) {
+    Counter *curr_counter = &this->stages[s][hash_idx];
     if (curr_counter->overflow) {
       // Check for complete overflow
       if (s == n_stages - 1) {
@@ -42,7 +71,6 @@ uint32_t FCM_Sketch::insert(FIVE_TUPLE tuple) {
   }
   return 1;
 }
-
 uint32_t FCM_Sketch::lookup(FIVE_TUPLE tuple) {
   uint32_t hash_idx = this->hashing(tuple, 0);
   uint32_t c = 0;
@@ -64,14 +92,17 @@ uint32_t FCM_Sketch::lookup(FIVE_TUPLE tuple) {
 }
 
 void FCM_Sketch::print_sketch() {
+  std::cout << "[FCM] ------------------" << std::endl;
   for (size_t s = 0; s < n_stages; s++) {
-    std::cout << "Stage " << s << " with " << this->stages_sz[s] << " counters"
-              << std::endl;
+    std::cout << "[FCM] Stage " << s << " with " << this->stages_sz[s]
+              << " counters" << std::endl;
+    std::cout << string(s * 3, ' ');
     for (size_t i = 0; i < this->stages_sz[s]; i++) {
       std::cout << this->stages[s][i].count << " ";
     }
     std::cout << std::endl;
   }
+  std::cout << "[FCM] ------------------" << std::endl;
 }
 
 void FCM_Sketch::reset() {
@@ -179,12 +210,14 @@ void FCM_Sketch::analyze(int epoch) {
   if (this->estimate_fsd) {
     auto start = std::chrono::high_resolution_clock::now();
     vector<double> em_fsd = this->get_distribution();
+
     uint32_t max_len = std::max(true_fsd.size(), em_fsd.size());
     true_fsd.resize(max_len);
     em_fsd.resize(max_len);
-    for (size_t i = 0; i < true_fsd.size(); i++) {
-      wmre_nom += std::abs(double(true_fsd[i] - em_fsd[i]));
-      wmre_denom += double((true_fsd[i] + em_fsd[i]) / 2);
+
+    for (size_t i = 0; i < max_len; i++) {
+      wmre_nom += std::abs(double(true_fsd[i]) - em_fsd[i]);
+      wmre_denom += (double(true_fsd[i]) + em_fsd[i]) / 2;
     }
     this->wmre = wmre_nom / wmre_denom;
     auto stop = std::chrono::high_resolution_clock::now();
@@ -213,7 +246,7 @@ vector<double> FCM_Sketch::get_distribution() {
 
   // Setup sizes for summary and overflow_paths
   for (size_t stage = 0; stage < this->n_stages; stage++) {
-    summary[stage].resize(this->stages_sz[stage], vector<uint32_t>(3, 0));
+    summary[stage].resize(this->stages_sz[stage], vector<uint32_t>(2, 0));
     overflow_paths[stage].resize(this->stages_sz[stage]);
 
     for (size_t i = 0; i < this->stages_sz[stage]; i++) {
@@ -235,13 +268,12 @@ vector<double> FCM_Sketch::get_distribution() {
       }
       // If overflown increase the minimal value for the collisions
       if (this->stages[stage][i].overflow) {
-        summary[stage][i][2] = this->stage_overflows[stage];
-        overflow_paths[stage][i][stage][1] = this->stage_overflows[stage];
+        summary[stage][i][0] = this->stages[stage][i].max_reg;
+        overflow_paths[stage][i][stage][1] = this->stages[stage][i].max_reg;
       }
 
       // Start checking childeren from stage 1 and up
       if (stage > 0) {
-        // std::cout << "Hey " << stage << std::endl;
         uint32_t overflown = 0;
         uint32_t imm_overflow = 0;
         bool child_overflown = false;
@@ -252,7 +284,6 @@ vector<double> FCM_Sketch::get_distribution() {
           if (this->stages[stage - 1][child_idx].overflow) {
             summary[stage][i][0] += summary[stage - 1][child_idx][0];
             summary[stage][i][1] += summary[stage - 1][child_idx][1];
-            summary[stage][i][2] += summary[stage - 1][child_idx][2];
             // If any of my predecessors have overflown, add them to my
             // overflown paths
             overflown++;
@@ -270,7 +301,7 @@ vector<double> FCM_Sketch::get_distribution() {
         // have overflown, add me to the threshold as well
         if (overflown > 1 or child_overflown) {
           overflow_paths[stage][i][stage - 1][0] = overflown;
-          overflow_paths[stage][i][stage][1] = summary[stage][i][2];
+          overflow_paths[stage][i][stage][1] = summary[stage][i][0];
         }
       }
 
@@ -290,38 +321,41 @@ vector<double> FCM_Sketch::get_distribution() {
                                            j);
           }
         }
+        std::reverse(overflow_paths[stage][i].begin(),
+                     overflow_paths[stage][i].end());
         thresholds[degree].push_back(overflow_paths[stage][i]);
       }
     }
   }
 
-  for (size_t d = 0; d < thresholds.size(); d++) {
-    if (thresholds[d].size() == 0) {
-      continue;
-    }
-    std::cout << "Degree: " << d << std::endl;
-    for (size_t i = 0; i < thresholds[d].size(); i++) {
-      std::cout << "i " << i << ":";
-      for (size_t l = 0; l < thresholds[d][i].size(); l++) {
-        std::cout << "\t" << l;
-        for (auto &col : thresholds[d][i][l]) {
-          std::cout << " " << col;
-        }
-      }
-      std::cout << std::endl;
-    }
-  }
+  // for (size_t d = 0; d < thresholds.size(); d++) {
+  //   if (thresholds[d].size() == 0) {
+  //     continue;
+  //   }
+  //   std::cout << "Degree: " << d << std::endl;
+  //   for (size_t i = 0; i < thresholds[d].size(); i++) {
+  //     std::cout << "i " << i << ":";
+  //     for (size_t l = 0; l < thresholds[d][i].size(); l++) {
+  //       std::cout << "\t" << l;
+  //       for (auto &col : thresholds[d][i][l]) {
+  //         std::cout << " " << col;
+  //       }
+  //     }
+  //     std::cout << std::endl;
+  //   }
+  // }
 
-  for (size_t st = 0; st < virtual_counters.size(); st++) {
-    if (virtual_counters[st].size() == 0) {
-      continue;
-    }
-    std::cout << "Degree: " << st << std::endl;
-    for (auto &val : virtual_counters[st]) {
-      std::cout << " " << val;
-    }
-    std::cout << std::endl;
-  }
+  // std::cout << std::endl;
+  // for (size_t st = 0; st < virtual_counters.size(); st++) {
+  //   if (virtual_counters[st].size() == 0) {
+  //     continue;
+  //   }
+  //   std::cout << "Degree: " << st << std::endl;
+  //   for (auto &val : virtual_counters[st]) {
+  //     std::cout << " " << val;
+  //   }
+  //   std::cout << std::endl;
+  // }
   // std::cout << "Maximum degree is: " << max_degree << std::endl;
   // std::cout << "Maximum counter value is: " << max_counter_value <<
   // std::endl;

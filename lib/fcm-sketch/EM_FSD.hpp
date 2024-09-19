@@ -566,8 +566,6 @@ private:
       if (counter_dist[d][i] == 0) {
         continue;
       }
-      std::cout << "Counter val " << i << " with " << counter_dist[d][i]
-                << " counters" << std::endl;
       BetaGenerator_HD alpha(i, this->thresholds[d][i], this->stage_sz, d),
           beta(i, this->thresholds[d][i], this->stage_sz, d);
       double sum_p = 0;

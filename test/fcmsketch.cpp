@@ -145,7 +145,7 @@ TEST_CASE("FSD Degree tests", "[small][fsd]") {
 
     FIVE_TUPLE t;
 
-    for (size_t i = 1; i < 3000; i++) {
+    for (size_t i = 0; i < 3000; i++) {
       fcm.insert(t, 0);
     }
     fcm.analyze(0);
@@ -160,7 +160,7 @@ TEST_CASE("FSD Degree tests", "[small][fsd]") {
     FIVE_TUPLE t, t2;
     t2 += 2;
 
-    for (size_t i = 1; i < 3000; i++) {
+    for (size_t i = 0; i < 3000; i++) {
       fcm.insert(t, 0);
       fcm.insert(t2, 8);
     }
@@ -184,25 +184,25 @@ TEST_CASE("FSD Degree tests", "[small][fsd]") {
       fcm.insert(t3, 8);
       fcm.insert(t4, 12);
     }
-    for (size_t i = 0; i < 15; i++) {
+    for (size_t i = 0; i < 14; i++) {
       fcm.insert(t, 0);
       fcm.insert(t2, 4);
       fcm.insert(t3, 8);
     }
-    for (size_t i = 0; i < 255; i++) {
+    for (size_t i = 0; i < 254; i++) {
       fcm.insert(t, 0);
       fcm.insert(t2, 4);
     }
-    for (size_t i = 0; i < 65535 + 2; i++) {
+    for (size_t i = 0; i < 65534 + 2; i++) {
       fcm.insert(t, 0);
     }
     fcm.analyze(0);
     fcm.print_sketch();
     REQUIRE(fcm.wmre == 0.0);
   }
-  SECTION("Single degree 1") {
+  SECTION("Small Degree 1") {
     std::cout << std::string(50, '-') << std::endl;
-    std::cout << "------\tSingle degree 1\t------" << std::endl;
+    std::cout << "------\tSmall degree 1\t------" << std::endl;
     std::cout << std::string(50, '-') << std::endl;
     fcm.em_iters = 2;
 
@@ -223,24 +223,118 @@ TEST_CASE("FSD Degree tests", "[small][fsd]") {
     fcm.print_sketch();
     REQUIRE(fcm.wmre < 2.0);
   }
-  // SECTION("Multi degree 1") {
-  //   std::cout << std::string(50, '-') << std::endl;
-  //   std::cout << "------\tMulti degree 1\t------" << std::endl;
-  //   std::cout << std::string(50, '-') << std::endl;
-  //
-  //   FIVE_TUPLE t, t2, t3, t4;
-  //   t2 += 2;
-  //   t3 += 3;
-  //   t4 += 4;
-  //
-  //   for (size_t i = 1; i < 19; i++) {
-  //     fcm.insert(t, 0);
-  //     fcm.insert(t2, 2);
-  //   }
-  //   fcm.analyze(0);
-  //   fcm.print_sketch();
-  //   REQUIRE(fcm.wmre < 2.0);
-  // }
+
+  SECTION("Larger Degree 1") {
+    std::cout << std::string(50, '-') << std::endl;
+    std::cout << "------\tLarger degree 1\t------" << std::endl;
+    std::cout << std::string(50, '-') << std::endl;
+
+    FIVE_TUPLE t, t2, t3, t4, t5, t6;
+    t2 += 2;
+    t3 += 3;
+    t4 += 4;
+    t5 += 5;
+    t6 += 6;
+
+    for (size_t i = 0; i < 4; i++) {
+      fcm.insert(t, 0);
+      fcm.insert(t2, 15);
+      fcm.insert(t3, 12);
+      fcm.insert(t4, 13);
+      fcm.insert(t5, 2);
+      fcm.insert(t6, 4);
+    }
+    fcm.insert(t4, 13);
+    for (size_t i = 0; i < 15 + 255 + 65535; i++) {
+      fcm.insert(t, 0);
+      fcm.insert(t2, 15);
+    }
+    fcm.analyze(0);
+    fcm.print_sketch();
+    REQUIRE(fcm.wmre < 2.0);
+  }
+
+  SECTION("Small Degree 2") {
+    std::cout << std::string(50, '-') << std::endl;
+    std::cout << "------\tSmall degree 2\t------" << std::endl;
+    std::cout << std::string(50, '-') << std::endl;
+    fcm.em_iters = 2;
+
+    FIVE_TUPLE t, t2, t3, t4;
+    t2 += 2;
+    t3 += 3;
+    t4 += 4;
+
+    for (size_t i = 0; i < 3 + 15 + 255; i++) {
+      fcm.insert(t, 0);
+      fcm.insert(t2, 1);
+      fcm.insert(t3, 2);
+      fcm.insert(t4, 15);
+    }
+
+    fcm.analyze(0);
+    fcm.print_sketch();
+    REQUIRE(fcm.wmre < 2.0);
+  }
+
+  SECTION("Large Degree 2") {
+    std::cout << std::string(50, '-') << std::endl;
+    std::cout << "------\tLarge degree 2\t------" << std::endl;
+    std::cout << std::string(50, '-') << std::endl;
+    fcm.em_iters = 2;
+
+    FIVE_TUPLE t, t2, t3, t4;
+    t2 += 2;
+    t3 += 3;
+    t4 += 4;
+
+    for (size_t i = 0; i < 2 + 15 + 255; i++) {
+      fcm.insert(t, 0);
+      fcm.insert(t2, 4);
+      fcm.insert(t3, 8);
+      fcm.insert(t4, 15);
+    }
+    for (size_t i = 0; i < 2 + 15 + 255 + 65535; i++) {
+      fcm.insert(t, 0);
+      fcm.insert(t2, 4);
+      fcm.insert(t3, 8);
+    }
+    fcm.analyze(0);
+    fcm.print_sketch();
+    REQUIRE(fcm.wmre < 2.0);
+  }
+
+  SECTION("Degree 2+") {
+    std::cout << std::string(50, '-') << std::endl;
+    std::cout << "------\tDegree 2+\t------" << std::endl;
+    std::cout << std::string(50, '-') << std::endl;
+    fcm.em_iters = 2;
+
+    FIVE_TUPLE t, t2, t3, t4, t5, t6, t7, t8;
+    t2 += 2;
+    t3 += 3;
+    t4 += 4;
+    t5 += 5;
+    t6 += 6;
+    t7 += 7;
+    t8 += 8;
+
+    for (size_t i = 0; i < 2 + 15 + 255; i++) {
+      fcm.insert(t, 0);
+      fcm.insert(t2, 1);
+      fcm.insert(t3, 2);
+      fcm.insert(t4, 4);
+      fcm.insert(t5, 6);
+      fcm.insert(t6, 8);
+      fcm.insert(t7, 10);
+    }
+    for (size_t i = 0; i < 2 + 15; i++) {
+      fcm.insert(t8, 15);
+    }
+    fcm.analyze(0);
+    fcm.print_sketch();
+    REQUIRE(fcm.wmre < 2.0);
+  }
 }
 
 TEST_CASE("FSD Test", "[analysis][fsd]") {
@@ -251,14 +345,15 @@ TEST_CASE("FSD Test", "[analysis][fsd]") {
   t3.num_array[12] = 10;
   t2.num_array[11] = 10;
   t2.num_array[2] = 10;
-  for (size_t i = 0; i < 65535 + 255; i++) {
+  for (size_t i = 0; i < 65535 + 255 + 15 + 3; i++) {
     fcm.insert(t);
     fcm.insert(t2);
-    // fcm.insert(t3);
   }
-  for (size_t i = 0; i < 100; i++) {
+  for (size_t i = 0; i < 3 * (15 + 3); i++) {
+    fcm.insert(t3);
     fcm.insert(t4++);
   }
   fcm.analyze(0);
   fcm.print_sketch();
+  REQUIRE(fcm.wmre < 2.0);
 }

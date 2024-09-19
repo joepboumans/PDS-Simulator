@@ -268,8 +268,7 @@ vector<double> FCM_Sketch::get_distribution() {
       }
       // If overflown increase the minimal value for the collisions
       if (this->stages[stage][i].overflow) {
-        summary[stage][i][0] = this->stages[stage][i].max_reg;
-        overflow_paths[stage][i][stage][1] = this->stages[stage][i].max_reg;
+        overflow_paths[stage][i][stage][1] = this->stages[stage][i].count;
       }
 
       // Start checking childeren from stage 1 and up

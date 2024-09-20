@@ -15,7 +15,7 @@
 #include <vector>
 
 class FCM_Sketch : public PDS {
-private:
+public:
   vector<vector<Counter>> stages;
   vector<uint32_t> stages_sz;
   vector<uint32_t> stage_overflows;
@@ -25,8 +25,6 @@ private:
 
   uint32_t hh_threshold;
   std::unordered_set<FIVE_TUPLE, tupleHash> HH_candidates;
-
-public:
   FCM_Sketch(uint32_t n_roots, uint32_t n_stages, uint32_t k,
              uint32_t hh_threshold, uint32_t em_iters, string trace,
              uint32_t n_stage, uint32_t n_struct)

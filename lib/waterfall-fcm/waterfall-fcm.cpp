@@ -32,7 +32,8 @@ void WaterfallFCM::reset() {
 
 void WaterfallFCM::analyze(int epoch) {
   this->cuckoo.analyze(epoch);
-  this->fcm.analyze(epoch);
+  // this->fcm.analyze(epoch);
+  this->get_distribution(this->cuckoo.tuples);
   // Save data into csv
   char csv[300];
   this->insertions = this->cuckoo.insertions;
@@ -48,7 +49,18 @@ void WaterfallFCM::analyze(int epoch) {
   return;
 }
 
-void WaterfallFCM::get_distribution(set<FIVE_TUPLE> tuples) {}
+void WaterfallFCM::get_distribution(set<FIVE_TUPLE> tuples) {
+  vector<uint32_t> init_degree(this->fcm.stages_sz[0]);
+  for (auto &tuple : tuples) {
+    uint32_t hash_idx = this->fcm.hashing(tuple, 0);
+    init_degree[hash_idx]++;
+  }
+  for (size_t i = 0; i < init_degree.size(); i++) {
+    std::cout << i << ":" << init_degree[i] << " ";
+  }
+  std::cout << std::endl;
+  this->print_sketch();
+}
 
 void WaterfallFCM::print_sketch() {
   this->cuckoo.print_sketch();

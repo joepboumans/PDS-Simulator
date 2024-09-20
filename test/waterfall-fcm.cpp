@@ -143,6 +143,7 @@ TEST_CASE("FSD Test", "[small][fsd]") {
   REQUIRE(waterfall.average_absolute_error == 0);
   REQUIRE(waterfall.average_relative_error == 0);
   FIVE_TUPLE t, t2, t3, t4;
+  t += 1;
   t3.num_array[12] = 10;
   t2.num_array[11] = 10;
   t2.num_array[2] = 10;

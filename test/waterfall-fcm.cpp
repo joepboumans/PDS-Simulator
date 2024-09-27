@@ -144,15 +144,13 @@ TEST_CASE("FSD Test", "[small][fsd]") {
   REQUIRE(waterfall.average_relative_error == 0);
   FIVE_TUPLE t, t2, t3, t4;
   t += 1;
+  t2 += 2;
   t3.num_array[12] = 10;
-  t2.num_array[11] = 10;
-  t2.num_array[2] = 10;
   for (size_t i = 0; i < 3000; i++) {
     waterfall.insert(t);
+    waterfall.insert(t2);
+    waterfall.insert(t3);
   }
-  // for (size_t i = 0; i < 100; i++) {
-  //   waterfall.insert(t4++);
-  // }
   waterfall.analyze(0);
   waterfall.print_sketch();
 }
@@ -168,14 +166,16 @@ TEST_CASE("FSD Test", "[fsd]") {
   REQUIRE(waterfall.average_absolute_error == 0);
   REQUIRE(waterfall.average_relative_error == 0);
   FIVE_TUPLE t, t2, t3, t4;
+  t += 1;
+  t4 += 1;
   t3.num_array[12] = 10;
   t2.num_array[11] = 10;
   t2.num_array[2] = 10;
-  for (size_t i = 0; i < 65535 + 255; i++) {
-    waterfall.insert(t);
-    waterfall.insert(t2);
-  }
-  for (size_t i = 0; i < 100; i++) {
+  // for (size_t i = 0; i < 65535 + 255; i++) {
+  //   waterfall.insert(t);
+  //   waterfall.insert(t2);
+  // }
+  for (size_t i = 0; i < 10; i++) {
     waterfall.insert(t4++);
   }
   waterfall.analyze(0);

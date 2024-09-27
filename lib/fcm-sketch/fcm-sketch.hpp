@@ -29,8 +29,8 @@ public:
              uint32_t hh_threshold, uint32_t em_iters, string trace,
              uint32_t n_stage, uint32_t n_struct)
       : PDS(trace, n_stage, n_struct), stages(n_stages), stages_sz(n_stages),
-        stage_overflows(n_stages), n_stages(n_stages), k(k), em_iters(em_iters),
-        hh_threshold(hh_threshold) {
+        stage_overflows(n_stages), n_stages(n_stages), k(k),
+        hh_threshold(hh_threshold), em_iters(em_iters) {
 
     // Defaults and hash
     this->hash.initialize(750 + n_struct);

@@ -34,6 +34,7 @@ public:
         cuckoo(n_tables, length, trace, n_struct, n_stage), n_stages(n_stages),
         em_iters(em_iters), hh_threshold(hh_threshold) {
 
+    this->fcm.estimate_fsd = false;
     // Setup logging
     this->csv_header = "Epoch,Average Relative Error,Average Absolute "
                        "Error,Weighted Mean Relative "

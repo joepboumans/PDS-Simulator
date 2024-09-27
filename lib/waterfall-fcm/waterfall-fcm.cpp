@@ -32,7 +32,9 @@ void WaterfallFCM::reset() {
 
 void WaterfallFCM::analyze(int epoch) {
   this->cuckoo.analyze(epoch);
-  // this->fcm.analyze(epoch);
+  this->fcm.analyze(epoch);
+  uint32_t cuckoo_card = this->cuckoo.tuples.size();
+  std::cout << "[CHT] Cardinality : " << cuckoo_card << std::endl;
   this->get_distribution(this->cuckoo.tuples);
   // Save data into csv
   char csv[300];
@@ -56,7 +58,7 @@ void WaterfallFCM::get_distribution(set<FIVE_TUPLE> tuples) {
   for (auto &tuple : tuples) {
     uint32_t hash_idx = this->fcm.hashing(tuple, 0);
     init_degree[hash_idx]++;
-    max_degree++;
+    max_degree = std::max(max_degree, init_degree[hash_idx]);
   }
   for (size_t i = 0; i < init_degree.size(); i++) {
     std::cout << i << ":" << init_degree[i] << " ";
@@ -82,8 +84,8 @@ void WaterfallFCM::get_distribution(set<FIVE_TUPLE> tuples) {
 
   // Create virtual counters based on degree and count
   // degree, count value, n
-  vector<vector<uint32_t>> virtual_counters(max_degree);
-  vector<vector<vector<vector<uint32_t>>>> thresholds(max_degree);
+  vector<vector<uint32_t>> virtual_counters(max_degree + 1);
+  vector<vector<vector<vector<uint32_t>>>> thresholds(max_degree + 1);
 
   for (size_t stage = 0; stage < this->n_stages; stage++) {
     for (size_t i = 0; i < this->fcm.stages_sz[stage]; i++) {
@@ -93,7 +95,9 @@ void WaterfallFCM::get_distribution(set<FIVE_TUPLE> tuples) {
       }
       // If overflown increase the minimal value for the collisions
       if (this->fcm.stages[stage][i].overflow) {
-        overflow_paths[stage][i][stage][1] = this->fcm.stages[stage][i].count;
+        summary[stage][i][0] = this->fcm.stages[stage][i].max_count;
+        overflow_paths[stage][i][stage][1] =
+            this->fcm.stages[stage][i].max_count;
       }
 
       // Start checking childeren from stage 1 and up
@@ -132,7 +136,7 @@ void WaterfallFCM::get_distribution(set<FIVE_TUPLE> tuples) {
       // If not overflown and non-zero, we are at the end of the path
       if (!this->fcm.stages[stage][i].overflow && summary[stage][i][0] > 0) {
         uint32_t count = summary[stage][i][0];
-        uint32_t degree = summary[stage][i][1] - 1;
+        uint32_t degree = summary[stage][i][1];
         // Add entry to VC with its degree [1] and count [0]
         virtual_counters[degree].push_back(count);
         max_counter_value = std::max(max_counter_value, count);
@@ -155,17 +159,17 @@ void WaterfallFCM::get_distribution(set<FIVE_TUPLE> tuples) {
     if (thresholds[d].size() == 0) {
       continue;
     }
-    std::cout << "Degree: " << d << std::endl;
+    std::cout << "Degree: " << d << '\t';
     for (size_t i = 0; i < thresholds[d].size(); i++) {
       std::cout << "i " << i << ":";
       for (size_t l = 0; l < thresholds[d][i].size(); l++) {
-        std::cout << "\t" << l;
+        std::cout << " " << l;
         for (auto &col : thresholds[d][i][l]) {
           std::cout << " " << col;
         }
       }
-      std::cout << std::endl;
     }
+    std::cout << std::endl;
   }
 
   std::cout << std::endl;
@@ -173,7 +177,7 @@ void WaterfallFCM::get_distribution(set<FIVE_TUPLE> tuples) {
     if (virtual_counters[st].size() == 0) {
       continue;
     }
-    std::cout << "Degree: " << st << std::endl;
+    std::cout << "Degree " << st << " : ";
     for (auto &val : virtual_counters[st]) {
       std::cout << " " << val;
     }

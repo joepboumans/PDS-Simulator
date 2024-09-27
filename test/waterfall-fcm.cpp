@@ -151,8 +151,8 @@ TEST_CASE("FSD Test", "[small][fsd]") {
     waterfall.insert(t2);
     waterfall.insert(t3);
   }
-  waterfall.analyze(0);
   waterfall.print_sketch();
+  waterfall.analyze(0);
 }
 
 TEST_CASE("FSD Test", "[fsd]") {
@@ -178,6 +178,6 @@ TEST_CASE("FSD Test", "[fsd]") {
   for (size_t i = 0; i < 10; i++) {
     waterfall.insert(t4++);
   }
-  waterfall.analyze(0);
   waterfall.print_sketch();
+  waterfall.analyze(0);
 }

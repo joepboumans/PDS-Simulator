@@ -54,6 +54,7 @@ public:
   void reset();
 
   void analyze(int epoch);
+  bool estimate_fsd = true;
   double average_absolute_error = 0.0;
   double average_relative_error = 0.0;
   double wmre = 0.0;
@@ -63,7 +64,7 @@ public:
 
   void store_data();
   void print_sketch();
-  void get_distribution(set<FIVE_TUPLE> tuples);
+  vector<double> get_distribution(set<FIVE_TUPLE> tuples);
   void set_estimate_fsd(bool onoff);
 };
 

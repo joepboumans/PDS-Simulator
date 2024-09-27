@@ -2,6 +2,7 @@
 #define _WATERFALL_FCM_CPP
 
 #include "waterfall-fcm.hpp"
+#include "EM_FSD.hpp"
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -30,13 +31,75 @@ void WaterfallFCM::reset() {
   this->fcm.reset();
 }
 
+void WaterfallFCM::print_sketch() {
+  this->cuckoo.print_sketch();
+  this->fcm.print_sketch();
+}
+
+void WaterfallFCM::set_estimate_fsd(bool onoff) {
+  this->fcm.estimate_fsd = onoff;
+}
+
 void WaterfallFCM::analyze(int epoch) {
   this->cuckoo.analyze(epoch);
   this->fcm.analyze(epoch);
   uint32_t cuckoo_card = this->cuckoo.tuples.size();
   std::cout << "[CHT] Cardinality : " << cuckoo_card << std::endl;
-  this->get_distribution(this->cuckoo.tuples);
-  // Save data into csv
+
+  long em_time = 0;
+  // Flow Size Distribution (Weighted Mean Relative Error)
+  if (this->estimate_fsd) {
+    using pair_type = decltype(this->fcm.true_data)::value_type;
+    auto max_count =
+        std::max_element(this->fcm.true_data.begin(), this->fcm.true_data.end(),
+                         [](const pair_type &p1, const pair_type &p2) {
+                           return p1.second < p2.second;
+                         });
+
+    vector<uint32_t> true_fsd(max_count->second + 1);
+    double wmre = 0.0;
+
+    for (const auto &[tuple, count] : this->fcm.true_data) {
+      true_fsd[count]++;
+    }
+
+    this->wmre = 0.0;
+    double wmre_nom = 0.0;
+    double wmre_denom = 0.0;
+    auto start = std::chrono::high_resolution_clock::now();
+    vector<double> em_fsd = this->get_distribution(this->cuckoo.tuples);
+
+    uint32_t max_len = std::max(true_fsd.size(), em_fsd.size());
+    true_fsd.resize(max_len);
+    em_fsd.resize(max_len);
+    std::cout << "[EM_FSD] True FSD : ";
+    for (size_t i = 0; i < true_fsd.size(); i++) {
+      if (true_fsd[i] != 0) {
+
+        std::cout << i << " = " << true_fsd[i] << "\t";
+      }
+    }
+    std::cout << std::endl;
+    std::cout << "[EM_FSD] Estimated FSD : ";
+    for (size_t i = 0; i < em_fsd.size(); i++) {
+      if (em_fsd[i] != 0) {
+        std::cout << i << " = " << em_fsd[i] << "\t";
+      }
+    }
+    std::cout << std::endl;
+
+    for (size_t i = 0; i < max_len; i++) {
+      wmre_nom += std::abs(double(true_fsd[i]) - em_fsd[i]);
+      wmre_denom += double((double(true_fsd[i]) + em_fsd[i]) / 2);
+    }
+    this->wmre = wmre_nom / wmre_denom;
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto time = duration_cast<std::chrono::milliseconds>(stop - start);
+    em_time = time.count();
+    printf("[EM_FSD] WMRE : %f\n", this->wmre);
+    printf("[EM_FSD] Total time %li ms\n", em_time);
+  }
+  // Save data into c  // Save data into csv
   char csv[300];
   this->insertions = this->cuckoo.insertions;
   this->f1_member = this->cuckoo.f1;
@@ -51,7 +114,7 @@ void WaterfallFCM::analyze(int epoch) {
   return;
 }
 
-void WaterfallFCM::get_distribution(set<FIVE_TUPLE> tuples) {
+vector<double> WaterfallFCM::get_distribution(set<FIVE_TUPLE> tuples) {
   // Setup initial degrees for each input counter (stage 0)
   vector<uint32_t> init_degree(this->fcm.stages_sz[0]);
   uint32_t max_degree = 0;
@@ -185,14 +248,14 @@ void WaterfallFCM::get_distribution(set<FIVE_TUPLE> tuples) {
   }
   std::cout << "Maximum degree is: " << max_degree << std::endl;
   std::cout << "Maximum counter value is: " << max_counter_value << std::endl;
+
+  EMFSD EM(this->fcm.stages_sz, thresholds, max_counter_value, max_degree,
+           max_degree, virtual_counters);
+  for (size_t i = 0; i < this->em_iters; i++) {
+    EM.next_epoch();
+  }
+  vector<double> output = EM.ns;
+  return output;
 }
 
-void WaterfallFCM::print_sketch() {
-  this->cuckoo.print_sketch();
-  this->fcm.print_sketch();
-}
-
-void WaterfallFCM::set_estimate_fsd(bool onoff) {
-  this->fcm.estimate_fsd = onoff;
-}
 #endif // !_WATERFALL_FCM_CPP

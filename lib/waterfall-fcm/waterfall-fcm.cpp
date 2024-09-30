@@ -155,6 +155,7 @@ vector<double> WaterfallFCM::get_distribution(set<FIVE_TUPLE> tuples) {
       summary[stage][i][0] = this->fcm.stages[stage][i].count;
       if (stage == 0) {
         summary[stage][i][1] = init_degree[i];
+        overflow_paths[stage][i][stage][0] = init_degree[i];
       }
       // If overflown increase the minimal value for the collisions
       if (this->fcm.stages[stage][i].overflow) {
@@ -167,7 +168,6 @@ vector<double> WaterfallFCM::get_distribution(set<FIVE_TUPLE> tuples) {
       if (stage > 0) {
         uint32_t overflown = 0;
         uint32_t imm_overflow = 0;
-        bool child_overflown = false;
         // Loop over all childeren
         for (size_t k = 0; k < this->fcm.k; k++) {
           uint32_t child_idx = i * this->fcm.k + k;
@@ -178,7 +178,6 @@ vector<double> WaterfallFCM::get_distribution(set<FIVE_TUPLE> tuples) {
             // If any of my predecessors have overflown, add them to my
             // overflown paths
             overflown++;
-            child_overflown = true;
             for (size_t j = 0; j < overflow_paths[stage - 1][child_idx].size();
                  j++) {
               overflow_paths[stage][i][j][0] +=
@@ -188,10 +187,11 @@ vector<double> WaterfallFCM::get_distribution(set<FIVE_TUPLE> tuples) {
             }
           }
         }
-        // If more than one has been overflown or my pred has overflown and I
-        // have overflown, add me to the threshold as well
-        if (overflown > 1 or child_overflown) {
-          overflow_paths[stage][i][stage - 1][0] = overflown;
+        // If any of my childeren have overflown, add me to the overflow path
+        if (overflown > 0) {
+          if (stage - 1 > 0) {
+            overflow_paths[stage][i][stage - 1][0] = overflown;
+          }
           overflow_paths[stage][i][stage][1] = summary[stage][i][0];
         }
       }

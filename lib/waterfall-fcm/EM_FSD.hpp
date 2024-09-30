@@ -292,16 +292,13 @@ public:
     nt.resize(max_degree + 1);
     std::fill(ns.begin(), ns.end(), 0);
 
-    // Simple Multi thread
-    std::thread threads[max_degree + 1];
+    // Always copy first degree as this is the already perfect estimation
     nt[1].resize(counter_dist[1].size());
     for (size_t i = 0; i < counter_dist[1].size(); i++) {
-      if (counter_dist[1][i] > 0) {
-        std::cout << "Counter_dist[1][" << i << "] : " << counter_dist[1][i]
-                  << std::endl;
-      }
       nt[1][i] = counter_dist[1][i];
     }
+    // Simple Multi thread
+    std::thread threads[max_degree + 1];
     for (size_t t = 2; t <= max_degree; t++) {
       threads[t] =
           std::thread(&EMFSD::calculate_degree, *this, std::ref(nt[t]), t);

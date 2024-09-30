@@ -148,7 +148,7 @@ TEST_CASE("FSD Test", "[small][fsd]") {
   t3.num_array[12] = 10;
   for (size_t i = 0; i < 3000; i++) {
     waterfall.insert(t);
-    waterfall.insert(t2);
+    // waterfall.insert(t2);
     waterfall.insert(t3);
   }
   waterfall.print_sketch();

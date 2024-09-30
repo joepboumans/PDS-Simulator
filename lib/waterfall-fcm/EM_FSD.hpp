@@ -238,13 +238,15 @@ private:
       // std::cout << i << std::endl;
       BetaGenerator alpha(i, d), beta(i, d);
       double sum_p = 0;
+      uint32_t it = 0;
       while (alpha.get_next()) {
         double p = get_p_from_beta(alpha, lambda, dist_old, n_old, d);
         sum_p += p;
+        it++;
       }
 
       if (sum_p == 0.0) {
-        if (iter > 0) {
+        if (it > 0) {
           uint32_t temp_val = this->counters[d][i];
           vector<vector<uint32_t>> temp_thresh = this->thresholds[d][i];
           // Start from lowest layer to highest layer
@@ -254,8 +256,8 @@ private:
               break;
             }
             temp_val -= t[1] * (t[0] - 1);
+            nt[temp_val] += 1;
           }
-          nt[temp_val] += 1;
         }
       } else {
         while (beta.get_next()) {

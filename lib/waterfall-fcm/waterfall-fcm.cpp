@@ -117,57 +117,53 @@ void WaterfallFCM::analyze(int epoch) {
 vector<double> WaterfallFCM::get_distribution(set<FIVE_TUPLE> tuples) {
   // Setup initial degrees for each input counter (stage 0)
   vector<uint32_t> init_degree(this->fcm.stages_sz[0]);
-  uint32_t max_degree = 0;
+  uint32_t cht_max_degree = 0;
   for (auto &tuple : tuples) {
     uint32_t hash_idx = this->fcm.hashing(tuple, 0);
     init_degree[hash_idx]++;
-    max_degree = std::max(max_degree, init_degree[hash_idx]);
+    cht_max_degree++;
   }
-  for (size_t i = 0; i < init_degree.size(); i++) {
-    std::cout << i << ":" << init_degree[i] << " ";
-  }
-  std::cout << std::endl;
+  // for (size_t i = 0; i < init_degree.size(); i++) {
+  //   std::cout << i << ":" << init_degree[i] << " ";
+  // }
+  // std::cout << std::endl;
 
   uint32_t max_counter_value = 0;
   // Summarize sketch and find collisions
   // stage, idx, (count, degree, min_value)
   vector<vector<vector<uint32_t>>> summary(this->n_stages);
-  // stage, idx, layer, (collisions, min value)
+  // stage, idx, layer, (stage, total degree/collisions, local collisions, min
+  // value)
   vector<vector<vector<vector<uint32_t>>>> overflow_paths(this->n_stages);
 
   // Setup sizes for summary and overflow_paths
   for (size_t stage = 0; stage < this->n_stages; stage++) {
     summary[stage].resize(this->fcm.stages_sz[stage], vector<uint32_t>(2, 0));
     overflow_paths[stage].resize(this->fcm.stages_sz[stage]);
-
-    for (size_t i = 0; i < this->fcm.stages_sz[stage]; i++) {
-      overflow_paths[stage][i].resize(stage + 1, vector<uint32_t>(2, 0));
-    }
   }
 
   // Create virtual counters based on degree and count
   // degree, count value, n
-  vector<vector<uint32_t>> virtual_counters(max_degree + 1);
-  vector<vector<vector<vector<uint32_t>>>> thresholds(max_degree + 1);
+  vector<vector<uint32_t>> virtual_counters(cht_max_degree + 1);
+  vector<vector<vector<vector<uint32_t>>>> thresholds(cht_max_degree + 1);
 
+  uint32_t max_degree = 0;
   for (size_t stage = 0; stage < this->n_stages; stage++) {
     for (size_t i = 0; i < this->fcm.stages_sz[stage]; i++) {
       summary[stage][i][0] = this->fcm.stages[stage][i].count;
-      if (stage == 0) {
-        summary[stage][i][1] = init_degree[i];
-        overflow_paths[stage][i][stage][0] = init_degree[i];
-      }
       // If overflown increase the minimal value for the collisions
       if (this->fcm.stages[stage][i].overflow) {
         summary[stage][i][0] = this->fcm.stages[stage][i].max_count;
-        overflow_paths[stage][i][stage][1] =
-            this->fcm.stages[stage][i].max_count;
       }
 
+      if (stage == 0) {
+        summary[stage][i][1] = init_degree[i];
+        overflow_paths[stage][i].push_back(
+            {(uint32_t)stage, init_degree[i], 1, summary[stage][i][0]});
+      }
       // Start checking childeren from stage 1 and up
-      if (stage > 0) {
+      else {
         uint32_t overflown = 0;
-        uint32_t imm_overflow = 0;
         // Loop over all childeren
         for (size_t k = 0; k < this->fcm.k; k++) {
           uint32_t child_idx = i * this->fcm.k + k;
@@ -180,19 +176,18 @@ vector<double> WaterfallFCM::get_distribution(set<FIVE_TUPLE> tuples) {
             overflown++;
             for (size_t j = 0; j < overflow_paths[stage - 1][child_idx].size();
                  j++) {
-              overflow_paths[stage][i][j][0] +=
-                  overflow_paths[stage - 1][child_idx][j][0];
-              overflow_paths[stage][i][j][1] =
-                  overflow_paths[stage - 1][child_idx][j][1];
+              overflow_paths[stage][i].push_back(
+                  overflow_paths[stage - 1][child_idx][j]);
             }
           }
         }
         // If any of my childeren have overflown, add me to the overflow path
         if (overflown > 0) {
-          if (stage - 1 > 0) {
-            overflow_paths[stage][i][stage - 1][0] = overflown;
-          }
-          overflow_paths[stage][i][stage][1] = summary[stage][i][0];
+          vector<uint32_t> imm_overflow = {
+              (uint32_t)stage, summary[stage][i][1], overflown,
+              this->fcm.stages[stage - 1][i].max_count};
+          overflow_paths[stage][i].insert(overflow_paths[stage][i].begin(),
+                                          imm_overflow);
         }
       }
 
@@ -205,15 +200,14 @@ vector<double> WaterfallFCM::get_distribution(set<FIVE_TUPLE> tuples) {
         max_counter_value = std::max(max_counter_value, count);
         max_degree = std::max(max_degree, degree);
 
-        // Remove zero thresholds
-        for (size_t j = overflow_paths[stage][i].size() - 1; j > 0; j--) {
-          if (overflow_paths[stage][i][j][0] == 0) {
-            overflow_paths[stage][i].erase(overflow_paths[stage][i].begin() +
-                                           j);
-          }
-        }
-        std::reverse(overflow_paths[stage][i].begin(),
-                     overflow_paths[stage][i].end());
+        // Remove 1 collsions
+        // for (size_t j = overflow_paths[stage][i].size() - 1; j > 0; --j) {
+        //   if (overflow_paths[stage][i][j][2] <= 1) {
+        //     overflow_paths[stage][i].erase(overflow_paths[stage][i].begin() +
+        //                                    j);
+        //   }
+        // }
+
         thresholds[degree].push_back(overflow_paths[stage][i]);
       }
     }
@@ -222,38 +216,45 @@ vector<double> WaterfallFCM::get_distribution(set<FIVE_TUPLE> tuples) {
     if (thresholds[d].size() == 0) {
       continue;
     }
-    std::cout << "Degree: " << d << '\t';
-    for (size_t i = 0; i < thresholds[d].size(); i++) {
-      std::cout << "i " << i << ":";
-      for (size_t l = 0; l < thresholds[d][i].size(); l++) {
-        std::cout << " " << l;
-        for (auto &col : thresholds[d][i][l]) {
-          std::cout << " " << col;
-        }
-      }
-    }
-    std::cout << std::endl;
+    // std::cout << "Degree: " << d << '\t';
+    // for (size_t i = 0; i < thresholds[d].size(); i++) {
+    //   std::cout << "i " << i << ":";
+    //   for (size_t l = 0; l < thresholds[d][i].size(); l++) {
+    //     std::cout << " <";
+    //     for (auto &col : thresholds[d][i][l]) {
+    //       std::cout << col;
+    //       if (&col != &thresholds[d][i][l].back()) {
+    //         std::cout << ", ";
+    //       }
+    //     }
+    //     std::cout << "> ";
+    //   }
+    //   std::cout << std::endl;
+    // }
   }
 
-  std::cout << std::endl;
-  for (size_t st = 0; st < virtual_counters.size(); st++) {
-    if (virtual_counters[st].size() == 0) {
-      continue;
-    }
-    std::cout << "Degree " << st << " : ";
-    for (auto &val : virtual_counters[st]) {
-      std::cout << " " << val;
-    }
-    std::cout << std::endl;
-  }
+  // std::cout << std::endl;
+  // for (size_t st = 0; st < virtual_counters.size(); st++) {
+  //   if (virtual_counters[st].size() == 0) {
+  //     continue;
+  //   }
+  //   std::cout << "Degree " << st << " : ";
+  //   for (auto &val : virtual_counters[st]) {
+  //     std::cout << " " << val;
+  //   }
+  //   std::cout << std::endl;
+  // }
+  std::cout << "CHT maximum degree is: " << cht_max_degree << std::endl;
   std::cout << "Maximum degree is: " << max_degree << std::endl;
   std::cout << "Maximum counter value is: " << max_counter_value << std::endl;
 
   EMFSD EM(this->fcm.stages_sz, thresholds, max_counter_value, max_degree,
            max_degree, virtual_counters);
+  std::cout << "Initialized EM_FSD, starting estimation..." << std::endl;
   for (size_t i = 0; i < this->em_iters; i++) {
     EM.next_epoch();
   }
+  std::cout << "...done!" << std::endl;
   vector<double> output = EM.ns;
   return output;
 }

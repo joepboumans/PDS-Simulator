@@ -22,7 +22,7 @@ def plot_pds_stats(df, title, n_stage, n_struct, sz, dataset):
     if "Insertions" in df.columns:
         fig, axs = plt.subplots(2, 1, figsize=(9,9))
         axs[0].set_title("Performance metrics", fontsize=10)
-        df.plot(x = 'Epoch', y = ["Recall", "Precision", "F1"], ax=axs[0])
+        df.plot(x = 'Epoch', y = ["Recall", "Precision", "F1 Heavy Hitters"], ax=axs[0])
         axs[1].set_title("Recordings", fontsize=10)
         df.plot(x = 'Epoch', y = ["Insertions"], ax=axs[1])
         sz = int(int(sz)/1024)
@@ -147,8 +147,8 @@ if __name__ == "__main__":
                     amq_columns = df.columns
             plot_pds_stats(df, data_info['data_name'], data_info['n_stage'], data_info['n_struct'], data_info['sz'], data_info['name'])
 
-    if amq_df:
-        plot_total_results(amq_df, amq_columns)
-    if fc_df:
-        plot_total_results(fc_df, fc_columns)
+    # if amq_df:
+    #     plot_total_results(amq_df, amq_columns)
+    # if fc_df:
+        # plot_total_results(fc_df, fc_columns)
     plt.show()

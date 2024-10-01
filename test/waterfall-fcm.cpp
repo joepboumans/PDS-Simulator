@@ -142,14 +142,18 @@ TEST_CASE("FSD Test", "[small][fsd]") {
                          0, 0);
   REQUIRE(waterfall.average_absolute_error == 0);
   REQUIRE(waterfall.average_relative_error == 0);
-  FIVE_TUPLE t, t2, t3, t4;
+  FIVE_TUPLE t, t2, t3, t4, t5;
   t += 1;
   t2 += 2;
   t3.num_array[12] = 10;
-  for (size_t i = 0; i < 3000; i++) {
+  t4 += 4;
+  t5 += 5;
+  for (size_t i = 0; i < 250; i++) {
     waterfall.insert(t);
     // waterfall.insert(t2);
     waterfall.insert(t3);
+    // waterfall.insert(t4);
+    waterfall.insert(t5);
   }
   waterfall.print_sketch();
   waterfall.analyze(0);

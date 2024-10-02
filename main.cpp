@@ -4,6 +4,7 @@
 #include "cuckoo-hash.hpp"
 #include "data-parser.h"
 #include "fcm-sketch.hpp"
+#include "fcm-sketches.hpp"
 #include "iblt.h"
 #include "simulator.h"
 #include "src/bloomfilter.h"
@@ -70,9 +71,11 @@ int main() {
     // stages.push_back(&cm);
     // FCM_Sketch fcm(6241, 3, 8, hh_threshold, 1, name_set, 0, 0);
     // stages.push_back(&fcm);
-    WaterfallFCM waterfall =
-        WaterfallFCM(128, 4, 32, hh_threshold, 1, 10, 1024, name_set, 0, 0);
-    stages.push_back(&waterfall);
+    FCM_Sketches fcms(32, 3, 8, 2, hh_threshold, 1, name_set, 0, 0);
+    stages.push_back(&fcms);
+    // WaterfallFCM waterfall =
+    //     WaterfallFCM(2048, 3, 32, hh_threshold, 1, 5, 2048, name_set, 0, 0);
+    // stages.push_back(&waterfall);
     Simulator sim(stages, stages.size(), sim_length);
     // Default length of CAIDA traces is 60s
     sim.run(trace, iter);

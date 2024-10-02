@@ -4,6 +4,7 @@ import glob
 import re
 import math
 import os
+from matplotlib.ticker import ScalarFormatter
 
 
 def sort_names(names):
@@ -112,12 +113,17 @@ def plot_total_results(total_df, columns):
     for (param, score),i in zip(scores.items(), range(len(scores))):
         if param == "Epoch":
             continue
-        fig2, ax = plt.subplots(figsize=(9,9))
+        fig2, ax = plt.subplots(figsize=(9,4))
         if param == "Average Relative Error" or param == "Average Absolute Error" or param == "Estimation Time" or param == "Weighted Mean Relative Error":
             ax.set_xscale('log')
+            # ax.ticklabel_format(axis="x", style='sci', scilimits=(2,-4))
         ax.set_title(param)
         score.plot.box(ax=ax, vert=False, grid=True)
         ax.set_yticklabels(ax.get_yticklabels(), fontsize=8)
+        # formatter = ScalarFormatter()
+        # formatter.set_scientific(True)
+        # formatter.set_powerlimits((-3,3))
+        # ax.xaxis.set_major_formatter(formatter)
         # plt.title(param)
         plt.tight_layout()
         plt.savefig(f"{plot_dir}{param}_overview.png", transparent=True)

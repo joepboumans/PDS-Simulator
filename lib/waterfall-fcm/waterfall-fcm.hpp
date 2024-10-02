@@ -37,9 +37,9 @@ public:
     this->fcm.estimate_fsd = false;
     // Setup logging
     this->csv_header = "Epoch,Average Relative Error,Average Absolute "
-                       "Error,Weighted Mean Relative "
-                       "Error,Recall,Precision,F1 Heavy Hitter,Estimation "
-                       "Time,Iterations, Insertions, F1 Member";
+                       "Error,Weighted Mean Relative"
+                       "Error,F1 Heavy Hitter,Estimation "
+                       "Time,Iterations,Insertions,F1 Member";
     this->name = "WaterfallFCM";
     this->trace_name = trace;
     this->rows = n_stages;

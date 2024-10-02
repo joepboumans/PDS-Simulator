@@ -18,11 +18,29 @@ def sort_names(names):
 plot_dir = "plots/"
 
 def plot_pds_stats(df, title, n_stage, n_struct, sz, dataset):
+    # Approximate Membership Query and Frequency Counter
+    if "F1 Heavy Hitter" in df.columns or "F1 Member" in df.columns:
+        fig, axs = plt.subplots(6, 1, figsize=(9,9))
+        axs[0].set_title("F1 of Heavy Hitter and Membership", fontsize=10)
+        df.plot(x = 'Epoch', y = [ "F1 Heavy Hitter", "F1 Member"], ax=axs[0])
+        axs[1].set_title("Recordings", fontsize=10)
+        df.plot(x = 'Epoch', y = ["Insertions"], ax=axs[1])
+        axs[2].set_title("Flow Sizes Estimation", fontsize=10)
+        df.plot(x = 'Epoch', y = ["Average Relative Error", "Average Absolute Error"], ax=axs[2])
+        axs[3].set_title("Flow Size Distribution", fontsize=10)
+        df.plot(x = 'Epoch', y = ["Weighted Mean Relative Error"], ax=axs[3])
+        axs[4].set_title("Estimation Time", fontsize=10)
+        df.plot(x = 'Epoch', y = ["Estimation Time"], ax=axs[4])
+        axs[5].set_title("Average ET per iteration", fontsize=10)
+        df.plot(x = 'Epoch', y = "Average ET", ax=axs[5])
+        sz = sz.split("_")
+        sz[-1] = str(math.floor(int(sz[-1])/1024))
+        sz = " ".join(sz)
     # Approximate Membership Query
-    if "Insertions" in df.columns:
+    elif "Insertions" in df.columns:
         fig, axs = plt.subplots(2, 1, figsize=(9,9))
         axs[0].set_title("Performance metrics", fontsize=10)
-        df.plot(x = 'Epoch', y = ["Recall", "Precision", "F1 Heavy Hitters"], ax=axs[0])
+        df.plot(x = 'Epoch', y = ["Recall", "Precision", "F1"], ax=axs[0])
         axs[1].set_title("Recordings", fontsize=10)
         df.plot(x = 'Epoch', y = ["Insertions"], ax=axs[1])
         sz = int(int(sz)/1024)
@@ -109,6 +127,8 @@ if __name__ == "__main__":
     csv_results = glob.glob("results/*/*.csv")
 
     # total_df = {}
+    amq_fc_df = {}
+    amq_fc_columns = []
     amq_df = {}
     amq_columns = []
     fc_df = {}
@@ -130,7 +150,12 @@ if __name__ == "__main__":
                 continue
             
             if data_info['row']:
-                if "Average Relative Error" in df.columns:
+                if "F1 Heavy Hitter" in df.columns or "F1 Member" in df.columns:
+                    if "Iterations" in df:
+                        df["Average ET"] = df["Estimation Time"] / df["Iterations"]
+                    amq_fc_df[f"{data_info['n_stage']}_{data_info['n_struct']}_{data_info['name']}_{data_info['row']}_{data_info['col']}_{data_info['tot_sz']}_{data_info['data_name']}"] = df
+                    amq_fc_columns = df.columns
+                elif "Average Relative Error" in df.columns:
                     if "Iterations" in df:
                         df["Average ET"] = df["Estimation Time"] / df["Iterations"]
                     fc_df[f"{data_info['n_stage']}_{data_info['n_struct']}_{data_info['name']}_{data_info['row']}_{data_info['col']}_{data_info['tot_sz']}_{data_info['data_name']}"] = df
@@ -139,16 +164,24 @@ if __name__ == "__main__":
                     amq_df[f"{data_info['n_stage']}_{data_info['n_struct']}_{data_info['name']}_{data_info['row']}_{data_info['col']}_{data_info['tot_sz']}_{data_info['data_name']}"] = df
                     amq_columns = df.columns
             else:
-                if "Average Relative Error" in df.columns:
+                if "F1 Heavy Hitter" in df.columns or "F1 Member" in df.columns:
+                    if "Iterations" in df:
+                        df["Average ET"] = df["Estimation Time"] / df["Iterations"]
+                    amq_fc_df[f"{data_info['n_stage']}_{data_info['n_struct']}_{data_info['name']}_{data_info['sz']}_{data_info['data_name']}"] = df
+                    amq_fc_columns = df.columns
+                elif "Average Relative Error" in df.columns:
                     fc_df[f"{data_info['n_stage']}_{data_info['n_struct']}_{data_info['name']}_{data_info['sz']}_{data_info['data_name']}"] = df
                     fc_columns = df.columns
                 else:
                     amq_df[f"{data_info['n_stage']}_{data_info['n_struct']}_{data_info['name']}_{data_info['sz']}_{data_info['data_name']}"] = df
                     amq_columns = df.columns
-            plot_pds_stats(df, data_info['data_name'], data_info['n_stage'], data_info['n_struct'], data_info['sz'], data_info['name'])
+            # plot_pds_stats(df, data_info['data_name'], data_info['n_stage'], data_info['n_struct'], data_info['sz'], data_info['name'])
 
-    # if amq_df:
-    #     plot_total_results(amq_df, amq_columns)
-    # if fc_df:
-        # plot_total_results(fc_df, fc_columns)
+    if amq_fc_df:
+        plot_total_results(amq_fc_df, amq_fc_columns)
+    elif amq_df:
+        plot_total_results(amq_df, amq_columns)
+    elif fc_df:
+        plot_total_results(fc_df, fc_columns)
+    
     plt.show()

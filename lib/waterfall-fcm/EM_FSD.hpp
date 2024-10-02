@@ -180,10 +180,11 @@ private:
         }
         uint32_t tot_curr_colls = t[2];
         uint32_t group_sz = (uint32_t)now_flow_num / tot_curr_colls;
+        uint32_t last_group_sz = std::ceil(now_flow_num / tot_curr_colls);
         uint32_t min_val = t[3];
         uint32_t passes = 0;
-        uint32_t last_group_val =
-            std::accumulate(now_result.end() - group_sz, now_result.end(), 0);
+        uint32_t last_group_val = std::accumulate(
+            now_result.end() - last_group_sz, now_result.end(), 0);
         if (last_group_val >= min_val) {
           passes++;
           for (size_t i = 0; i < tot_curr_colls - 1; i++) {
@@ -196,7 +197,7 @@ private:
           }
         } else {
           // Shift group to include first entry
-          last_group_val = std::accumulate(now_result.end() - group_sz + 1,
+          last_group_val = std::accumulate(now_result.end() - last_group_sz + 1,
                                            now_result.end(), 0) +
                            now_result[0];
           if (last_group_val < min_val) {

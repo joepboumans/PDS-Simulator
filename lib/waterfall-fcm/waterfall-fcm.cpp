@@ -72,21 +72,21 @@ void WaterfallFCM::analyze(int epoch) {
     uint32_t max_len = std::max(true_fsd.size(), em_fsd.size());
     true_fsd.resize(max_len);
     em_fsd.resize(max_len);
-    std::cout << "[EM_FSD] True FSD : ";
-    for (size_t i = 0; i < true_fsd.size(); i++) {
-      if (true_fsd[i] != 0) {
-
-        std::cout << i << " = " << true_fsd[i] << "\t";
-      }
-    }
-    std::cout << std::endl;
-    std::cout << "[EM_FSD] Estimated FSD : ";
-    for (size_t i = 0; i < em_fsd.size(); i++) {
-      if (em_fsd[i] != 0) {
-        std::cout << i << " = " << em_fsd[i] << "\t";
-      }
-    }
-    std::cout << std::endl;
+    // std::cout << "[EM_FSD] True FSD : ";
+    // for (size_t i = 0; i < true_fsd.size(); i++) {
+    //   if (true_fsd[i] != 0) {
+    //
+    //     std::cout << i << " = " << true_fsd[i] << "\t";
+    //   }
+    // }
+    // std::cout << std::endl;
+    // std::cout << "[EM_FSD] Estimated FSD : ";
+    // for (size_t i = 0; i < em_fsd.size(); i++) {
+    //   if (em_fsd[i] != 0) {
+    //     std::cout << i << " = " << em_fsd[i] << "\t";
+    //   }
+    // }
+    // std::cout << std::endl;
 
     for (size_t i = 0; i < max_len; i++) {
       wmre_nom += std::abs(double(true_fsd[i]) - em_fsd[i]);
@@ -98,6 +98,8 @@ void WaterfallFCM::analyze(int epoch) {
     em_time = time.count();
     printf("[EM_FSD] WMRE : %f\n", this->wmre);
     printf("[EM_FSD] Total time %li ms\n", em_time);
+  } else {
+    this->wmre = this->fcm.wmre;
   }
   // Save data into c  // Save data into csv
   char csv[300];
@@ -105,11 +107,11 @@ void WaterfallFCM::analyze(int epoch) {
   this->f1_member = this->cuckoo.f1;
   this->average_absolute_error = this->fcm.average_absolute_error;
   this->average_relative_error = this->fcm.average_relative_error;
-  this->wmre = this->fcm.wmre;
   this->f1_hh = this->fcm.f1;
-  sprintf(csv, "%i,%.3f,%.3f,%.3f,%.3f,%i,%.3f", epoch,
+  sprintf(csv, "%i,%.3f,%.3f,%.3f,%.3f,%li,%i,%i,%.3f", epoch,
           this->average_relative_error, this->average_absolute_error,
-          this->wmre, this->f1_hh, this->cuckoo.insertions, this->cuckoo.f1);
+          this->wmre, this->f1_hh, em_time, this->em_iters,
+          this->cuckoo.insertions, this->cuckoo.f1);
   this->fcsv << csv << std::endl;
   return;
 }

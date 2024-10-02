@@ -509,193 +509,193 @@ private:
     }
 
     return ret;
-  }
 
-  void calculate_single_degree(vector<double> &nt, uint32_t d, uint32_t xi) {
-    nt.resize(this->max_counter_value + 1);
-    std::fill(nt.begin(), nt.end(), 0.0);
+    void calculate_single_degree(vector<double> & nt, uint32_t d, uint32_t xi) {
+      nt.resize(this->max_counter_value + 1);
+      std::fill(nt.begin(), nt.end(), 0.0);
 
-    printf("[EM_FCM] ******** Running for degree %2d with a size of %12zu\t\t"
-           "**********\n",
-           d, counter_dist[d][xi].size());
+      printf("[EM_FCM] ******** Running for degree %2d with a size of %12zu\t\t"
+             "**********\n",
+             d, counter_dist[d][xi].size());
 
-    double lambda = n_old * d / double(w);
-    for (uint32_t i = 0; i < counter_dist[d][xi].size(); i++) {
-      // enum how to form val:i
-      if (counter_dist[d][xi][i] == 0) {
-        continue;
-      }
-      BetaGenerator alpha(i), beta(i);
-      double sum_p = 0;
-      while (alpha.get_next()) {
-        double p = get_p_from_beta(alpha, lambda, dist_old, n_old);
-        sum_p += p;
-      }
-      vector<double> imm_p_b;
-      if (sum_p == 0.0) {
-        continue;
-      } else {
-        while (beta.get_next()) {
-          double p = get_p_from_beta(beta, lambda, dist_old, n_old);
-          for (size_t j = 0; j < beta.now_flow_num; ++j) {
-            nt[beta.now_result[j]] += counter_dist[d][xi][i] * p / sum_p;
-          }
+      double lambda = n_old * d / double(w);
+      for (uint32_t i = 0; i < counter_dist[d][xi].size(); i++) {
+        // enum how to form val:i
+        if (counter_dist[d][xi][i] == 0) {
+          continue;
         }
-      }
-    }
-
-    double accum = std::accumulate(nt.begin(), nt.end(), 0.0);
-    if (accum != accum) {
-      std::cout << "Accum is Nan" << std::endl;
-      for (auto &x : nt) {
-        std::cout << x << " ";
-      }
-      std::cout << std::endl;
-    }
-    if (counter_dist[d][xi].size() != 0)
-      printf("[EM_FCM] ******** degree %2d is "
-             "finished...(accum:%10.1f #val:%8d)\t**********\n",
-             d, accum, (int)this->counters[d][xi].size());
-  }
-
-  void calculate_higher_degree(vector<double> &nt, uint32_t d, uint32_t xi) {
-    nt.resize(this->max_counter_value + 1);
-    std::fill(nt.begin(), nt.end(), 0.0);
-
-    printf("[EM_FCM] ******** Running for degree %2d with a size of %12zu\t\t"
-           "**********\n",
-           d, counter_dist[d][xi].size());
-
-    double lambda = n_old * d / double(w);
-    for (uint32_t i = 0; i < counter_dist[d][xi].size(); i++) {
-      // enum how to form val:i
-      if (counter_dist[d][xi][i] == 0) {
-        continue;
-      }
-      BetaGenerator_HD alpha(i, this->thresholds[d][xi][i], this->stage_sz, d),
-          beta(i, this->thresholds[d][xi][i], this->stage_sz, d);
-      double sum_p = 0;
-      uint32_t iter = 0;
-      while (alpha.get_next()) {
-        double p = get_p_from_beta(alpha, lambda, dist_old, n_old, d);
-        sum_p += p;
-        iter++;
-      }
-
-      if (sum_p == 0) {
-        if (iter > 0) {
-          uint32_t temp_val = this->counters[d][xi][i];
-          vector<vector<uint32_t>> temp_thresh = this->thresholds[d][xi][i];
-          // Start from lowest layer to highest layer
-          std::reverse(temp_thresh.begin(), temp_thresh.end());
-          for (auto &t : temp_thresh) {
-            if (temp_val < t[1] * (t[0] - 1)) {
-              break;
+        BetaGenerator alpha(i), beta(i);
+        double sum_p = 0;
+        while (alpha.get_next()) {
+          double p = get_p_from_beta(alpha, lambda, dist_old, n_old);
+          sum_p += p;
+        }
+        vector<double> imm_p_b;
+        if (sum_p == 0.0) {
+          continue;
+        } else {
+          while (beta.get_next()) {
+            double p = get_p_from_beta(beta, lambda, dist_old, n_old);
+            for (size_t j = 0; j < beta.now_flow_num; ++j) {
+              nt[beta.now_result[j]] += counter_dist[d][xi][i] * p / sum_p;
             }
-            temp_val -= t[1] * (t[0] - 1);
-          }
-          nt[temp_val] += 1;
-        }
-      } else {
-        while (beta.get_next()) {
-          double p = get_p_from_beta(beta, lambda, dist_old, n_old, d);
-          for (int j = 0; j < beta.now_flow_num; ++j) {
-            nt[beta.now_result[j]] += counter_dist[d][xi][i] * p / sum_p;
           }
         }
       }
-    }
-    double accum = std::accumulate(nt.begin(), nt.end(), 0.0);
-    if (counter_dist[d][xi].size() != 0) {
-      printf("[EM_FCM] ******** degree %2d is "
-             "finished...(accum:%10.1f #val:%8zu)\t**********\n",
-             d, accum, this->counters[d][xi].size());
-    }
-  }
 
-public:
-  void next_epoch() {
-    auto start = std::chrono::high_resolution_clock::now();
-    double lambda = n_old / double(w);
-    dist_old = dist_new;
-    n_old = n_new;
-
-    vector<vector<vector<double>>> nt_d_xi;
-    nt_d_xi.resize(this->depth);
-    for (size_t d = 0; d < this->depth; d++) {
-      nt_d_xi[d].resize(counter_dist[d].size());
-    }
-    std::fill(ns.begin(), ns.end(), 0.0);
-
-    uint32_t total_threads = 0;
-    for (size_t d = 0; d < this->depth; d++) {
-      for (size_t xi = 0; this->counter_dist[d].size(); d++) {
-        if (this->counter_dist[d][xi].size() != 0) {
-          total_threads++;
+      double accum = std::accumulate(nt.begin(), nt.end(), 0.0);
+      if (accum != accum) {
+        std::cout << "Accum is Nan" << std::endl;
+        for (auto &x : nt) {
+          std::cout << x << " ";
         }
+        std::cout << std::endl;
       }
+      if (counter_dist[d][xi].size() != 0)
+        printf("[EM_FCM] ******** degree %2d is "
+               "finished...(accum:%10.1f #val:%8d)\t**********\n",
+               d, accum, (int)this->counters[d][xi].size());
     }
-    // Simple Multi thread
-    std::cout << "[EMS_FSD] Start multi-threading with " << total_threads
-              << " of threahds" << std::endl;
-    std::thread threads[total_threads];
-    uint32_t n_threads = 0;
-    for (size_t d = 0; d < this->depth; d++) {
-      for (size_t xi = 0; this->counter_dist[d].size(); d++) {
-        if (this->counter_dist[d][xi].size() != 0) {
-          if (xi == 0) {
-            threads[n_threads] =
-                std::thread(&EMSFSD::calculate_single_degree, *this,
-                            std::ref(nt_d_xi[d][xi]), d, xi);
-          } else {
-            threads[n_threads] =
-                std::thread(&EMSFSD::calculate_higher_degree, *this,
-                            std::ref(nt_d_xi[d][xi]), d, xi);
+
+    void calculate_higher_degree(vector<double> & nt, uint32_t d, uint32_t xi) {
+      nt.resize(this->max_counter_value + 1);
+      std::fill(nt.begin(), nt.end(), 0.0);
+
+      printf("[EM_FCM] ******** Running for degree %2d with a size of %12zu\t\t"
+             "**********\n",
+             d, counter_dist[d][xi].size());
+
+      double lambda = n_old * d / double(w);
+      for (uint32_t i = 0; i < counter_dist[d][xi].size(); i++) {
+        // enum how to form val:i
+        if (counter_dist[d][xi][i] == 0) {
+          continue;
+        }
+        BetaGenerator_HD alpha(i, this->thresholds[d][xi][i], this->stage_sz,
+                               d),
+            beta(i, this->thresholds[d][xi][i], this->stage_sz, d);
+        double sum_p = 0;
+        uint32_t iter = 0;
+        while (alpha.get_next()) {
+          double p = get_p_from_beta(alpha, lambda, dist_old, n_old, d);
+          sum_p += p;
+          iter++;
+        }
+
+        if (sum_p == 0) {
+          if (iter > 0) {
+            uint32_t temp_val = this->counters[d][xi][i];
+            vector<vector<uint32_t>> temp_thresh = this->thresholds[d][xi][i];
+            // Start from lowest layer to highest layer
+            std::reverse(temp_thresh.begin(), temp_thresh.end());
+            for (auto &t : temp_thresh) {
+              if (temp_val < t[1] * (t[0] - 1)) {
+                break;
+              }
+              temp_val -= t[1] * (t[0] - 1);
+            }
+            nt[temp_val] += 1;
           }
-          n_threads++;
+        } else {
+          while (beta.get_next()) {
+            double p = get_p_from_beta(beta, lambda, dist_old, n_old, d);
+            for (int j = 0; j < beta.now_flow_num; ++j) {
+              nt[beta.now_result[j]] += counter_dist[d][xi][i] * p / sum_p;
+            }
+          }
         }
       }
-    }
-    for (auto &thread : threads) {
-      thread.join();
+      double accum = std::accumulate(nt.begin(), nt.end(), 0.0);
+      if (counter_dist[d][xi].size() != 0) {
+        printf("[EM_FCM] ******** degree %2d is "
+               "finished...(accum:%10.1f #val:%8zu)\t**********\n",
+               d, accum, this->counters[d][xi].size());
+      }
     }
 
-    // Single threaded
-    // for (size_t d = 0; d < nt.size(); d++) {
-    //   if (d == 0) {
-    //     this->calculate_single_degree(nt[d], d);
-    //   } else {
-    //     this->calculate_higher_degree(nt[d], d);
-    //   }
-    // }
+  public:
+    void next_epoch() {
+      auto start = std::chrono::high_resolution_clock::now();
+      double lambda = n_old / double(w);
+      dist_old = dist_new;
+      n_old = n_new;
 
-    // Collect all partial vectors nt into ns
-    for (size_t d = 0; d < this->depth; d++) {
-      for (size_t xi = 0; d < nt_d_xi[d].size(); xi++) {
-        for (uint32_t i = 0; i < nt_d_xi[d][xi].size(); i++) {
-          ns[i] += nt_d_xi[d][xi][i];
+      vector<vector<vector<double>>> nt_d_xi;
+      nt_d_xi.resize(this->depth);
+      for (size_t d = 0; d < this->depth; d++) {
+        nt_d_xi[d].resize(counter_dist[d].size());
+      }
+      std::fill(ns.begin(), ns.end(), 0.0);
+
+      uint32_t total_threads = 0;
+      for (size_t d = 0; d < this->depth; d++) {
+        for (size_t xi = 0; this->counter_dist[d].size(); d++) {
+          if (this->counter_dist[d][xi].size() != 0) {
+            total_threads++;
+          }
         }
       }
-    }
-    // Guess cardinality n_new, normalized to the depth
-    n_new = 0.0;
-    for (uint32_t i = 0; i < ns.size(); i++) {
-      if (ns[i] != 0) {
-        ns[i] /= this->depth;
-        n_new += ns[i];
+      // Simple Multi thread
+      std::cout << "[EMS_FSD] Start multi-threading with " << total_threads
+                << " of threahds" << std::endl;
+      std::thread threads[total_threads];
+      uint32_t n_threads = 0;
+      for (size_t d = 0; d < this->depth; d++) {
+        for (size_t xi = 0; this->counter_dist[d].size(); d++) {
+          if (this->counter_dist[d][xi].size() != 0) {
+            if (xi == 0) {
+              threads[n_threads] =
+                  std::thread(&EMSFSD::calculate_single_degree, *this,
+                              std::ref(nt_d_xi[d][xi]), d, xi);
+            } else {
+              threads[n_threads] =
+                  std::thread(&EMSFSD::calculate_higher_degree, *this,
+                              std::ref(nt_d_xi[d][xi]), d, xi);
+            }
+            n_threads++;
+          }
+        }
       }
-    }
-    // Guess phi_new or new Flow Size Distribution
-    for (uint32_t i = 0; i < ns.size(); i++) {
-      dist_new[i] = ns[i] / n_new;
-    }
-    auto stop = std::chrono::high_resolution_clock::now();
-    auto time = duration_cast<std::chrono::milliseconds>(stop - start);
+      for (auto &thread : threads) {
+        thread.join();
+      }
 
-    printf("[EM_FCM - iter %2d] Compute time : %li\n", iter, time.count());
-    printf("[EM_FCM - iter %2d] Intermediate cardianlity : %9.1f\n\n", iter,
-           n_new);
-    iter++;
-  }
-};
+      // Single threaded
+      // for (size_t d = 0; d < nt.size(); d++) {
+      //   if (d == 0) {
+      //     this->calculate_single_degree(nt[d], d);
+      //   } else {
+      //     this->calculate_higher_degree(nt[d], d);
+      //   }
+      // }
+
+      // Collect all partial vectors nt into ns
+      for (size_t d = 0; d < this->depth; d++) {
+        for (size_t xi = 0; d < nt_d_xi[d].size(); xi++) {
+          for (uint32_t i = 0; i < nt_d_xi[d][xi].size(); i++) {
+            ns[i] += nt_d_xi[d][xi][i];
+          }
+        }
+      }
+      // Guess cardinality n_new, normalized to the depth
+      n_new = 0.0;
+      for (uint32_t i = 0; i < ns.size(); i++) {
+        if (ns[i] != 0) {
+          ns[i] /= this->depth;
+          n_new += ns[i];
+        }
+      }
+      // Guess phi_new or new Flow Size Distribution
+      for (uint32_t i = 0; i < ns.size(); i++) {
+        dist_new[i] = ns[i] / n_new;
+      }
+      auto stop = std::chrono::high_resolution_clock::now();
+      auto time = duration_cast<std::chrono::milliseconds>(stop - start);
+
+      printf("[EM_FCM - iter %2d] Compute time : %li\n", iter, time.count());
+      printf("[EM_FCM - iter %2d] Intermediate cardianlity : %9.1f\n\n", iter,
+             n_new);
+      iter++;
+    }
+  };
 #endif

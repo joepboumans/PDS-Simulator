@@ -22,7 +22,7 @@ The dataset downloader will now start downloading the pcap file and parser it in
 
 ## Simulator
 The Simulator can load in multiple data structures and pass the dataset through them like a network switch could. This can be used to evaluate and test structures on their performance before starting to implement P4 code. Beware that P4 brings alot of constrictions and your designed data structures might not work on P4.
-The Simulator is build using `cmake` and for the first build use:
+The Simulator is build using `cmake` and for setting up cmake use:
 ```
 $ cmake -H. -B build/
 ```
@@ -30,3 +30,4 @@ Whereafter each build can be ran via:
 ```
 $ cmake --build build/
 ```
+Now the Simulator and tests can be executed in the `build/bin/<name>`. 

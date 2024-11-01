@@ -4,7 +4,7 @@ import os
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Downloads the specific dataset from CAIDA when given a valid login.\nProvide the data set name as passive-YYYY/equinix-XXXX/YYYYMMDD-HHMMSS.UTCC")
+    parser = argparse.ArgumentParser(description="Downloads the specific dataset from CAIDA when given a valid login.\nProvide the data set name as passive-YYYY/equinix-XXXX/YYYYMMDD-HHMMSS.UTC")
     parser.add_argument('-u', '--user', dest="user", help='<user:password> for CAIDA', required=True)
     parser.add_argument('-i', '--input', dest="input",help='Input file with datasets', required=True)
 

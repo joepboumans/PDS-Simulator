@@ -24,7 +24,7 @@ if __name__ == "__main__":
             url = f"https://data.caida.org/datasets/{sp_set[0]}/{sp_set[1]}/{date}-130000.UTC/{sp_set[1]}.dirA.{sp_set[2]}.anon.pcap.gz"
             download_file = f"{file_name}.gz"
 
-            if (os.path.isfile(download_file)):
+            if (os.path.isfile(download_file) or os.path.isfile(file_name)):
                 print(f"File was downloaded: {download_file}")
             else:
                 print(f"Downloading {url}")
@@ -36,16 +36,15 @@ if __name__ == "__main__":
 
 
             #gzip dataset
-            if (os.path.isfile(file_name)):
-                print("PCAP already present, skipping...")
-                continue
-
-            proc = subprocess.Popen(["gzip", download_file, "-d"], stdout=subprocess.PIPE)
-            outs, errs = proc.communicate()
-            print(outs)
-            if errs:
-                print(errs)
-                exit(1)
+            if (not os.path.isfile(file_name)):
+                proc = subprocess.Popen(["gzip", download_file, "-d"], stdout=subprocess.PIPE)
+                outs, errs = proc.communicate()
+                print(outs)
+                if errs:
+                    print(errs)
+                    exit(1)
+            else:
+                print("PCAP already present, skipping gzip...")
 
             if args.download:
                 print("Only downloading files")

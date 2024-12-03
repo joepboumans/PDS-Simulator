@@ -6,8 +6,8 @@ import os
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Downloads the specific dataset from CAIDA when given a valid login.\nProvide the data set name as passive-YYYY/equinix-XXXX/YYYYMMDD-HHMMSS.UTC")
     parser.add_argument('-u', '--user', dest="user", help='<user:password> for CAIDA', required=True)
-    parser.add_argument('-i', '--input', dest="input",help='Input file with datasets', required=True)
-
+    parser.add_argument('-i', '--input', dest="input", help='Input file with datasets', required=True)
+    parser.add_argument('-d', '--download', dest="download", help='Only download the pcap files', action='store_true')
     args = parser.parse_args()
     
     # Read and parse input datasets
@@ -46,24 +46,28 @@ if __name__ == "__main__":
             if errs:
                 print(errs)
                 exit(1)
+
+            if args.download:
+                print("Only downloading files")
+                continue
             
             # Parse into .dat file
-            # print("Parsing %s into 5-tuple..."% file_name)
-            # out =subprocess.run(["tshark", "-r", file_name, "-T", "fields", "-e", "ip.src","-e", "ip.dst","-e", "tcp.srcport","-e", "tcp.dstport","-e", "ip.proto"], capture_output=True, text=True)
-            # file_name.replace(".dirA", "")
-            # file_name.replace(".UTC", "")
-            # file_name.replace(".anon", "")
-            # with open(file_name.replace("pcap","dat"), 'wb') as fout:
-            #     lines = out.stdout.split('\n')
-            #     for l in lines:
-            #         # print(l)
-            #         l = l.split()
-            #         if len(l) < 4:
-            #             continue
-            #         out = [int(num).to_bytes(1, byteorder='big') for e in l[:2] for num in e.split('.')]
-            #         out += [int(num).to_bytes(2, byteorder='big') for num in l[2:4]]
-            #         out += [int(num).to_bytes(1, byteorder='big') for num in l[4]]
-            #         # print(out)
-            #         for o in out:
-            #             fout.write(o)
-            # print("Finished parsing %s"% file_name)
+            print("Parsing %s into 5-tuple..."% file_name)
+            out =subprocess.run(["tshark", "-r", file_name, "-T", "fields", "-e", "ip.src","-e", "ip.dst","-e", "tcp.srcport","-e", "tcp.dstport","-e", "ip.proto"], capture_output=True, text=True)
+            file_name.replace(".dirA", "")
+            file_name.replace(".UTC", "")
+            file_name.replace(".anon", "")
+            with open(file_name.replace("pcap","dat"), 'wb') as fout:
+                lines = out.stdout.split('\n')
+                for l in lines:
+                    # print(l)
+                    l = l.split()
+                    if len(l) < 4:
+                        continue
+                    out = [int(num).to_bytes(1, byteorder='big') for e in l[:2] for num in e.split('.')]
+                    out += [int(num).to_bytes(2, byteorder='big') for num in l[2:4]]
+                    out += [int(num).to_bytes(1, byteorder='big') for num in l[4]]
+                    # print(out)
+                    for o in out:
+                        fout.write(o)
+            print("Finished parsing %s"% file_name)

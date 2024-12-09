@@ -37,6 +37,7 @@ add_subdirectory(lib/simulator)
 add_subdirectory(lib/iblt)
 add_subdirectory(lib/cuckoo-hash)
 add_subdirectory(lib/waterfall-fcm)
+add_subdirectory(lib/qwaterfall)
 include_directories(${CMAKE_SOURCE_DIR})
 
 # Added custom hash, not ideal setup like this TODO: Integrate with design
@@ -51,7 +52,8 @@ target_link_libraries(
          lib-simulator
          lib-iblt
          lib-cuckoo-hash
-         lib-waterfall-fcm)
+         lib-waterfall-fcm
+        lib-qwaterfall)
 target_include_directories(main PUBLIC ${CMAKE_SOURCE_DIR}
                                        ${CMAKE_HOME_DIRECTORY})
 target_compile_options(main PRIVATE -Wall -O3)
@@ -75,7 +77,7 @@ foreach(name ${tests})
                                             xxHash::xxhash)
   target_link_libraries(
     ${basename} PUBLIC lib-count-min lib-fcm-sketch lib-simulator lib-iblt
-                       lib-cuckoo-hash lib-waterfall-fcm)
+                       lib-cuckoo-hash lib-waterfall-fcm lib-qwaterfall)
   target_include_directories(${basename} PUBLIC ${CMAKE_SOURCE_DIR}
                                                 ${CMAKE_HOME_DIRECTORY})
   include(CTest)

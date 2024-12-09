@@ -11,6 +11,7 @@
 
 class dataParser {
 public:
+  std::set<FIVE_TUPLE> unique_tuples;
   uint32_t get_traces(char *filename, TRACE &trace) {
     // Load filename
     sprintf(this->filename, "%s", filename);
@@ -34,7 +35,8 @@ public:
               << std::endl;
 
     trace.resize(sz / sizeof(FIVE_TUPLE));
-    std::cout << "Size trace " << trace.size() << std::endl;
+    std::cout << "Total tuples in trace : " << trace.size() << " tuples"
+              << std::endl;
     // Create 5-tuple and trace
     FIVE_TUPLE tin;
     // Load trace with 5-tuple
@@ -44,7 +46,11 @@ public:
     uint32_t i = 0;
     while (fread(&tin, 1, sizeof(FIVE_TUPLE), this->fin)) {
       trace[i++] = tin;
+      unique_tuples.insert(tin);
     }
+
+    std::cout << "Unique tuples in trace : " << unique_tuples.size()
+              << " tuples" << std::endl;
 
     return 0;
   }

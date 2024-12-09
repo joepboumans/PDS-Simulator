@@ -17,9 +17,9 @@
 class qWaterfall : public PDS {
 private:
   BOBHash32 *hash;
-  vector<vector<uint32_t>> tables;
   uint32_t n_tables;
   uint32_t table_length;
+  vector<vector<uint32_t>> tables;
 
   string trace_name;
   set<FIVE_TUPLE> tuples;
@@ -38,7 +38,7 @@ public:
     }
 
     // Setup logging
-    this->csv_header = "Epoch, Recall, Precision, F1, Insetions, Collisions";
+    this->csv_header = "Epoch,Insertions,Collisions,Recall,Precision,F1";
     this->name = "qWaterfall";
     this->trace_name = trace;
     this->mem_sz = this->n_tables * this->table_length;

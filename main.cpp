@@ -1,27 +1,25 @@
 // #include "count-min.h"
 #include "common.h"
-#include "count-min.cpp"
-#include "cuckoo-hash.hpp"
+/*#include "count-min.cpp"*/
+/*#include "cuckoo-hash.hpp"*/
 #include "data-parser.h"
-#include "fcm-sketch.hpp"
-#include "fcm-sketches.hpp"
+/*#include "fcm-sketch.hpp"*/
+/*#include "fcm-sketches.hpp"*/
 #include "iblt.h"
 #include "qwaterfall.hpp"
 #include "simulator.h"
-#include "src/bloomfilter.h"
-#include "waterfall-fcm.hpp"
+/*#include "src/bloomfilter.h"*/
+/*#include "waterfall-fcm.hpp"*/
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <glob.h>
 #include <iostream>
-#include <iterator>
 #include <limits>
 #include <malloc.h>
 #include <ostream>
 #include <unordered_map>
-#include <vector>
 
 int main() {
   dataParser data_parser;
@@ -61,11 +59,13 @@ int main() {
 
   std::cout << "------" << std::endl;
   std::cout << "Finished parsing data, starting simulations..." << std::endl;
-  std::cout << "------" << std::endl;
 
-  uint32_t sim_length = 60;
+  uint32_t sim_length = 1;
   uint32_t iter = 1;
   for (const auto &[name_set, trace] : data_traces) {
+    std::cout << "------" << std::endl;
+    std::cout << "Starting " << name_set << "..." << std::endl;
+    std::cout << "------" << std::endl;
     vector<PDS *> stages;
     uint32_t hh_threshold = trace.size() * 0.0005 / sim_length;
     qWaterfall qwaterfall(4, std::numeric_limits<uint16_t>::max(), name_set, 0,

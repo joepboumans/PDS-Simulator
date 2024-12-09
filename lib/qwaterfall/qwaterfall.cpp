@@ -14,10 +14,14 @@ uint32_t qWaterfall::hashing(FIVE_TUPLE key, uint32_t k) {
 }
 
 uint32_t qWaterfall::rehashing(uint32_t hashed_val, uint32_t k) {
-  char x = hashed_val >> 16;
-  const char in_val[2] = {(const char)x, (const char)hashed_val};
-
-  return hash[k].run(in_val, sizeof(hashed_val)) %
+  uint8_t in_val[4];
+  memcpy(in_val, &hashed_val, sizeof(in_val));
+  std::cout << "Hashed val " << hashed_val << " ";
+  for (auto &x : in_val) {
+    std::cout << int(x) << " ";
+  }
+  std::cout << std::endl;
+  return hash[k].run((const char *)in_val, sizeof(in_val)) %
          std::numeric_limits<uint32_t>::max();
 }
 
@@ -29,6 +33,7 @@ uint32_t qWaterfall::insert(FIVE_TUPLE tuple) {
     // data plane
     this->tuples.insert(tuple);
     this->insertions++;
+    this->collisions++;
 
     // Hash the inital tuple for starting insertion
     uint32_t hash_val = this->hashing(tuple, 0);
@@ -58,6 +63,7 @@ uint32_t qWaterfall::insert(FIVE_TUPLE tuple) {
         this->tables[0][idx] = val;
         prev_hash_val = idx << 16 | tmp_val;
       }
+      this->collisions++;
     }
   }
   return 0;
@@ -89,6 +95,7 @@ uint32_t qWaterfall::lookup(FIVE_TUPLE tuple) {
 
 void qWaterfall::reset() {
   this->insertions = 0;
+  this->collisions = 0;
   this->true_data.clear();
   this->tuples.clear();
 
@@ -101,7 +108,7 @@ void qWaterfall::reset() {
 
 void qWaterfall::print_sketch() {
   char msg[100];
-  sprintf(msg, "Printing Cuckoo Hash of %ix%i with mem sz %i", this->n_tables,
+  sprintf(msg, "Printing qWaterfall of %ix%i with mem sz %i", this->n_tables,
           this->table_length, this->mem_sz);
   std::cout << msg << std::endl;
   for (size_t l = 0; l < this->table_length; l++) {
@@ -114,11 +121,10 @@ void qWaterfall::print_sketch() {
 }
 
 void qWaterfall::analyze(int epoch) {
-
   double n = this->true_data.size();
 
+  // Find True/False positives
   int true_pos = 0, false_pos = 0, true_neg = 0, false_neg = 0;
-
   for (const auto &[tuple, count] : this->true_data) {
     if (auto search = this->tuples.find(tuple); search != this->tuples.end()) {
       true_pos++;
@@ -142,14 +148,18 @@ void qWaterfall::analyze(int epoch) {
 
   std::cout << std::endl;
   char msg[100];
-  sprintf(msg, "[CHT] Insertions:%i\tRecall:%.3f\tPrecision:%.3f\tF1:%.3f\n",
-          this->insertions, this->recall, this->precision, this->f1);
+  sprintf(
+      msg,
+      "[qWaterfall] "
+      "Insertions:%i\tCollisions:%i\tRecall:%.3f\tPrecision:%.3f\tF1:%.3f\n",
+      this->insertions, this->collisions, this->recall, this->precision,
+      this->f1);
   std::cout << msg;
 
   // Save data into csv
   char csv[300];
-  sprintf(csv, "%i,%i,%.3f,%.3f,%.3f", epoch, this->insertions, this->recall,
-          this->precision, this->f1);
+  sprintf(csv, "%i,%i,%i,%.3f,%.3f,%.3f", epoch, this->insertions,
+          this->collisions, this->recall, this->precision, this->f1);
   this->fcsv << csv << std::endl;
 }
 

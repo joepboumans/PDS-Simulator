@@ -5,24 +5,28 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <limits>
 #include <sys/types.h>
 
 uint32_t qWaterfall::hashing(FIVE_TUPLE key, uint32_t k) {
   return hash[k].run((const char *)key.num_array, sizeof(FIVE_TUPLE)) %
-         this->table_length;
+         std::numeric_limits<uint32_t>::max();
 }
 
 uint32_t qWaterfall::rehashing(uint32_t hashed_val, uint32_t k) {
   char x = hashed_val >> 16;
   const char in_val[2] = {(const char)x, (const char)hashed_val};
 
-  return hash[k].run(in_val, sizeof(hashed_val)) % this->table_length;
+  return hash[k].run(in_val, sizeof(hashed_val)) %
+         std::numeric_limits<uint32_t>::max();
 }
 
 uint32_t qWaterfall::insert(FIVE_TUPLE tuple) {
+  std::cout << "In insert" << std::endl;
   this->true_data[tuple]++;
   // If it is present CHT do not insert
   if (!this->lookup(tuple)) {
+    std::cout << "Tuple not found : " << tuple << std::endl;
     // Not seen before, or out of table, considerd as new unique and send to
     // data plane
     this->tuples.insert(tuple);
@@ -62,15 +66,19 @@ uint32_t qWaterfall::insert(FIVE_TUPLE tuple) {
 }
 
 uint32_t qWaterfall::lookup(FIVE_TUPLE tuple) {
+  std::cout << "Looking up tuple " << tuple << std::endl;
   // Hash the inital tuple for starting insertion
   uint32_t hash_val = this->hashing(tuple, 0);
   uint32_t prev_hash_val = 0;
   uint16_t idx = hash_val >> 16;
   uint16_t val = hash_val;
+  std::cout << "idx " << idx << " val " << val << " hash_val " << hash_val
+            << std::endl;
   // Insert into the first and exit if there was nothing stored
   if (this->tables[0][idx] == val) {
     return 1;
   } else {
+    std::cout << "Pre for loop" << std::endl;
     for (size_t i = 1; i < this->n_tables; i++) {
       prev_hash_val = idx << 16 | val;
       hash_val = this->rehashing(prev_hash_val, i);

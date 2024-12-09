@@ -63,7 +63,7 @@ if __name__ == "__main__":
             file_name.replace(".anon", "")
             with open(file_name.replace("pcap","dat"), 'wb') as fout:
                 start = time.perf_counter_ns()
-                for packet in PcapReader("equinix-chicago.20160121-130000.UTC.pcap"):
+                for packet in PcapReader(file_name):
                     try:
                         if not UDP in packet and not TCP in packet or IPv6 in packet:
                             continue

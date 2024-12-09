@@ -28,7 +28,14 @@ public:
   qWaterfall(uint32_t n_tables, uint32_t table_length, string trace,
              uint32_t n_stage, uint32_t n_struct)
       : PDS(trace, n_stage, n_struct), n_tables(n_tables),
-        table_length(table_length) {
+        table_length(table_length),
+        tables(n_tables, vector<uint32_t>(table_length)) {
+
+    // Setup Hashing
+    this->hash = new BOBHash32[this->n_tables];
+    for (size_t i = 0; i < this->n_tables; i++) {
+      this->hash[i].initialize(750 + n_struct * this->n_tables + i);
+    }
 
     // Setup logging
     this->csv_header = "Epoch, Recall, Precision, F1, Insetions, Collisions";

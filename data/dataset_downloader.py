@@ -1,9 +1,13 @@
 import argparse
 import subprocess
 import os
+import time
 from sys import byteorder
 from scapy.all import *
 
+def get_field_bytes(pkt, name):
+    fld, val = pkt.getfield_and_val(name)
+    return fld.i2m(pkt, val)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Downloads the specific dataset from CAIDA when given a valid login.\nProvide the data set name as passive-YYYY/equinix-XXXX/YYYYMMDD-HHMMSS.UTC")
@@ -58,14 +62,21 @@ if __name__ == "__main__":
             file_name.replace(".UTC", "")
             file_name.replace(".anon", "")
             with open(file_name.replace("pcap","dat"), 'wb') as fout:
+                start = time.perf_counter_ns()
                 for packet in PcapReader("equinix-chicago.20160121-130000.UTC.pcap"):
-                    packet.show()
-                    print (f"{packet.src, packet.dst, packet.sport, packet.dport, packet.proto}")
-                    out = [int(n).to_bytes(1, byteorder='big') for n in packet.src.split(".")]
-                    out += [int(n).to_bytes(1, byteorder='big') for n in packet.dst.split(".")]
-                    out += [packet.sport.to_bytes(2, byteorder='big')]
-                    out += [packet.dport.to_bytes(2, byteorder='big')]
-                    out += [packet.proto.to_bytes(1, byteorder='big')]
-                    for o in out:
-                        fout.write(o)
+                    try:
+                        if not UDP in packet and not TCP in packet or IPv6 in packet:
+                            continue
+
+                        out = get_field_bytes(packet, "src")
+                        out += get_field_bytes(packet, "dst")
+                        out += packet.sport.to_bytes(2, byteorder='big')
+                        out += packet.dport.to_bytes(2, byteorder='big')
+                        out += packet.proto.to_bytes(1, byteorder='big')
+                        fout.write(out)
+                    except:
+                        packet.show()
+                        exit(1)
+                stop = time.perf_counter_ns()
+                print(f"Parsed data set in {stop - start} ns")
             print("Finished parsing %s"% file_name)

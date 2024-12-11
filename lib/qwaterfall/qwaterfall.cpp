@@ -16,11 +16,6 @@ uint32_t qWaterfall::hashing(FIVE_TUPLE key, uint32_t k) {
 uint32_t qWaterfall::rehashing(uint32_t hashed_val, uint32_t k) {
   uint8_t in_val[4];
   memcpy(in_val, &hashed_val, sizeof(in_val));
-  std::cout << "Hashed val " << hashed_val << " ";
-  for (auto &x : in_val) {
-    std::cout << int(x) << " ";
-  }
-  std::cout << std::endl;
   return hash[k].run((const char *)in_val, sizeof(in_val)) %
          std::numeric_limits<uint32_t>::max();
 }
@@ -151,7 +146,7 @@ void qWaterfall::analyze(int epoch) {
   sprintf(
       msg,
       "[qWaterfall] "
-      "Insertions:%i\tCollisions:%i\tRecall:%.3f\tPrecision:%.3f\tF1:%.3f\n",
+      "Insertions:%i\tCollisions:%i\tRecall:%.5f\tPrecision:%.5f\tF1:%.5f\n",
       this->insertions, this->collisions, this->recall, this->precision,
       this->f1);
   std::cout << msg;

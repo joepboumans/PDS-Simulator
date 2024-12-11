@@ -12,12 +12,17 @@
 #include <sys/types.h>
 #include <vector>
 
-uint32_t FCM_Sketch::hashing(FIVE_TUPLE key, uint32_t k) {
-  return hash.run((const char *)key.num_array, sizeof(FIVE_TUPLE)) %
+template class FCM_Sketch<FIVE_TUPLE, fiveTupleHash>;
+template class FCM_Sketch<FLOW_TUPLE, flowTupleHash>;
+
+template <typename TUPLE, typename HASH>
+uint32_t FCM_Sketch<TUPLE, HASH>::hashing(TUPLE key, uint32_t k) {
+  return hash.run((const char *)key.num_array, sizeof(TUPLE)) %
          this->stages_sz[k];
 }
 
-uint32_t FCM_Sketch::insert(FIVE_TUPLE tuple) {
+template <typename TUPLE, typename HASH>
+uint32_t FCM_Sketch<TUPLE, HASH>::insert(TUPLE tuple) {
   this->true_data[tuple]++;
 
   uint32_t hash_idx = this->hashing(tuple, 0);
@@ -42,7 +47,8 @@ uint32_t FCM_Sketch::insert(FIVE_TUPLE tuple) {
   return 1;
 }
 
-uint32_t FCM_Sketch::insert(FIVE_TUPLE tuple, uint32_t idx) {
+template <typename TUPLE, typename HASH>
+uint32_t FCM_Sketch<TUPLE, HASH>::insert(TUPLE tuple, uint32_t idx) {
   this->true_data[tuple]++;
 
   uint32_t hash_idx = idx;
@@ -71,7 +77,9 @@ uint32_t FCM_Sketch::insert(FIVE_TUPLE tuple, uint32_t idx) {
   }
   return 1;
 }
-uint32_t FCM_Sketch::lookup(FIVE_TUPLE tuple) {
+
+template <typename TUPLE, typename HASH>
+uint32_t FCM_Sketch<TUPLE, HASH>::lookup(TUPLE tuple) {
   uint32_t hash_idx = this->hashing(tuple, 0);
   uint32_t c = 0;
   for (size_t s = 0; s < n_stages; s++) {
@@ -91,7 +99,8 @@ uint32_t FCM_Sketch::lookup(FIVE_TUPLE tuple) {
   return -1;
 }
 
-void FCM_Sketch::print_sketch() {
+template <typename TUPLE, typename HASH>
+void FCM_Sketch<TUPLE, HASH>::print_sketch() {
   std::cout << "[FCM] ------------------" << std::endl;
   for (size_t s = 0; s < n_stages; s++) {
     std::cout << "[FCM] Stage " << s << " with " << this->stages_sz[s]
@@ -105,7 +114,7 @@ void FCM_Sketch::print_sketch() {
   std::cout << "[FCM] ------------------" << std::endl;
 }
 
-void FCM_Sketch::reset() {
+template <typename TUPLE, typename HASH> void FCM_Sketch<TUPLE, HASH>::reset() {
   this->true_data.clear();
   this->HH_candidates.clear();
 
@@ -117,7 +126,8 @@ void FCM_Sketch::reset() {
   }
 }
 
-void FCM_Sketch::analyze(int epoch) {
+template <typename TUPLE, typename HASH>
+void FCM_Sketch<TUPLE, HASH>::analyze(int epoch) {
   // Use lookup to find tuples
   this->average_absolute_error = 0;
   this->average_relative_error = 0;
@@ -235,7 +245,8 @@ void FCM_Sketch::analyze(int epoch) {
   this->fcsv << csv << std::endl;
 }
 
-vector<double> FCM_Sketch::get_distribution() {
+template <typename TUPLE, typename HASH>
+vector<double> FCM_Sketch<TUPLE, HASH>::get_distribution() {
   uint32_t max_counter_value = 0;
   uint32_t max_degree = 0;
   // Summarize sketch and find collisions

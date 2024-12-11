@@ -9,7 +9,8 @@
 #include <limits>
 #include <sys/types.h>
 
-class CountMin : public PDS {
+template <typename TUPLE, typename HASH>
+class CountMin : public PDS<TUPLE, HASH> {
 public:
   vector<vector<Counter>> counters;
   BOBHash32 *hash;
@@ -17,11 +18,11 @@ public:
   string trace_name;
 
   uint32_t hh_threshold;
-  std::unordered_set<FIVE_TUPLE, fiveTupleHash> HH_candidates;
+  std::unordered_set<TUPLE, HASH> HH_candidates;
 
   CountMin(uint32_t rows, uint32_t columns, uint32_t hh_threshold, string trace,
            uint32_t n_stage, uint32_t n_struct)
-      : PDS{trace, n_stage, n_struct},
+      : PDS<TUPLE, HASH>{trace, n_stage, n_struct},
         counters(rows,
                  vector<Counter>(
                      columns, Counter(std::numeric_limits<uint32_t>::max()))) {
@@ -48,9 +49,9 @@ public:
     }
   }
 
-  uint32_t insert(FIVE_TUPLE tuple);
-  uint32_t lookup(FIVE_TUPLE tuple);
-  uint32_t hashing(FIVE_TUPLE tuple, uint32_t k);
+  uint32_t insert(TUPLE tuple);
+  uint32_t lookup(TUPLE tuple);
+  uint32_t hashing(TUPLE tuple, uint32_t k);
   void reset();
 
   void analyze(int epoch);

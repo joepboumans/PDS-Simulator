@@ -9,12 +9,14 @@
 #include <cstdio>
 #include <cstdlib>
 #include <limits>
-#include <map>
 #include <math.h>
-#include <set>
 #include <sys/types.h>
 
-uint32_t CountMin::insert(FIVE_TUPLE tuple) {
+template class CountMin<FIVE_TUPLE, fiveTupleHash>;
+template class CountMin<FLOW_TUPLE, flowTupleHash>;
+
+template <typename TUPLE, typename HASH>
+uint32_t CountMin<TUPLE, HASH>::insert(TUPLE tuple) {
   this->true_data[tuple]++;
   bool hh_overflow = true;
 
@@ -31,12 +33,14 @@ uint32_t CountMin::insert(FIVE_TUPLE tuple) {
   return 1;
 }
 
-uint32_t CountMin::hashing(FIVE_TUPLE key, uint32_t k) {
-  return this->hash[k].run((const char *)key.num_array, sizeof(FIVE_TUPLE)) %
+template <typename TUPLE, typename HASH>
+uint32_t CountMin<TUPLE, HASH>::hashing(TUPLE key, uint32_t k) {
+  return this->hash[k].run((const char *)key.num_array, sizeof(TUPLE)) %
          this->columns;
 }
 
-uint32_t CountMin::lookup(FIVE_TUPLE tuple) {
+template <typename TUPLE, typename HASH>
+uint32_t CountMin<TUPLE, HASH>::lookup(TUPLE tuple) {
   uint32_t min = std::numeric_limits<uint32_t>::max();
   for (size_t i = 0; i < this->n_hash; i++) {
     int hash_idx = this->hashing(tuple, i);
@@ -45,7 +49,8 @@ uint32_t CountMin::lookup(FIVE_TUPLE tuple) {
   return min;
 }
 
-void CountMin::analyze(int epoch) {
+template <typename TUPLE, typename HASH>
+void CountMin<TUPLE, HASH>::analyze(int epoch) {
   // Use lookup to find tuples
   this->average_absolute_error = 0;
   this->average_relative_error = 0;
@@ -152,7 +157,7 @@ void CountMin::analyze(int epoch) {
   this->fcsv << csv << std::endl;
 }
 
-void CountMin::reset() {
+template <typename TUPLE, typename HASH> void CountMin<TUPLE, HASH>::reset() {
   this->true_data.clear();
   for (auto &r : this->counters) {
     for (auto &c : r) {
@@ -162,7 +167,8 @@ void CountMin::reset() {
   }
 }
 
-void CountMin::print_sketch() {
+template <typename TUPLE, typename HASH>
+void CountMin<TUPLE, HASH>::print_sketch() {
   char msg[100];
   sprintf(msg, "Printing CM sketch of %ix%i with mem sz %i", this->n_hash,
           this->columns, this->mem_sz);

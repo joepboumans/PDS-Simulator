@@ -2,13 +2,19 @@
 #define _IBLT_CPP
 
 #include "iblt.h"
+#include "common.h"
 #include <cstdint>
 
-uint32_t IBLT::hashing(FIVE_TUPLE key, uint32_t k) {
+template class IBLT<FIVE_TUPLE, fiveTupleHash>;
+template class IBLT<FLOW_TUPLE, flowTupleHash>;
+
+template <typename TUPLE, typename HASH>
+uint32_t IBLT<TUPLE, HASH>::hashing(TUPLE key, uint32_t k) {
   return this->hash[k].run((const char *)key.num_array, 4) % this->length;
 }
 
-uint32_t IBLT::insert(FIVE_TUPLE tuple) {
+template <typename TUPLE, typename HASH>
+uint32_t IBLT<TUPLE, HASH>::insert(TUPLE tuple) {
   // Record true data
   this->true_data[tuple]++;
 
@@ -21,10 +27,27 @@ uint32_t IBLT::insert(FIVE_TUPLE tuple) {
   return 0;
 }
 
-uint32_t IBLT::lookup(FIVE_TUPLE tuple) { return 1; }
+template <typename TUPLE, typename HASH>
+uint32_t IBLT<TUPLE, HASH>::lookup(TUPLE tuple) {
+  return 1;
+}
 
-void IBLT::reset() { return; }
-void IBLT::analyze(int epoch) { return; }
-void IBLT::store_data() { return; }
-void IBLT::print_sketch() { return; }
+template <typename TUPLE, typename HASH> void IBLT<TUPLE, HASH>::reset() {
+  return;
+}
+
+template <typename TUPLE, typename HASH>
+void IBLT<TUPLE, HASH>::analyze(int epoch) {
+  return;
+}
+
+template <typename TUPLE, typename HASH> void IBLT<TUPLE, HASH>::store_data() {
+  return;
+}
+
+template <typename TUPLE, typename HASH>
+void IBLT<TUPLE, HASH>::print_sketch() {
+  return;
+}
+
 #endif // !_IBLT_CPP

@@ -7,23 +7,23 @@
 #include <cstdint>
 #include <sys/types.h>
 
-struct IBLT_entry {
+template <typename TUPLE> struct IBLT_entry {
   uint32_t count;
-  FIVE_TUPLE tupleXOR;
+  TUPLE tupleXOR;
   uint32_t hashXOR;
 };
 
-class IBLT : public PDS {
+template <typename TUPLE, typename HASH> class IBLT : public PDS<TUPLE, HASH> {
 public:
   BOBHash32 *hash;
   uint32_t n_hash;
   uint32_t length;
   string trace_name;
-  vector<IBLT_entry> table;
+  vector<IBLT_entry<TUPLE>> table;
 
   IBLT(uint32_t length, string trace, uint32_t k, uint32_t n_stage,
        uint32_t n_struct)
-      : PDS{trace, n_stage, n_struct}, table(length) {
+      : PDS<TUPLE, HASH>{trace, n_stage, n_struct}, table(length) {
     // Assign defaults
     this->n_hash = k;
     this->length = length;
@@ -44,9 +44,9 @@ public:
     }
   }
 
-  uint32_t insert(FIVE_TUPLE tuple);
-  uint32_t lookup(FIVE_TUPLE tuple);
-  uint32_t hashing(FIVE_TUPLE tuple, uint32_t k);
+  uint32_t insert(TUPLE tuple);
+  uint32_t lookup(TUPLE tuple);
+  uint32_t hashing(TUPLE tuple, uint32_t k);
   void reset();
 
   void analyze(int epoch);

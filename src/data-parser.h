@@ -52,6 +52,7 @@ public:
     std::cout << "Unique tuples in trace : " << unique_tuples.size()
               << " tuples" << std::endl;
 
+    unique_tuples.clear();
     return 0;
   }
 

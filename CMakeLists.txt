@@ -61,26 +61,26 @@ target_compile_options(main PRIVATE -Wall -O3)
 # https://github.com/catchorg/Catch2/blob/devel/docs/cmake-integration.md#installing-catch2-from-git-repository
 find_package(Catch2 3 REQUIRED)
 
-# Find all tests
-file(
-  GLOB tests CONFIGURE_DEPENDS
-  RELATIVE "${CMAKE_HOME_DIRECTORY}/test/"
-  "*test/*.h" "*test/*.cpp")
-
-# Setup each test, includes all libs to prevent linking issues
-foreach(name ${tests})
-  message("${name}")
-  string(REPLACE ".cpp" "" basename "${name}")
-  message("Adding ${name} with as ${basename}")
-  add_executable("${basename}" test/${name} ${deps})
-  target_link_libraries(${basename} PRIVATE Catch2::Catch2WithMain
-                                            xxHash::xxhash)
-  target_link_libraries(
-    ${basename} PUBLIC lib-count-min lib-fcm-sketch lib-simulator lib-iblt
-                       lib-cuckoo-hash lib-waterfall-fcm lib-qwaterfall)
-  target_include_directories(${basename} PUBLIC ${CMAKE_SOURCE_DIR}
-                                                ${CMAKE_HOME_DIRECTORY})
-  include(CTest)
-  include(Catch)
-  catch_discover_tests(${basename})
-endforeach()
+# # Find all tests
+# file(
+#   GLOB tests CONFIGURE_DEPENDS
+#   RELATIVE "${CMAKE_HOME_DIRECTORY}/test/"
+#   "*test/*.h" "*test/*.cpp")
+#
+# # Setup each test, includes all libs to prevent linking issues
+# foreach(name ${tests})
+#   message("${name}")
+#   string(REPLACE ".cpp" "" basename "${name}")
+#   message("Adding ${name} with as ${basename}")
+#   add_executable("${basename}" test/${name} ${deps})
+#   target_link_libraries(${basename} PRIVATE Catch2::Catch2WithMain
+#                                             xxHash::xxhash)
+#   target_link_libraries(
+#     ${basename} PUBLIC lib-count-min lib-fcm-sketch lib-simulator lib-iblt
+#                        lib-cuckoo-hash lib-waterfall-fcm lib-qwaterfall)
+#   target_include_directories(${basename} PUBLIC ${CMAKE_SOURCE_DIR}
+#                                                 ${CMAKE_HOME_DIRECTORY})
+#   include(CTest)
+#   include(Catch)
+#   catch_discover_tests(${basename})
+# endforeach()

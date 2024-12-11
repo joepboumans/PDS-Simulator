@@ -14,23 +14,25 @@
 #include <ostream>
 #include <vector>
 
-class WaterfallFCM : public PDS {
+template <typename TUPLE, typename HASH>
+class WaterfallFCM : public PDS<TUPLE, HASH> {
 private:
-  FCM_Sketch fcm;
-  CuckooHash cuckoo;
+  FCM_Sketch<TUPLE, HASH> fcm;
+  CuckooHash<TUPLE, HASH> cuckoo;
   uint32_t n_stages;
   uint32_t em_iters;
 
   uint32_t hh_threshold;
-  std::unordered_set<FIVE_TUPLE, fiveTupleHash> HH_candidates;
+  std::unordered_set<TUPLE, HASH> HH_candidates;
 
 public:
   WaterfallFCM(uint32_t n_roots, uint32_t n_stages, uint32_t k,
                uint32_t hh_threshold, uint32_t em_iters, uint32_t n_tables,
                uint32_t length, string trace, uint32_t n_stage,
                uint32_t n_struct)
-      : PDS(trace, n_stage, n_struct), fcm(n_roots, n_stages, k, hh_threshold,
-                                           em_iters, trace, n_stage, n_struct),
+      : PDS<TUPLE, HASH>(trace, n_stage, n_struct),
+        fcm(n_roots, n_stages, k, hh_threshold, em_iters, trace, n_stage,
+            n_struct),
         cuckoo(n_tables, length, trace, n_struct, n_stage), n_stages(n_stages),
         em_iters(em_iters), hh_threshold(hh_threshold) {
 
@@ -48,9 +50,9 @@ public:
     this->setupLogging();
   }
 
-  uint32_t insert(FIVE_TUPLE tuple);
-  uint32_t hashing(FIVE_TUPLE tuple, uint32_t k);
-  uint32_t lookup(FIVE_TUPLE tuple);
+  uint32_t insert(TUPLE tuple);
+  uint32_t hashing(TUPLE tuple, uint32_t k);
+  uint32_t lookup(TUPLE tuple);
   void reset();
 
   void analyze(int epoch);
@@ -64,7 +66,7 @@ public:
 
   void store_data();
   void print_sketch();
-  vector<double> get_distribution(set<FIVE_TUPLE> tuples);
+  vector<double> get_distribution(set<TUPLE> tuples);
   void set_estimate_fsd(bool onoff);
 };
 

@@ -12,12 +12,18 @@
 #include <sys/types.h>
 #include <vector>
 
-uint32_t WaterfallFCM::insert(FIVE_TUPLE tuple) {
+template class WaterfallFCM<FIVE_TUPLE, fiveTupleHash>;
+template class WaterfallFCM<FLOW_TUPLE, flowTupleHash>;
+
+template <typename TUPLE, typename HASH>
+uint32_t WaterfallFCM<TUPLE, HASH>::insert(TUPLE tuple) {
   this->cuckoo.insert(tuple);
   this->fcm.insert(tuple);
   return 0;
 }
-uint32_t WaterfallFCM::lookup(FIVE_TUPLE tuple) {
+
+template <typename TUPLE, typename HASH>
+uint32_t WaterfallFCM<TUPLE, HASH>::lookup(TUPLE tuple) {
   uint32_t member = this->cuckoo.lookup(tuple);
   uint32_t count = this->fcm.lookup(tuple);
   if (member) {
@@ -26,21 +32,25 @@ uint32_t WaterfallFCM::lookup(FIVE_TUPLE tuple) {
   return 0;
 }
 
-void WaterfallFCM::reset() {
+template <typename TUPLE, typename HASH>
+void WaterfallFCM<TUPLE, HASH>::reset() {
   this->cuckoo.reset();
   this->fcm.reset();
 }
 
-void WaterfallFCM::print_sketch() {
+template <typename TUPLE, typename HASH>
+void WaterfallFCM<TUPLE, HASH>::print_sketch() {
   this->cuckoo.print_sketch();
   this->fcm.print_sketch();
 }
 
-void WaterfallFCM::set_estimate_fsd(bool onoff) {
+template <typename TUPLE, typename HASH>
+void WaterfallFCM<TUPLE, HASH>::set_estimate_fsd(bool onoff) {
   this->fcm.estimate_fsd = onoff;
 }
 
-void WaterfallFCM::analyze(int epoch) {
+template <typename TUPLE, typename HASH>
+void WaterfallFCM<TUPLE, HASH>::analyze(int epoch) {
   this->cuckoo.analyze(epoch);
   this->fcm.analyze(epoch);
   uint32_t cuckoo_card = this->cuckoo.tuples.size();
@@ -116,7 +126,8 @@ void WaterfallFCM::analyze(int epoch) {
   return;
 }
 
-vector<double> WaterfallFCM::get_distribution(set<FIVE_TUPLE> tuples) {
+template <typename TUPLE, typename HASH>
+vector<double> WaterfallFCM<TUPLE, HASH>::get_distribution(set<TUPLE> tuples) {
   // Setup initial degrees for each input counter (stage 0)
   vector<uint32_t> init_degree(this->fcm.stages_sz[0]);
   uint32_t cht_max_degree = 0;

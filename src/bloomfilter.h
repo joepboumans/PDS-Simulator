@@ -29,7 +29,7 @@ public:
   uint32_t length;
   uint32_t n;
   vector<bool> array;
-  unordered_set<FIVE_TUPLE, tupleHash> tuples;
+  unordered_set<FIVE_TUPLE, fiveTupleHash> tuples;
   uint32_t insertions = 0;
 
   double f1 = 0.0;

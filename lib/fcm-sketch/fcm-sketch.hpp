@@ -24,7 +24,7 @@ public:
   BOBHash32 hash;
 
   uint32_t hh_threshold;
-  std::unordered_set<FIVE_TUPLE, tupleHash> HH_candidates;
+  std::unordered_set<FIVE_TUPLE, fiveTupleHash> HH_candidates;
   FCM_Sketch(uint32_t n_roots, uint32_t n_stages, uint32_t k,
              uint32_t hh_threshold, uint32_t em_iters, string trace,
              uint32_t n_stage, uint32_t n_struct)

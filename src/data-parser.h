@@ -9,10 +9,10 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-class dataParser {
+template <typename TUPLE, typename T> class dataParser {
 public:
-  std::set<FIVE_TUPLE> unique_tuples;
-  uint32_t get_traces(char *filename, TRACE &trace) {
+  std::set<TUPLE> unique_tuples;
+  uint32_t get_traces(char *filename, T &trace) {
     // Load filename
     sprintf(this->filename, "%s", filename);
 
@@ -37,7 +37,7 @@ public:
     trace.resize(sz / sizeof(FIVE_TUPLE));
     std::cout << "Total tuples in trace : " << trace.size() << " tuples"
               << std::endl;
-    // Create 5-tuple and trace
+    // Create 5-tuple and trace, dataset is always a 5 tuple set
     FIVE_TUPLE tin;
     // Load trace with 5-tuple
     if (this->fin == NULL) {
@@ -45,7 +45,7 @@ public:
     }
     uint32_t i = 0;
     while (fread(&tin, 1, sizeof(FIVE_TUPLE), this->fin)) {
-      trace[i++] = tin;
+      trace[i++] = TUPLE(tin);
       unique_tuples.insert(tin);
     }
 

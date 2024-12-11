@@ -30,7 +30,7 @@ uint32_t CuckooHash<TUPLE, HASH>::insert(TUPLE tuple) {
       // Repeat until insertion into empty slot or until we run out of tables
       if (this->tables[i][idx] == empty) {
         this->tables[i][idx] = prev_tuple;
-        return 0;
+        return 1;
       } else {
         TUPLE tmp_tuple = this->tables[i][idx];
         this->tables[i][idx] = prev_tuple;
@@ -38,7 +38,7 @@ uint32_t CuckooHash<TUPLE, HASH>::insert(TUPLE tuple) {
       }
     }
   }
-  return 0;
+  return 1;
 }
 
 template <typename TUPLE, typename HASH>
@@ -85,10 +85,16 @@ void CuckooHash<TUPLE, HASH>::analyze(int epoch) {
   }
   this->f1 = 2 * ((recall * precision) / (precision + recall));
 
+  // Load factor
+  this->load_factor = double(this->insertions) / this->n_unique_tuples;
+
   std::cout << std::endl;
-  char msg[100];
-  sprintf(msg, "[CHT] Insertions:%i\tRecall:%.3f\tPrecision:%.3f\tF1:%.3f\n",
-          this->insertions, this->recall, this->precision, this->f1);
+  char msg[200];
+  sprintf(msg,
+          "[CHT] Insertions:%i\tLoad "
+          "factor:%.5f\tRecall:%.3f\tPrecision:%.3f\tF1:%.3f\n",
+          this->insertions, this->load_factor, this->recall, this->precision,
+          this->f1);
   std::cout << msg;
 
   // Save data into csv

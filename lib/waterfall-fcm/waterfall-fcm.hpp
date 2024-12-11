@@ -21,6 +21,7 @@ private:
   CuckooHash<TUPLE, HASH> cuckoo;
   uint32_t n_stages;
   uint32_t em_iters;
+  size_t n_unique_tuples;
 
   uint32_t hh_threshold;
   std::unordered_set<TUPLE, HASH> HH_candidates;
@@ -28,13 +29,13 @@ private:
 public:
   WaterfallFCM(uint32_t n_roots, uint32_t n_stages, uint32_t k,
                uint32_t hh_threshold, uint32_t em_iters, uint32_t n_tables,
-               uint32_t length, string trace, uint32_t n_stage,
-               uint32_t n_struct)
+               uint32_t length, size_t n_unique_tuples, string trace,
+               uint32_t n_stage, uint32_t n_struct)
       : PDS<TUPLE, HASH>(trace, n_stage, n_struct),
         fcm(n_roots, n_stages, k, hh_threshold, em_iters, trace, n_stage,
             n_struct),
-        cuckoo(n_tables, length, trace, n_struct, n_stage), n_stages(n_stages),
-        em_iters(em_iters), hh_threshold(hh_threshold) {
+        cuckoo(n_tables, length, n_unique_tuples, trace, n_struct, n_stage),
+        n_stages(n_stages), em_iters(em_iters), hh_threshold(hh_threshold) {
 
     this->fcm.estimate_fsd = false;
     // Setup logging

@@ -45,11 +45,10 @@ uint32_t qWaterfall<TUPLE, HASH>::insert(TUPLE tuple) {
     // Insert into the first and exit if there was nothing stored
     if (this->tables[0][idx] == 0) {
       this->tables[0][idx] = val;
-      return 0;
+      return 1;
     } else {
-      uint32_t tmp_val = this->tables[0][idx];
+      prev_hash_val = idx << 16 | this->tables[0][idx];
       this->tables[0][idx] = val;
-      prev_hash_val = idx << 16 | tmp_val;
     }
 
     for (size_t i = 1; i < this->n_tables; i++) {
@@ -59,23 +58,22 @@ uint32_t qWaterfall<TUPLE, HASH>::insert(TUPLE tuple) {
       // Repeat until insertion into empty slot or until we run out of tables
       if (this->tables[i][idx] == 0) {
         this->tables[i][idx] = val;
-        return 0;
+        return 1;
       } else {
-        uint32_t tmp_val = this->tables[0][idx];
-        this->tables[0][idx] = val;
-        prev_hash_val = idx << 16 | tmp_val;
+        prev_hash_val = idx << 16 | this->tables[i][idx];
+        this->tables[i][idx] = val;
       }
       this->collisions++;
     }
   }
-  return 0;
+  return 1;
 }
 
 template <typename TUPLE, typename HASH>
 uint32_t qWaterfall<TUPLE, HASH>::lookup(TUPLE tuple) {
   // Hash the inital tuple for starting insertion
   uint32_t hash_val = this->hashing(tuple, 0);
-  uint32_t prev_hash_val = 0;
+  uint32_t prev_hash_val = hash_val;
   uint16_t idx = hash_val >> 16;
   uint16_t val = hash_val;
   // Insert into the first and exit if there was nothing stored
@@ -83,13 +81,13 @@ uint32_t qWaterfall<TUPLE, HASH>::lookup(TUPLE tuple) {
     return 1;
   } else {
     for (size_t i = 1; i < this->n_tables; i++) {
-      prev_hash_val = idx << 16 | val;
       hash_val = this->rehashing(prev_hash_val, i);
       idx = hash_val >> 16;
       val = hash_val;
       if (this->tables[i][idx] == val) {
         return 1;
       }
+      prev_hash_val = hash_val;
     }
   }
 
@@ -151,14 +149,18 @@ void qWaterfall<TUPLE, HASH>::analyze(int epoch) {
   }
   this->f1 = 2 * ((recall * precision) / (precision + recall));
 
+  // Load factor
+  this->load_factor = double(this->insertions) / this->n_unique_flows;
+
   std::cout << std::endl;
-  char msg[100];
-  sprintf(
-      msg,
-      "[qWaterfall] "
-      "Insertions:%i\tCollisions:%i\tRecall:%.5f\tPrecision:%.5f\tF1:%.5f\n",
-      this->insertions, this->collisions, this->recall, this->precision,
-      this->f1);
+
+  char msg[200];
+  sprintf(msg,
+          "[qWaterfall] "
+          "Insertions:%i\tLoad "
+          "Factor:%.5f\tCollisions:%i\tRecall:%.5f\tPrecision:%.5f\tF1:%.5f\n",
+          this->insertions, this->load_factor, this->collisions, this->recall,
+          this->precision, this->f1);
   std::cout << msg;
 
   // Save data into csv

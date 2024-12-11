@@ -8,11 +8,37 @@
 #include <iostream>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <unordered_map>
 
 template <typename TUPLE, typename T> class dataParser {
 public:
-  std::set<TUPLE> unique_tuples;
-  uint32_t get_traces(char *filename, T &trace) {
+  size_t n_unique_tuples = 0;
+  unordered_map<string, T> get_traces(vector<string> filenames) {
+    vector<T> traces(filenames.size());
+    unordered_map<string, T> data_traces;
+
+    string dir = "data/";
+    string dat = ".dat";
+    size_t i = 0;
+
+    for (string &f : filenames) {
+      std::cout << f << std::endl;
+      traces[i] = this->get_trace(f.data());
+
+      string::size_type k = f.find(dir);
+      if (k != string::npos) {
+        f.erase(k, dir.length());
+      }
+      string::size_type j = f.find(dat);
+      if (j != string::npos) {
+        f.erase(j, dat.length());
+      }
+      data_traces[f] = traces[i++];
+    }
+    return data_traces;
+  }
+
+  T get_trace(char *filename) {
     // Load filename
     sprintf(this->filename, "%s", filename);
 
@@ -28,15 +54,12 @@ public:
 
     std::cout << "Opened, finding size..." << std::endl;
     fseek(this->fin, 0L, SEEK_END);
-    std::cout << "Found end" << std::endl;
     uint32_t sz = ftell(this->fin);
     fseek(this->fin, 0L, SEEK_SET);
     std::cout << "Total size of dataset " << this->filename << ": " << sz
               << std::endl;
 
-    trace.resize(sz / sizeof(FIVE_TUPLE));
-    std::cout << "Total tuples in trace : " << trace.size() << " tuples"
-              << std::endl;
+    T trace(sz / sizeof(TUPLE));
     // Create 5-tuple and trace, dataset is always a 5 tuple set
     FIVE_TUPLE tin;
     // Load trace with 5-tuple
@@ -49,14 +72,17 @@ public:
       unique_tuples.insert(tin);
     }
 
-    std::cout << "Unique tuples in trace : " << unique_tuples.size()
+    n_unique_tuples = unique_tuples.size();
+    std::cout << "Total tuples " << trace.size()
+              << "\tUnique tuples in trace : " << unique_tuples.size()
               << " tuples" << std::endl;
-
     unique_tuples.clear();
-    return 0;
+
+    return trace;
   }
 
 private:
+  std::set<TUPLE> unique_tuples;
   char filename[100];
   FILE *fin;
 

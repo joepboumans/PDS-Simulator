@@ -1,7 +1,8 @@
 // #include "count-min.h"
+#include "EM_FSD.hpp"
 #include "common.h"
 /*#include "count-min.cpp"*/
-/*#include "cuckoo-hash.hpp"*/
+#include "cuckoo-hash.hpp"
 #include "data-parser.h"
 /*#include "fcm-sketch.hpp"*/
 /*#include "fcm-sketches.hpp"*/
@@ -23,7 +24,6 @@
 #include <unordered_map>
 
 int main() {
-  dataParser<FLOW_TUPLE, TRACE_FLOW> data_parser;
   // Get data files
   glob_t *glob_res = new glob_t;
   if (memset(glob_res, 0, sizeof(glob_t)) == NULL) {
@@ -37,65 +37,85 @@ int main() {
   }
   globfree(glob_res);
 
-  // Load in traces
-  vector<TRACE_FLOW> traces(filenames.size());
-  unordered_map<string, TRACE_FLOW> data_traces;
-  size_t i = 0;
-  string dir = "data/";
-  string dat = ".dat";
-  for (string &f : filenames) {
-    std::cout << f << std::endl;
-    data_parser.get_traces(f.data(), traces[i]);
-    string::size_type k = f.find(dir);
-    if (k != string::npos) {
-      f.erase(k, dir.length());
-    }
-    string::size_type j = f.find(dat);
-    if (j != string::npos) {
-      f.erase(j, dat.length());
-    }
-    data_traces[f] = traces[i++];
-  }
-
-  std::cout << "------" << std::endl;
-  std::cout << "Finished parsing data, starting simulations..." << std::endl;
-
   uint32_t sim_length = 1;
   uint32_t iter = 1;
-  for (const auto &[name_set, trace] : data_traces) {
-    std::cout << "------" << std::endl;
-    std::cout << "Starting " << name_set << "..." << std::endl;
-    std::cout << "------" << std::endl;
-    /*vector<PDS *> stages;*/
-    /*uint32_t hh_threshold = trace.size() * 0.0005 / sim_length;*/
-    /*qWaterfall qwaterfall(4, std::numeric_limits<uint16_t>::max(), name_set,
-     * 0,*/
-    /*                      0);*/
-    /*stages.push_back(&qwaterfall);*/
+  for (string &f : filenames) {
+    std::cout << "[DataParser] Start parsing " << f << "..." << std::endl;
+    dataParser<FLOW_TUPLE, TRACE_FLOW> data_parser;
+    TRACE_FLOW trace = data_parser.get_trace(f.data());
+    std::cout << "[DataParser] Finished parsing data" << std::endl;
+
     vector<PDS<FLOW_TUPLE, flowTupleHash> *> stages;
+
     qWaterfall<FLOW_TUPLE, flowTupleHash> qwaterfall(
-        4, std::numeric_limits<uint16_t>::max(), name_set, 0, 0);
+        4, std::numeric_limits<uint16_t>::max(), data_parser.n_unique_tuples, f,
+        0, 0);
     stages.push_back(&qwaterfall);
-    // CuckooHash cuckoo(10, 1024, name_set, 0, 0);
-    // stages.push_back(&cuckoo);
-    // CountMin cm(128, 1024, hh_threshold, name_set, 0, 0);
-    // stages.push_back(&cm);
-    // FCM_Sketch fcm(6241, 3, 8, hh_threshold, 1, name_set, 0, 0);
-    // stages.push_back(&fcm);
-    // FCM_Sketches fcms(32, 3, 8, 2, hh_threshold, 1, name_set, 0, 0);
-    // stages.push_back(&fcms);
-    // WaterfallFCM waterfall =
-    //     WaterfallFCM(2048, 3, 32, hh_threshold, 1, 5, 2048, name_set, 0,
-    //     0);
-    // stages.push_back(&waterfall);
+
+    /*qWaterfall<FLOW_TUPLE, flowTupleHash> qwaterfall_4x5(*/
+    /*    4, 5 * std::numeric_limits<uint16_t>::max(),*/
+    /*    data_parser.n_unique_tuples, f, 0, 0);*/
+    /*stages.push_back(&qwaterfall_4x5);*/
+
+    qWaterfall<FLOW_TUPLE, flowTupleHash> qwaterfall_4x10(
+        16, 10 * std::numeric_limits<uint16_t>::max(),
+        data_parser.n_unique_tuples, f, 0, 0);
+    stages.push_back(&qwaterfall_4x10);
+
+    qWaterfall<FLOW_TUPLE, flowTupleHash> qwaterfall_8x5(
+        8, 5 * std::numeric_limits<uint16_t>::max(),
+        data_parser.n_unique_tuples, f, 0, 0);
+    stages.push_back(&qwaterfall_8x5);
+    /*CuckooHash<FLOW_TUPLE, flowTupleHash> cuckoo(*/
+    /*    4, std::numeric_limits<uint16_t>::max(), data_parser.n_unique_tuples,
+     * f,*/
+    /*    0, 0);*/
+    /*stages.push_back(&cuckoo);*/
+
+    std::cout << "[PDS] Added " << stages.size() << " stages" << std::endl;
     Simulator<PDS<FLOW_TUPLE, flowTupleHash>, TRACE_FLOW> sim(
         stages, stages.size(), sim_length);
-    // Default length of CAIDA traces is 60s
+    std::cout << "[Simulator] Created simulator for FLOW_TUPLE" << std::endl;
+
+    std::cout << "[Simulator] Starting simulations..." << std::endl;
     sim.run(trace, iter);
+    std::cout << "[Simulator] ...done!" << std::endl;
+
+    continue;
+    // Run simulations on 5-tuple
+    /*std::cout << "[DataParser] Start parsing " << f << "..." << std::endl;*/
+    /*dataParser<FIVE_TUPLE, TRACE> data_parser_5t;*/
+    /*TRACE trace_5t = data_parser_5t.get_trace(f.data());*/
+    /*std::cout << "[DataParser] Finished parsing data" << std::endl;*/
+    /**/
+    /*vector<PDS<FIVE_TUPLE, fiveTupleHash> *> stages_5t;*/
+
+    /*qWaterfall<FIVE_TUPLE, fiveTupleHash> qwaterfall_5t(*/
+    /*    6, std::numeric_limits<uint16_t>::max(),
+     * data_parser_5t.n_unique_tuples,*/
+    /*    f, 0, 0);*/
+    /*stages_5t.push_back(&qwaterfall_5t);*/
+
+    /*CuckooHash<FIVE_TUPLE, fiveTupleHash> cuckoo(*/
+    /*    4, std::numeric_limits<uint16_t>::max(),
+     * data_parser_5t.n_unique_tuples,*/
+    /*    f, 0, 0);*/
+    /*stages_5t.push_back(&cuckoo);*/
+
+    /*std::cout << "[PDS] Added " << stages_5t.size() << " stages" <<
+     * std::endl;*/
+    /*Simulator<PDS<FIVE_TUPLE, fiveTupleHash>, TRACE> sim_5t(*/
+    /*    stages_5t, stages_5t.size(), sim_length);*/
+    /*std::cout << "[Simulator] Created simulator for FIVE_TUPLE" <<
+     * std::endl;*/
+    /**/
+    /*std::cout << "[Simulator] Starting simulations..." << std::endl;*/
+    /*sim_5t.run(trace_5t, iter);*/
+    /*std::cout << "[Simulator] ...done!" << std::endl;*/
   }
 
   std::cout << "------" << std::endl;
-  std::cout << "Finished simulations!" << std::endl;
+  std::cout << "Finished all simulations!" << std::endl;
   std::cout << "------" << std::endl;
 
   return 0;

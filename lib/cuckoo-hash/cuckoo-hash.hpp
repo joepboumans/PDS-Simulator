@@ -7,20 +7,21 @@
 #include <cstdint>
 #include <sys/types.h>
 
-class CuckooHash : public PDS {
+template <typename TUPLE, typename HASH>
+class CuckooHash : public PDS<TUPLE, HASH> {
 public:
   BOBHash32 *hash;
   uint32_t length;
   uint32_t n_tables;
-  vector<vector<FIVE_TUPLE>> tables;
+  vector<vector<TUPLE>> tables;
   string trace_name;
-  set<FIVE_TUPLE> tuples;
+  set<TUPLE> tuples;
   uint32_t insertions = 0;
 
   CuckooHash(uint32_t n_tables, uint32_t length, string trace, uint32_t n_stage,
              uint32_t n_struct)
-      : PDS{trace, n_stage, n_struct},
-        tables(n_tables, vector<FIVE_TUPLE>(length)) {
+      : PDS<TUPLE, HASH>{trace, n_stage, n_struct},
+        tables(n_tables, vector<TUPLE>(length)) {
     // Assign defaults
     this->n_tables = n_tables;
     this->length = length;
@@ -41,9 +42,9 @@ public:
     }
   }
 
-  uint32_t insert(FIVE_TUPLE tuple);
-  uint32_t lookup(FIVE_TUPLE tuple);
-  uint32_t hashing(FIVE_TUPLE tuple, uint32_t k);
+  uint32_t insert(TUPLE tuple);
+  uint32_t lookup(TUPLE tuple);
+  uint32_t hashing(TUPLE tuple, uint32_t k);
   void reset();
 
   void analyze(int epoch);

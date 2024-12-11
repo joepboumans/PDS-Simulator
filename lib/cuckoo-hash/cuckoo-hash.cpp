@@ -6,12 +6,15 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
-#include <iterator>
 #include <math.h>
 #include <ostream>
 #include <sys/types.h>
 
-uint32_t CuckooHash::insert(FIVE_TUPLE tuple) {
+template class CuckooHash<FIVE_TUPLE, fiveTupleHash>;
+template class CuckooHash<FLOW_TUPLE, flowTupleHash>;
+
+template <typename TUPLE, typename HASH>
+uint32_t CuckooHash<TUPLE, HASH>::insert(TUPLE tuple) {
   this->true_data[tuple]++;
   // If it is present CHT do not insert
   if (!this->lookup(tuple)) {
@@ -20,16 +23,16 @@ uint32_t CuckooHash::insert(FIVE_TUPLE tuple) {
     this->tuples.insert(tuple);
     this->insertions++;
 
-    FIVE_TUPLE prev_tuple = tuple;
+    TUPLE prev_tuple = tuple;
     for (size_t i = 0; i < this->n_tables; i++) {
       uint32_t idx = this->hashing(prev_tuple, i);
-      FIVE_TUPLE empty = {};
+      TUPLE empty = {};
       // Repeat until insertion into empty slot or until we run out of tables
       if (this->tables[i][idx] == empty) {
         this->tables[i][idx] = prev_tuple;
         return 0;
       } else {
-        FIVE_TUPLE tmp_tuple = this->tables[i][idx];
+        TUPLE tmp_tuple = this->tables[i][idx];
         this->tables[i][idx] = prev_tuple;
         prev_tuple = tmp_tuple;
       }
@@ -38,12 +41,13 @@ uint32_t CuckooHash::insert(FIVE_TUPLE tuple) {
   return 0;
 }
 
-uint32_t CuckooHash::hashing(FIVE_TUPLE key, uint32_t k) {
-  return hash[k].run((const char *)key.num_array, sizeof(FIVE_TUPLE)) %
-         this->length;
+template <typename TUPLE, typename HASH>
+uint32_t CuckooHash<TUPLE, HASH>::hashing(TUPLE key, uint32_t k) {
+  return hash[k].run((const char *)key.num_array, sizeof(TUPLE)) % this->length;
 }
 
-uint32_t CuckooHash::lookup(FIVE_TUPLE tuple) {
+template <typename TUPLE, typename HASH>
+uint32_t CuckooHash<TUPLE, HASH>::lookup(TUPLE tuple) {
   for (size_t i = 0; i < this->n_tables; i++) {
     int idx = this->hashing(tuple, i);
     if (this->tables[i][idx] == tuple) {
@@ -54,7 +58,8 @@ uint32_t CuckooHash::lookup(FIVE_TUPLE tuple) {
   return 0;
 }
 
-void CuckooHash::analyze(int epoch) {
+template <typename TUPLE, typename HASH>
+void CuckooHash<TUPLE, HASH>::analyze(int epoch) {
   double n = this->true_data.size();
 
   int true_pos = 0, false_pos = 0, true_neg = 0, false_neg = 0;
@@ -93,12 +98,12 @@ void CuckooHash::analyze(int epoch) {
   this->fcsv << csv << std::endl;
 }
 
-void CuckooHash::reset() {
+template <typename TUPLE, typename HASH> void CuckooHash<TUPLE, HASH>::reset() {
   this->insertions = 0;
   this->true_data.clear();
   this->tuples.clear();
 
-  FIVE_TUPLE empty = {};
+  TUPLE empty = {};
   for (auto &table : this->tables) {
     for (auto &tuple : table) {
       tuple = empty;
@@ -106,7 +111,8 @@ void CuckooHash::reset() {
   }
 }
 
-void CuckooHash::print_sketch() {
+template <typename TUPLE, typename HASH>
+void CuckooHash<TUPLE, HASH>::print_sketch() {
   char msg[100];
   sprintf(msg, "Printing Cuckoo Hash of %ix%i with mem sz %i", this->n_tables,
           this->length, this->mem_sz);

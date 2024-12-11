@@ -72,9 +72,9 @@ int main() {
      * 0,*/
     /*                      0);*/
     /*stages.push_back(&qwaterfall);*/
-    vector<PDS_FlowTuple *> stages;
-    qWaterfall_FT qwaterfall(4, std::numeric_limits<uint16_t>::max(), name_set,
-                             0, 0);
+    vector<PDS<FLOW_TUPLE, flowTupleHash> *> stages;
+    qWaterfall<FLOW_TUPLE, flowTupleHash> qwaterfall(
+        4, std::numeric_limits<uint16_t>::max(), name_set, 0, 0);
     stages.push_back(&qwaterfall);
     // CuckooHash cuckoo(10, 1024, name_set, 0, 0);
     // stages.push_back(&cuckoo);
@@ -88,7 +88,8 @@ int main() {
     //     WaterfallFCM(2048, 3, 32, hh_threshold, 1, 5, 2048, name_set, 0,
     //     0);
     // stages.push_back(&waterfall);
-    Simulator<PDS_FlowTuple, TRACE_FLOW> sim(stages, stages.size(), sim_length);
+    Simulator<PDS<FLOW_TUPLE, flowTupleHash>, TRACE_FLOW> sim(
+        stages, stages.size(), sim_length);
     // Default length of CAIDA traces is 60s
     sim.run(trace, iter);
   }

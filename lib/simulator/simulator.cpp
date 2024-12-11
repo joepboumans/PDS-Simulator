@@ -7,8 +7,8 @@
 #include <cmath>
 #include <iostream>
 
-template class Simulator<PDS_FlowTuple, TRACE_FLOW>;
-template class Simulator<PDS, TRACE>;
+template class Simulator<PDS<FIVE_TUPLE, fiveTupleHash>, TRACE>;
+template class Simulator<PDS<FLOW_TUPLE, flowTupleHash>, TRACE_FLOW>;
 
 template <typename P, typename T>
 int Simulator<P, T>::run(const T &trace, unsigned int duration) {

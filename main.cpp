@@ -48,24 +48,24 @@ int main() {
     vector<PDS<FLOW_TUPLE, flowTupleHash> *> stages;
 
     qWaterfall<FLOW_TUPLE, flowTupleHash> qwaterfall(
-        4, std::numeric_limits<uint16_t>::max(), data_parser.n_unique_tuples, f,
-        0, 0);
+        4, std::numeric_limits<uint16_t>::max(),
+        std::numeric_limits<uint32_t>::max(), f, 0, 0);
     stages.push_back(&qwaterfall);
 
-    /*qWaterfall<FLOW_TUPLE, flowTupleHash> qwaterfall_4x5(*/
-    /*    4, 5 * std::numeric_limits<uint16_t>::max(),*/
-    /*    data_parser.n_unique_tuples, f, 0, 0);*/
-    /*stages.push_back(&qwaterfall_4x5);*/
+    /*qWaterfall<FLOW_TUPLE, flowTupleHash> qwaterfall_8(*/
+    /*    4, 4 * std::numeric_limits<uint16_t>::max(),*/
+    /*    4 * std::numeric_limits<uint16_t>::max(),
+     * data_parser.n_unique_tuples,*/
+    /*    f, 0, 0);*/
+    /*stages.push_back(&qwaterfall_8);*/
+    /**/
+    /*qWaterfall<FLOW_TUPLE, flowTupleHash> qwaterfall_16(*/
+    /*    4, 8 * std::numeric_limits<uint16_t>::max(),*/
+    /*    8 * std::numeric_limits<uint16_t>::max(),
+     * data_parser.n_unique_tuples,*/
+    /*    f, 0, 0);*/
+    /*stages.push_back(&qwaterfall_16);*/
 
-    qWaterfall<FLOW_TUPLE, flowTupleHash> qwaterfall_4x10(
-        16, 10 * std::numeric_limits<uint16_t>::max(),
-        data_parser.n_unique_tuples, f, 0, 0);
-    stages.push_back(&qwaterfall_4x10);
-
-    qWaterfall<FLOW_TUPLE, flowTupleHash> qwaterfall_8x5(
-        8, 5 * std::numeric_limits<uint16_t>::max(),
-        data_parser.n_unique_tuples, f, 0, 0);
-    stages.push_back(&qwaterfall_8x5);
     /*CuckooHash<FLOW_TUPLE, flowTupleHash> cuckoo(*/
     /*    4, std::numeric_limits<uint16_t>::max(), data_parser.n_unique_tuples,
      * f,*/

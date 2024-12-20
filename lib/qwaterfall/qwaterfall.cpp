@@ -6,7 +6,6 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
-#include <limits>
 #include <sys/types.h>
 
 template class qWaterfall<FIVE_TUPLE, fiveTupleHash>;
@@ -14,16 +13,16 @@ template class qWaterfall<FLOW_TUPLE, flowTupleHash>;
 
 template <typename TUPLE, typename HASH>
 uint32_t qWaterfall<TUPLE, HASH>::hashing(TUPLE key, uint32_t k) {
-  return hash[k].run((const char *)key.num_array, sizeof(TUPLE)) %
-         std::numeric_limits<uint32_t>::max();
+  return hash[k].run((const char *)key.num_array, sizeof(TUPLE));
 }
 
 template <typename TUPLE, typename HASH>
-uint32_t qWaterfall<TUPLE, HASH>::rehashing(uint32_t hashed_val, uint32_t k) {
-  uint8_t in_val[4];
-  memcpy(in_val, &hashed_val, sizeof(in_val));
-  return hash[k].run((const char *)in_val, sizeof(in_val)) %
-         std::numeric_limits<uint32_t>::max();
+uint32_t qWaterfall<TUPLE, HASH>::rehashing(uint32_t idx, uint32_t val,
+                                            uint32_t k) {
+  uint8_t in_val[8];
+  memcpy(in_val, &idx, sizeof(idx));
+  memcpy(in_val + sizeof(idx), &val, sizeof(val));
+  return hash[k].run((const char *)in_val, sizeof(in_val));
 }
 
 template <typename TUPLE, typename HASH>
@@ -38,29 +37,26 @@ uint32_t qWaterfall<TUPLE, HASH>::insert(TUPLE tuple) {
     this->collisions++;
 
     // Hash the inital tuple for starting insertion
-    uint32_t hash_val = this->hashing(tuple, 0);
-    uint32_t prev_hash_val = 0;
-    uint16_t idx = hash_val >> 16;
-    uint16_t val = hash_val;
+    uint32_t idx = this->hashing(tuple, 0) % this->table_length;
+    uint32_t val = this->hashing(tuple, 0 + this->n_tables) % this->val_length;
     // Insert into the first and exit if there was nothing stored
     if (this->tables[0][idx] == 0) {
       this->tables[0][idx] = val;
       return 1;
-    } else {
-      prev_hash_val = idx << 16 | this->tables[0][idx];
-      this->tables[0][idx] = val;
     }
+    uint32_t prev_val = this->tables[0][idx];
+    this->tables[0][idx] = val;
 
     for (size_t i = 1; i < this->n_tables; i++) {
-      hash_val = this->rehashing(prev_hash_val, i);
-      idx = hash_val >> 16;
-      val = hash_val;
+      idx = this->rehashing(idx, prev_val, i) % this->table_length;
+      val =
+          this->rehashing(idx, prev_val, i + this->n_tables) % this->val_length;
       // Repeat until insertion into empty slot or until we run out of tables
       if (this->tables[i][idx] == 0) {
         this->tables[i][idx] = val;
         return 1;
       } else {
-        prev_hash_val = idx << 16 | this->tables[i][idx];
+        prev_val = this->tables[i][idx];
         this->tables[i][idx] = val;
       }
       this->collisions++;
@@ -72,22 +68,21 @@ uint32_t qWaterfall<TUPLE, HASH>::insert(TUPLE tuple) {
 template <typename TUPLE, typename HASH>
 uint32_t qWaterfall<TUPLE, HASH>::lookup(TUPLE tuple) {
   // Hash the inital tuple for starting insertion
-  uint32_t hash_val = this->hashing(tuple, 0);
-  uint32_t prev_hash_val = hash_val;
-  uint16_t idx = hash_val >> 16;
-  uint16_t val = hash_val;
+  uint32_t idx = this->hashing(tuple, 0) % this->table_length;
+  uint32_t val = this->hashing(tuple, 0 + this->n_tables) % this->val_length;
   // Insert into the first and exit if there was nothing stored
   if (this->tables[0][idx] == val) {
     return 1;
   } else {
+    uint32_t prev_val = this->tables[0][idx];
     for (size_t i = 1; i < this->n_tables; i++) {
-      hash_val = this->rehashing(prev_hash_val, i);
-      idx = hash_val >> 16;
-      val = hash_val;
+      idx = this->rehashing(idx, prev_val, i) % this->table_length;
+      val =
+          this->rehashing(idx, prev_val, i + this->n_tables) % this->val_length;
       if (this->tables[i][idx] == val) {
         return 1;
       }
-      prev_hash_val = hash_val;
+      prev_val = val;
     }
   }
 
@@ -149,8 +144,9 @@ void qWaterfall<TUPLE, HASH>::analyze(int epoch) {
   }
   this->f1 = 2 * ((recall * precision) / (precision + recall));
 
+  std::cout << "[qWaterfall] True data size " << n - 1 << std::endl;
   // Load factor
-  this->load_factor = double(this->insertions) / this->n_unique_flows;
+  this->load_factor = double(this->insertions) / (n - 1);
 
   std::cout << std::endl;
 

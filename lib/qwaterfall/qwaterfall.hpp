@@ -20,22 +20,22 @@ private:
   BOBHash32 *hash;
   uint32_t n_tables;
   uint32_t table_length;
-  size_t n_unique_flows = 0;
+  uint32_t val_length;
   vector<vector<uint32_t>> tables;
 
   string trace_name;
   set<TUPLE> tuples;
 
 public:
-  qWaterfall(uint32_t n_tables, uint32_t table_length, size_t n_unique_flows,
+  qWaterfall(uint32_t n_tables, uint32_t table_length, uint32_t val_length,
              string trace, uint32_t n_stage, uint32_t n_struct)
       : PDS<TUPLE, HASH>(trace, n_stage, n_struct), n_tables(n_tables),
-        table_length(table_length), n_unique_flows(n_unique_flows),
+        table_length(table_length), val_length(val_length),
         tables(n_tables, vector<uint32_t>(table_length)) {
 
     // Setup Hashing
-    this->hash = new BOBHash32[this->n_tables];
-    for (size_t i = 0; i < this->n_tables; i++) {
+    this->hash = new BOBHash32[this->n_tables * 2];
+    for (size_t i = 0; i < this->n_tables * 2; i++) {
       this->hash[i].initialize(750 + n_struct * this->n_tables + i);
     }
 
@@ -50,7 +50,7 @@ public:
 
   uint32_t insert(TUPLE tuple);
   uint32_t hashing(TUPLE tuple, uint32_t k);
-  uint32_t rehashing(uint32_t hashed_val, uint32_t k);
+  uint32_t rehashing(uint32_t idx, uint32_t val, uint32_t k);
   uint32_t lookup(TUPLE tuple);
   void reset();
 

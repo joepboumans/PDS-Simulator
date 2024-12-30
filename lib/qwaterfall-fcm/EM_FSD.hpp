@@ -111,18 +111,16 @@ private:
         : sum(_sum), flow_num_limit(_in_degree), thresh(_thresh) {
       now_flow_num = flow_num_limit;
       now_result.resize(_in_degree);
-      for (size_t i = 0; i < now_result.size(); i++) {
-        now_result[i] = 1;
-      }
+      now_result[0] = 1;
 
-      if (sum > 750) {
-        flow_num_limit = std::min((uint32_t)2, _in_degree);
-      } else if (sum > 500)
-        flow_num_limit = std::min((uint32_t)3, _in_degree);
-      else if (sum > 250)
-        flow_num_limit = std::min((uint32_t)4, _in_degree);
+      if (sum > 600) {
+        flow_num_limit = 2;
+      } else if (sum > 250)
+        flow_num_limit = 3;
       else if (sum > 100)
-        flow_num_limit = std::min((uint32_t)5, _in_degree);
+        flow_num_limit = 4;
+      else if (sum > 50)
+        flow_num_limit = 5;
       // else
       //   flow_num_limit = 6;
     }
@@ -238,7 +236,7 @@ private:
   }
 
   double get_p_from_beta(BetaGenerator &bt, double lambda,
-                         vector<double> &now_dist, double now_n,
+                         vector<double> now_dist, double now_n,
                          uint32_t degree) {
     std::unordered_map<uint32_t, uint32_t> mp;
     for (int i = 0; i < bt.now_flow_num; ++i) {
@@ -292,15 +290,15 @@ private:
 
       if (sum_p == 0.0) {
         if (it > 0) {
+          uint32_t temp_val = this->counters[d][i];
           vector<vector<uint32_t>> temp_thresh = this->thresholds[d][i];
           // Start from lowest layer to highest layer
           std::reverse(temp_thresh.begin(), temp_thresh.end());
           for (auto &t : temp_thresh) {
-            uint32_t temp_val = this->counters[d][i];
-            if (temp_val < t[3] * (t[2] - 1)) {
-              continue;
+            if (temp_val < t[1] * (t[0] - 1)) {
+              break;
             }
-            temp_val -= t[3] * (t[2] - 1);
+            temp_val -= t[1] * (t[0] - 1);
             nt[temp_val] += 1;
           }
         }
@@ -331,6 +329,7 @@ private:
 public:
   void next_epoch() {
     auto start = std::chrono::high_resolution_clock::now();
+    double lambda = n_old / double(w);
     dist_old = dist_new;
     n_old = n_new;
 

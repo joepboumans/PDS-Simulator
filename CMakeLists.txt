@@ -38,6 +38,7 @@ add_subdirectory(lib/iblt)
 add_subdirectory(lib/cuckoo-hash)
 add_subdirectory(lib/waterfall-fcm)
 add_subdirectory(lib/qwaterfall)
+add_subdirectory(lib/qwaterfall-fcm)
 include_directories(${CMAKE_SOURCE_DIR})
 
 # Added custom hash, not ideal setup like this TODO: Integrate with design
@@ -53,7 +54,8 @@ target_link_libraries(
          lib-iblt
          lib-cuckoo-hash
          lib-waterfall-fcm
-        lib-qwaterfall)
+        lib-qwaterfall
+        lib-qwaterfall-fcm)
 target_include_directories(main PUBLIC ${CMAKE_SOURCE_DIR}
                                        ${CMAKE_HOME_DIRECTORY})
 target_compile_options(main PRIVATE -Wall -O3)

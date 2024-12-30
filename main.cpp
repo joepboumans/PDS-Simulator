@@ -13,6 +13,7 @@
 #include "waterfall-fcm.hpp"
 /*#include "src/bloomfilter.h"*/
 /*#include "waterfall-fcm.hpp"*/
+#include "qwaterfall-fcm.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -53,9 +54,14 @@ int main() {
     /*    std::numeric_limits<uint32_t>::max(), f, 0, 0);*/
     /*stages.push_back(&qwaterfall);*/
 
-    WaterfallFCM<FLOW_TUPLE, flowTupleHash> waterfall_fcm(8192, 3, 8, 100000, 5,
-                                                          4, 65355, f, 0, 0);
-    stages.push_back(&waterfall_fcm);
+    /*WaterfallFCM<FLOW_TUPLE, flowTupleHash> waterfall_fcm(8192, 3, 8, 100000,
+     * 5,*/
+    /*                                                      4, 65355, f, 0,
+     * 0);*/
+    /*stages.push_back(&waterfall_fcm);*/
+    qWaterfall_Fcm<FLOW_TUPLE, flowTupleHash> qwaterfall_fcm(4, 65355, 65355, 5,
+                                                             f, 0, 0);
+    stages.push_back(&qwaterfall_fcm);
     /*qWaterfall<FLOW_TUPLE, flowTupleHash> qwaterfall_8(*/
     /*    4, 4 * std::numeric_limits<uint16_t>::max(),*/
     /*    4 * std::numeric_limits<uint16_t>::max(),

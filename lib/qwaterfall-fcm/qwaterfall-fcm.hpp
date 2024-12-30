@@ -2,7 +2,9 @@
 #define _Q_WATERFALL_FCM_HPP
 
 #include "common.h"
+#include "fcm-sketches.hpp"
 #include "pds.h"
+#include "qwaterfall.hpp"
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -17,33 +19,37 @@
 template <typename TUPLE, typename HASH>
 class qWaterfall_Fcm : public PDS<TUPLE, HASH> {
 private:
-  BOBHash32 *hash;
   uint32_t n_tables;
   uint32_t table_length;
   uint32_t val_length;
   vector<vector<uint32_t>> tables;
+  FCM_Sketches<TUPLE, HASH> fcm_sketches;
+  qWaterfall<TUPLE, HASH> qwaterfall;
 
   string trace_name;
   set<TUPLE> tuples;
+  uint32_t em_iters;
 
 public:
   qWaterfall_Fcm(uint32_t n_tables, uint32_t table_length, uint32_t val_length,
-                 string trace, uint32_t n_stage, uint32_t n_struct)
+                 uint32_t em_iters, string trace, uint32_t n_stage,
+                 uint32_t n_struct)
       : PDS<TUPLE, HASH>(trace, n_stage, n_struct), n_tables(n_tables),
-        table_length(table_length), val_length(val_length),
-        tables(n_tables, vector<uint32_t>(table_length)) {
+        em_iters(em_iters), table_length(table_length), val_length(val_length),
+        tables(n_tables, vector<uint32_t>(table_length)),
+        fcm_sketches(W3, 3, 8, DEPTH, 10000, 1, trace, n_stage, n_struct),
+        qwaterfall(n_tables, table_length, val_length, trace, n_stage,
+                   n_struct) {
 
-    // Setup Hashing
-    this->hash = new BOBHash32[this->n_tables * 2];
-    for (size_t i = 0; i < this->n_tables * 2; i++) {
-      this->hash[i].initialize(750 + n_struct * this->n_tables + i);
-    }
-
+    this->fcm_sketches.estimate_fsd = false;
     // Setup logging
-    this->csv_header = "Epoch,Insertions,Collisions,Recall,Precision,F1";
-    this->name = "qWaterfall";
+    this->csv_header = "Epoch,Average Relative Error,Average Absolute "
+                       "Error,Weighted Mean Relative "
+                       "Error,F1 Heavy Hitter,Estimation "
+                       "Time,Iterations,Insertions,Collisions,F1 Member";
+    this->name = "qWaterfall_Fcm";
     this->trace_name = trace;
-    this->mem_sz = this->n_tables * this->table_length;
+    this->mem_sz = this->fcm_sketches.mem_sz + this->qwaterfall.mem_sz;
     std::cout << "Total memory used: " << this->mem_sz << std::endl;
     this->setupLogging();
   }
@@ -55,12 +61,15 @@ public:
   void reset();
 
   void analyze(int epoch);
-  double recall = 0.0;
-  double precision = 0.0;
-  double f1 = 0.0;
+  bool estimate_fsd = true;
+  double f1_member = 0.0;
   uint32_t insertions = 0;
   uint32_t collisions = 0;
   double load_factor = 0.0;
+  double wmre = 0.0;
+  double average_absolute_error = 0.0;
+  double average_relative_error = 0.0;
+  double f1_hh = 0.0;
 
   void store_data();
   void print_sketch();

@@ -13,16 +13,14 @@ public:
   BOBHash32 *hash;
   uint32_t n_tables;
   uint32_t length;
-  size_t n_unique_tuples = 0;
   vector<vector<TUPLE>> tables;
   set<TUPLE> tuples;
   uint32_t insertions = 0;
   string trace_name;
 
-  CuckooHash(uint32_t n_tables, uint32_t length, size_t n_unique_tuples,
-             string trace, uint32_t n_stage, uint32_t n_struct)
+  CuckooHash(uint32_t n_tables, uint32_t length, string trace, uint32_t n_stage,
+             uint32_t n_struct)
       : PDS<TUPLE, HASH>{trace, n_stage, n_struct},
-        n_unique_tuples(n_unique_tuples),
         tables(n_tables, vector<TUPLE>(length)) {
     // Assign defaults
     this->n_tables = n_tables;

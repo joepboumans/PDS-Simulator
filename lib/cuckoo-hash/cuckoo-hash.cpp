@@ -86,7 +86,7 @@ void CuckooHash<TUPLE, HASH>::analyze(int epoch) {
   this->f1 = 2 * ((recall * precision) / (precision + recall));
 
   // Load factor
-  this->load_factor = double(this->insertions) / this->n_unique_tuples;
+  this->load_factor = double(this->insertions) / this->tuples.size();
 
   std::cout << std::endl;
   char msg[200];

@@ -236,7 +236,7 @@ private:
   }
 
   double get_p_from_beta(BetaGenerator &bt, double lambda,
-                         vector<double> now_dist, double now_n,
+                         vector<double> &now_dist, double now_n,
                          uint32_t degree) {
     std::unordered_map<uint32_t, uint32_t> mp;
     for (int i = 0; i < bt.now_flow_num; ++i) {

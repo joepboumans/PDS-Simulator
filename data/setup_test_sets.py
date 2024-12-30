@@ -36,7 +36,7 @@ def setup_dataset(data_name, test_name, length):
                 exit(1)
             if count >= length:
                 print(f"Created data set with size of {count}")
-                return
+                break
         stop = time.perf_counter_ns()
         print(f"Parsed data set in {stop - start} ns")
     print("Finished parsing %s"% data_name)
@@ -58,7 +58,7 @@ def setup_dataset_bursty(data_name, test_name, length, burst_length):
                 out += packet.proto.to_bytes(1, byteorder='big')
                 for _ in range(burst_length):
                     fout.write(out)
-                write2pcap(packet, test_name)
+                    write2pcap(packet, test_name)
                 count +=1
                 if length <= 64:
                     print(out)
@@ -67,7 +67,7 @@ def setup_dataset_bursty(data_name, test_name, length, burst_length):
                 exit(1)
             if count >= length:
                 print(f"Created data set with size of {count}")
-                return
+                break
         stop = time.perf_counter_ns()
         print(f"Parsed data set in {stop - start} ns")
     print("Finished parsing %s"% data_name)
@@ -76,6 +76,7 @@ def setup_dataset_bursty(data_name, test_name, length, burst_length):
 def main():
    setup_dataset("equinix-chicago.20160121-130000.UTC.pcap", "small_test", 1024)
    setup_dataset("equinix-chicago.20160121-130000.UTC.pcap", "smaller_test", 32)
+   setup_dataset("equinix-chicago.20160121-130000.UTC.pcap", "single_test", 1)
    setup_dataset_bursty("equinix-chicago.20160121-130000.UTC.pcap", "single_burst_test", 1, 32)
    setup_dataset_bursty("equinix-chicago.20160121-130000.UTC.pcap", "small_burst_test", 32, 32)
 

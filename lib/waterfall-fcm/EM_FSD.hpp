@@ -114,13 +114,13 @@ private:
       now_result[0] = 1;
 
       if (sum > 600) {
-        flow_num_limit = 2;
+        flow_num_limit = std::min((uint32_t)2, _in_degree);
       } else if (sum > 250)
-        flow_num_limit = 3;
+        flow_num_limit = std::min((uint32_t)3, _in_degree);
       else if (sum > 100)
-        flow_num_limit = 4;
+        flow_num_limit = std::min((uint32_t)4, _in_degree);
       else if (sum > 50)
-        flow_num_limit = 5;
+        flow_num_limit = std::min((uint32_t)5, _in_degree);
       // else
       //   flow_num_limit = 6;
     }

@@ -296,7 +296,7 @@ private:
           std::reverse(temp_thresh.begin(), temp_thresh.end());
           for (auto &t : temp_thresh) {
             if (temp_val < t[1] * (t[0] - 1)) {
-              break;
+              continue;
             }
             temp_val -= t[1] * (t[0] - 1);
             nt[temp_val] += 1;

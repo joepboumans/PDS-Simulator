@@ -38,7 +38,7 @@ int main() {
   }
   globfree(glob_res);
 
-  uint32_t sim_length = 4;
+  uint32_t sim_length = 1;
   uint32_t iter = 1;
   for (string &f : filenames) {
     std::cout << "[DataParser] Start parsing " << f << "..." << std::endl;
@@ -53,7 +53,7 @@ int main() {
     /*    std::numeric_limits<uint32_t>::max(), f, 0, 0);*/
     /*stages.push_back(&qwaterfall);*/
 
-    WaterfallFCM<FLOW_TUPLE, flowTupleHash> waterfall_fcm(8192, 3, 8, 100000, 1,
+    WaterfallFCM<FLOW_TUPLE, flowTupleHash> waterfall_fcm(8192, 3, 8, 100000, 2,
                                                           4, 65355, f, 0, 0);
     stages.push_back(&waterfall_fcm);
     /*qWaterfall<FLOW_TUPLE, flowTupleHash> qwaterfall_8(*/

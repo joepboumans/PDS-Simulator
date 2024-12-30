@@ -171,6 +171,9 @@ vector<double> WaterfallFCM<TUPLE, HASH>::get_distribution(set<TUPLE> tuples) {
 
       if (stage == 0) {
         summary[stage][i][1] = init_degree[i];
+        if (summary[stage][i][0] > 0 && init_degree[i] < 1) {
+          summary[stage][i][1] = 1;
+        }
         overflow_paths[stage][i].push_back(
             {(uint32_t)stage, init_degree[i], 1, summary[stage][i][0]});
       }
@@ -196,9 +199,9 @@ vector<double> WaterfallFCM<TUPLE, HASH>::get_distribution(set<TUPLE> tuples) {
         }
         // If any of my childeren have overflown, add me to the overflow path
         if (overflown > 0) {
-          vector<uint32_t> imm_overflow = {
-              (uint32_t)stage, summary[stage][i][1], overflown,
-              this->fcm.stages[stage - 1][i].max_count};
+          vector<uint32_t> imm_overflow = {(uint32_t)stage,
+                                           summary[stage][i][1], overflown,
+                                           summary[stage][i][0]};
           overflow_paths[stage][i].insert(overflow_paths[stage][i].begin(),
                                           imm_overflow);
         }

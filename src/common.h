@@ -2,7 +2,6 @@
 #define _COMMON_H
 
 #include "BOBHash32.h"
-#include "xxhash.h"
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>

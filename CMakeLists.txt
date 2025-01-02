@@ -42,13 +42,12 @@ add_subdirectory(lib/qwaterfall-fcm)
 include_directories(${CMAKE_SOURCE_DIR})
 
 # Added custom hash, not ideal setup like this TODO: Integrate with design
-find_package(xxHash CONFIG REQUIRED)
+# find_package(xxHash CONFIG REQUIRED)
 
 add_executable(main main.cpp)
 target_link_libraries(
   main
-  PUBLIC xxHash::xxhash
-         lib-count-min
+  PUBLIC  lib-count-min
          lib-fcm-sketch
          lib-simulator
          lib-iblt
@@ -61,7 +60,7 @@ target_include_directories(main PUBLIC ${CMAKE_SOURCE_DIR}
 target_compile_options(main PRIVATE -Wall -O3)
 
 # https://github.com/catchorg/Catch2/blob/devel/docs/cmake-integration.md#installing-catch2-from-git-repository
-find_package(Catch2 3 REQUIRED)
+# find_package(Catch2 3 REQUIRED)
 
 # # Find all tests
 # file(

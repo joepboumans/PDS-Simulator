@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
 
-find_package(xxHash CONFIG REQUIRED)
 add_library(lib-waterfall-fcm OBJECT waterfall-fcm.cpp)
 target_link_libraries(lib-waterfall-fcm PRIVATE  lib-fcm-sketch
                                                 lib-cuckoo-hash)

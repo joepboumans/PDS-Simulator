@@ -39,7 +39,7 @@ int main() {
   }
   globfree(glob_res);
 
-  uint32_t sim_length = 4;
+  uint32_t sim_length = 10;
   uint32_t iter = 1;
   for (string &f : filenames) {
     std::cout << "[DataParser] Start parsing " << f << "..." << std::endl;

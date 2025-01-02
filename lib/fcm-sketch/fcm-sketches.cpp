@@ -225,7 +225,6 @@ void FCM_Sketches<TUPLE, HASH>::analyze(int epoch) {
     empty_counters = 1;
   }
 
-  this->print_sketch();
   int em_cardinality =
       (int)(this->stages_sz[0] *
             std::log((double)this->stages_sz[0] / empty_counters));

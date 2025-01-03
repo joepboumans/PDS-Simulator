@@ -7,10 +7,10 @@
 
 template <typename P, typename T> class Simulator {
 public:
-  Simulator(vector<P *> pds, int n_pds, float epoch_len) {
+  Simulator(vector<P *> pds, int n_pds, float duration) {
     this->n_pds = n_pds;
+    this->duration = duration;
     this->pds = pds;
-    this->epoch_len = epoch_len;
   }
   Simulator(Simulator &&) = default;
   Simulator(const Simulator &) = default;
@@ -24,7 +24,7 @@ public:
 private:
   vector<P *> pds;
   int n_pds;
-  float epoch_len;
+  float duration;
 
   int insert(const T &trace, int start, int end);
   int analyze();

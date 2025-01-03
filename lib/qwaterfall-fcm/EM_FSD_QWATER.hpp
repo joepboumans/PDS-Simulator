@@ -2,6 +2,7 @@
 #define _EMALGORITHM_WATERFALL_FCM_HPP
 
 #include "common.h"
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
@@ -25,6 +26,7 @@ private:
   vector<vector<vector<vector<vector<uint32_t>>>>>
       thresholds; // depth, degree, count, < stage, total coll, local
                   // colll, min_value >
+  vector<vector<vector<uint32_t>>> counters;
   vector<vector<vector<uint32_t>>> counter_dist; // initial counter values
   vector<double> dist_old, dist_new;             // for ratio \phi
   uint32_t w = W1;                               // width of counters
@@ -42,7 +44,7 @@ public:
                  uint32_t in_max_value, uint32_t max_degree,
                  vector<vector<vector<uint32_t>>> &counters)
       : max_degree(max_degree), max_counter_value(in_max_value),
-        counter_dist(DEPTH), thresholds(DEPTH) {
+        counter_dist(DEPTH), thresholds(DEPTH), counters(counters) {
 
     std::cout << "[EM_QWATERFALL_FCM] Init EMFSD" << std::endl;
 
@@ -91,12 +93,12 @@ public:
     }
     std::cout << "[EM_WATERFALL_FCM] Initial Flow Size Distribution guess"
               << std::endl;
-    for (auto &x : this->dist_new) {
-      if (x != 0) {
-        std::cout << x << " ";
-      }
-    }
-    std::cout << std::endl;
+    /*for (auto &x : this->dist_new) {*/
+    /*  if (x != 0) {*/
+    /*    std::cout << x << " ";*/
+    /*  }*/
+    /*}*/
+    /*std::cout << std::endl;*/
 
     this->ns.resize(this->max_counter_value + 1);
     for (size_t d = 0; d < DEPTH; d++) {
@@ -112,12 +114,12 @@ public:
     }
     std::cout << "[EM_WATERFALL_FCM] Summed Flow Size Distribution"
               << std::endl;
-    for (auto &x : this->dist_new) {
-      if (x != 0) {
-        std::cout << x << " ";
-      }
-    }
-    std::cout << std::endl;
+    /*for (auto &x : this->dist_new) {*/
+    /*  if (x != 0) {*/
+    /*    std::cout << x << " ";*/
+    /*  }*/
+    /*}*/
+    /*std::cout << std::endl;*/
 
     std::cout << "[EM_WATERFALL_FCM] Normalize guesses" << std::endl;
     // Normalize over inital cardinality
@@ -125,12 +127,12 @@ public:
       this->dist_new[i] /= (static_cast<double>(DEPTH) * this->n_new);
       this->ns[i] /= double(DEPTH);
     }
-    for (auto &x : this->dist_new) {
-      if (x != 0) {
-        std::cout << x << " ";
-      }
-    }
-    std::cout << std::endl;
+    /*for (auto &x : this->dist_new) {*/
+    /*  if (x != 0) {*/
+    /*    std::cout << x << " ";*/
+    /*  }*/
+    /*}*/
+    /*std::cout << std::endl;*/
 
     printf("[EM_WATERFALL_FCM] Initial Cardinality : %9.1f\n", this->n_new);
     printf("[EM_WATERFALL_FCM] Max Counter value : %d\n",
@@ -143,26 +145,31 @@ private:
     int sum;
     int now_flow_num;
     int flow_num_limit;
+    uint32_t in_degree;
     vector<int> now_result;
     vector<vector<uint32_t>> thresh;
 
     explicit BetaGenerator(uint32_t _sum, uint32_t _in_degree,
                            vector<vector<uint32_t>> _thresh)
-        : sum(_sum), flow_num_limit(_in_degree), thresh(_thresh) {
+        : sum(_sum), flow_num_limit(_in_degree), in_degree(_in_degree),
+          thresh(_thresh) {
+      std::reverse(thresh.begin(), thresh.end());
       now_flow_num = flow_num_limit;
       now_result.resize(_in_degree);
-      now_result[0] = 1;
+      for (size_t i = 0; i < now_result.size() - 1; i++) {
+        now_result[i] = 1;
+      }
 
       if (sum > 600) {
-        flow_num_limit = 2;
+        flow_num_limit = std::min(2, flow_num_limit);
       } else if (sum > 250)
-        flow_num_limit = 3;
+        flow_num_limit = std::min(3, flow_num_limit);
       else if (sum > 100)
-        flow_num_limit = 4;
+        flow_num_limit = std::min(4, flow_num_limit);
       else if (sum > 50)
-        flow_num_limit = 5;
-      // else
-      //   flow_num_limit = 6;
+        flow_num_limit = std::min(5, flow_num_limit);
+      else
+        flow_num_limit = std::min(6, flow_num_limit);
     }
 
     bool get_new_comb() {
@@ -187,7 +194,6 @@ private:
 
     bool get_next() {
       while (now_flow_num <= flow_num_limit) {
-        now_result.resize(now_flow_num);
         if (get_new_comb()) {
           if (check_condition()) {
             // std::ostringstream oss;
@@ -201,6 +207,7 @@ private:
         } else {
           // Extend current combination, e.g. 1 0 to 1 1 0
           now_flow_num++;
+          now_result.resize(now_flow_num);
           for (int i = 0; i < now_flow_num - 2; ++i) {
             now_result[i] = 1;
           }
@@ -211,23 +218,75 @@ private:
       return false;
     }
 
-    bool check_condition() {
-      // return true;
+    void print_now_result() {
+      std::cout << "Now result[" << now_result.size() << "] ";
+      for (auto &x : now_result) {
+        std::cout << x << " ";
+      }
+      std::cout << std::endl;
+    }
+
+    void print_thresholds() {
+      std::cout << "Threshold[" << thresh.size() << "] ";
       for (auto &t : thresh) {
+        std::cout << " <";
+        for (auto &x : t) {
+          std::cout << x;
+          if (&x != &t.back()) {
+            std::cout << ", ";
+          }
+        }
+        std::cout << "> ";
+      }
+      std::cout << std::endl;
+    }
+
+    void print_thresh(auto t) {
+      std::cout << "Thresh ";
+      std::cout << " <";
+      for (auto &x : t) {
+        std::cout << x;
+        if (&x != &t.back()) {
+          std::cout << ", ";
+        }
+      }
+      std::cout << "> ";
+      std::cout << std::endl;
+    }
+
+    bool check_condition() {
+      bool allOne = true;
+
+      for (auto &t : thresh) {
+        uint32_t tot_colls = t[1];
         uint32_t colls = t[2];
-        if (colls <= 1) {
+
+        if (colls <= 1 && tot_colls <= 1) {
           continue;
         }
-        uint32_t tot_curr_colls = t[2];
-        uint32_t group_sz = (uint32_t)now_flow_num / tot_curr_colls;
-        uint32_t last_group_sz = std::ceil(now_flow_num / tot_curr_colls);
+
+        allOne = false;
+        if (&t == &thresh.front()) {
+          continue;
+        }
+
+        /*print_thresholds();*/
+        /*print_now_result();*/
+
         uint32_t min_val = t[3];
+        uint32_t group_sz = std::floor(now_flow_num / tot_colls);
+        uint32_t last_group_sz = std::ceil(now_flow_num / tot_colls);
         uint32_t passes = 0;
-        uint32_t last_group_val = std::accumulate(
+
+        uint32_t val_last_group = std::accumulate(
             now_result.end() - last_group_sz, now_result.end(), 0);
-        if (last_group_val >= min_val) {
+        /*std::cout << "group sz " << group_sz << " last_group_sz "*/
+        /*          << last_group_sz << " last group val " << val_last_group*/
+        /*          << " min val " << min_val << std::endl;*/
+        if (val_last_group >= min_val) {
+          /*std::cout << "Passes min val" << std::endl;*/
           passes++;
-          for (size_t i = 0; i < tot_curr_colls - 1; i++) {
+          for (size_t i = 0; i < tot_colls - 1; i++) {
             uint32_t accum =
                 std::accumulate(now_result.begin() + i * group_sz,
                                 now_result.begin() + (i + 1) * group_sz, 0);
@@ -236,18 +295,32 @@ private:
             }
           }
         } else {
+          /*std::cout << "Shifting group" << std::endl;*/
           // Shift group to include first entry
-          last_group_val = std::accumulate(now_result.end() - last_group_sz + 1,
+          val_last_group = std::accumulate(now_result.end() - last_group_sz + 1,
                                            now_result.end(), 0) +
                            now_result[0];
-          if (last_group_val < min_val) {
+          /*std::cout << "group sz " << group_sz << " last_group_sz "*/
+          /*          << last_group_sz << " last group val " << val_last_group*/
+          /*          << " min val " << min_val << std::endl;*/
+          if (val_last_group < min_val) {
+            /*std::cout << "Invalid permutation of sum " << sum << std::endl;*/
+            /*print_thresh(t);*/
+            /*print_now_result();*/
             return false;
           }
           passes++;
-          for (size_t i = 0; i < tot_curr_colls - 1; i++) {
-            uint32_t accum =
-                std::accumulate(now_result.begin() + 1 + i * group_sz,
-                                now_result.begin() + 1 + (i + 1) * group_sz, 0);
+          for (size_t i = 0; i < tot_colls - 1; i++) {
+            uint32_t accum = 0;
+            if (1 + (i + 1) * group_sz >= now_result.size()) {
+              accum =
+                  std::accumulate(now_result.begin() + 1 + i * group_sz,
+                                  now_result.begin() + (i + 1) * group_sz, 0);
+            } else {
+              accum = std::accumulate(
+                  now_result.begin() + 1 + i * group_sz,
+                  now_result.begin() + 1 + (i + 1) * group_sz, 0);
+            }
             if (accum >= min_val) {
               passes++;
             }
@@ -257,19 +330,23 @@ private:
         // E.g. it needs have 2 values large than the L2 threshold +
         // predecessor (min_value)
         if (passes < colls) {
-          // std::cout << "Invalid permutation: ";
-          // for (auto &x : now_result) {
-          //   std::cout << x << " ";
-          // }
-          // std::cout << std::endl;
+          /*std::cout << "Invalid permutation of sum " << sum << std::endl;*/
+          /*print_thresh(t);*/
+          /*print_now_result();*/
           return false;
         }
       }
+      /*if (!allOne) {*/
+      /*  std::cout << "Not all 1, in_degree " << in_degree << std::endl;*/
+      /*  print_now_result();*/
+      /*  print_thresholds();*/
+      /*  std::cout << "Valid permutation" << std::endl;*/
+      /*}*/
       return true;
     }
   };
 
-  int factorial(int n) {
+  static constexpr int factorial(int n) {
     if (n == 0 || n == 1)
       return 1;
     return factorial(n - 1) * n;
@@ -289,14 +366,6 @@ private:
       uint32_t si = kv.first;
       double lambda_i = now_n * (now_dist[si] * degree) / w;
       ret *= (std::pow(lambda_i, fi)) / factorial(fi);
-      // if (lambda_i > 0) {
-      //   for (auto &x : bt.now_result) {
-      //     std::cout << x << " ";
-      //   }
-      //   std::cout << std::endl;
-      //   std::cout << lambda_i << " " << now_dist[si] << std::endl;
-      //   std::cout << si << " " << fi << " >> " << ret << std::endl;
-      // }
     }
 
     return ret;
@@ -311,22 +380,18 @@ private:
            "**********\n",
            xi, this->counter_dist[d][xi].size());
 
-    for (uint32_t i = 0; i < this->counter_dist[d][xi].size(); i++) {
-      if (this->counter_dist[d][xi][i] == 0) {
+    for (uint32_t i = 0; i < this->counters[d][xi].size(); i++) {
+      if (this->counters[d][xi][i] == 0) {
         continue;
       }
-      if (xi > 2) {
-        std::cout << "Found value " << i << " with count of "
-                  << counter_dist[d][xi][i] << std::endl;
-      }
 
-      BetaGenerator alpha(i, xi, this->thresholds[d][xi][i]),
-          beta(i, xi, this->thresholds[d][xi][i]);
+      BetaGenerator alpha(this->counters[d][xi][i], xi,
+                          this->thresholds[d][xi][i]),
+          beta(this->counters[d][xi][i], xi, this->thresholds[d][xi][i]);
       double sum_p = 0.0;
       uint32_t it = 0;
 
       double lambda = this->n_old * xi / double(W1);
-      std::cout << "Get alpha combinations" << std::endl;
       // Sum over first combinations
       while (alpha.get_next()) {
         double p =
@@ -335,34 +400,28 @@ private:
         it++;
       }
 
-      std::cout << "Finished alpha" << std::endl;
-      // If no results, but I did have combinations, spread out the value
+      // If there where valid combinations, but value of combinations where not
+      // found in measured data. We
       if (sum_p == 0.0) {
         if (it > 0) {
-          std::cout << "Sum was 0 so spread out" << std::endl;
-          uint32_t temp_val = i;
+          uint32_t temp_val = this->counters[d][xi][i];
           vector<vector<uint32_t>> temp_thresh = this->thresholds[d][xi][i];
-          // Start from lowest layer to highest layer
-          std::reverse(temp_thresh.begin(), temp_thresh.end());
           for (auto &t : temp_thresh) {
-            if (temp_val < t[1] * (t[0] - 1)) {
-              break;
+            if (temp_val < t[3] * (t[2] - 1)) {
+              continue;
             }
-            temp_val -= t[1] * (t[0] - 1);
+            temp_val -= t[3] * (t[2] - 1);
           }
           if (temp_val >= 0 and temp_val <= this->max_counter_value) {
             nt[temp_val] += 1;
           }
         }
       } else {
-        std::cout << "Get beta values" << std::endl;
-        std::cout << "Found value " << i << " with count of "
-                  << counter_dist[d][xi][i] << std::endl;
         while (beta.get_next()) {
           double p =
               get_p_from_beta(beta, lambda, this->dist_old, this->n_old, xi);
           for (size_t j = 0; j < beta.now_flow_num; ++j) {
-            nt[beta.now_result[j]] += this->counter_dist[d][xi][i] * p / sum_p;
+            nt[beta.now_result[j]] += p / sum_p;
           }
         }
       }
@@ -377,9 +436,9 @@ private:
       std::cout << std::endl;
     }
     if (this->counter_dist[d][xi].size() != 0)
-      printf("[EM_WATERFALL_FCM] ******** degree %2d is "
+      printf("[EM_WATERFALL_FCM] ******** depth %d degree %2d is "
              "finished...(accum:%10.1f #val:%8d)\t**********\n",
-             xi, accum, (int)this->counter_dist[d][xi].size());
+             d, xi, accum, (int)this->counter_dist[d][xi].size());
   }
 
 public:
@@ -426,18 +485,22 @@ public:
       }
     }
 
+    std::cout
+        << "[EM_WATERFALL_FCM] Started all threads, wait for them to finish..."
+        << std::endl;
+
     for (size_t d = 0; d < DEPTH; d++) {
-      for (size_t t = 0; t < threads[d].size(); t++) {
+      for (size_t t = 2; t < threads[d].size(); t++) {
         threads[d][t].join();
       }
     }
 
     // Single threaded
-    for (size_t d = 0; d < DEPTH; d++) {
-      for (size_t xi = 2; xi <= this->max_degree; xi++) {
-        this->calculate_degree(nt[d][xi], d, xi);
-      }
-    }
+    /*for (size_t d = 0; d < DEPTH; d++) {*/
+    /*  for (size_t xi = 2; xi <= this->max_degree; xi++) {*/
+    /*    this->calculate_degree(nt[d][xi], d, xi);*/
+    /*  }*/
+    /*}*/
 
     std::cout << "[EM_WATERFALL_FCM] Finished calculating nt per degree"
               << std::endl;
@@ -468,7 +531,7 @@ public:
            time.count());
     printf("[EM_WATERFALL_FCM - iter %2d] Intermediate cardianlity : "
            "%9.1f\n\n",
-           iter, n_new);
+           iter, this->n_new);
     iter++;
   }
 };

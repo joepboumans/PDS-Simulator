@@ -148,11 +148,9 @@ void qWaterfall<TUPLE, HASH>::analyze(int epoch) {
   }
   this->f1 = 2 * ((recall * precision) / (precision + recall));
 
-  std::cout << "[qWaterfall] True data size " << n - 1 << std::endl;
   // Load factor
-  this->load_factor = double(this->insertions) / (n - 1);
-
-  std::cout << std::endl;
+  this->load_factor = double(this->insertions) / n;
+  std::cout << "[qWaterfall] True data size " << n << std::endl;
 
   char msg[200];
   sprintf(msg,

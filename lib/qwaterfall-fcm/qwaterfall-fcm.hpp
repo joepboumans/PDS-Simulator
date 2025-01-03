@@ -70,7 +70,7 @@ public:
 
   void store_data();
   void print_sketch();
-  vector<double> get_distribution(set<TUPLE> tuples);
+  double calculate_fsd(set<TUPLE> &tuples, vector<uint32_t> &true_fsd);
   void set_estimate_fsd(bool onoff);
 };
 

@@ -11,30 +11,35 @@ template class Simulator<PDS<FIVE_TUPLE, fiveTupleHash>, TRACE>;
 template class Simulator<PDS<FLOW_TUPLE, flowTupleHash>, TRACE_FLOW>;
 
 template <typename P, typename T>
-int Simulator<P, T>::run(const T &trace, unsigned int duration) {
+int Simulator<P, T>::run(const T &trace, unsigned int iters) {
+  // Scale duration to a minimum for smaller datasets
   unsigned long num_pkts = trace.size();
-  unsigned long line_rate = std::floor(num_pkts / this->epoch_len) - 1; // per
-  line_rate = std::max(line_rate, (unsigned long)1);
-  unsigned long packets_per_epoch = line_rate;
+  if (num_pkts < this->duration) {
+    this->duration = num_pkts;
+  }
+
+  // Calculate the speed/line rate of the simulation
+  unsigned long packets_per_epoch = std::floor(num_pkts / this->duration);
   std::cout << "Starting run with " << this->n_pds << " stage(s) over "
-            << num_pkts << " packets" << " with a line rate of " << line_rate
-            << " p/s over " << duration << " epoch(s)" << std::endl;
+            << num_pkts << " packets" << " with " << packets_per_epoch
+            << " packets/epoch over " << iters << " epoch(s)" << std::endl;
 
-  auto start = std::chrono::high_resolution_clock::now();
   // Run over each epoch and insert, analyze and reset
-  for (size_t i = 0; i < duration; i++) {
-    std::cout << "\rEpoch: " << i << std::endl;
-    this->insert(trace, i * packets_per_epoch, (i + 1) * packets_per_epoch - 1);
+  auto start = std::chrono::high_resolution_clock::now();
+  for (size_t i = 0; i < iters; i++) {
+    std::cout << std::endl << "--- Epoch: " << i << " ---" << std::endl;
 
+    this->insert(trace, i * packets_per_epoch, (i + 1) * packets_per_epoch);
     for (auto p : this->pds) {
       p->analyze(i);
       p->reset();
     }
   }
+
   auto stop = std::chrono::high_resolution_clock::now();
   auto time = duration_cast<std::chrono::milliseconds>(stop - start);
   std::cout << std::endl;
-  std::cout << "Finished data set with time: " << time << std::endl;
+  std::cout << "Finished data set with time: " << time << " ms" << std::endl;
 
   return 0;
 }
@@ -42,9 +47,15 @@ int Simulator<P, T>::run(const T &trace, unsigned int duration) {
 template <typename P, typename T>
 int Simulator<P, T>::insert(const T &trace, int start, int end) {
   for (size_t i = start; i < end; i++) {
+    // Prevent going out of bounds
+    if (i >= trace.size()) {
+      break;
+    }
+
+    // Insert and do not continue to the next PDS if return anything other
+    // than 0
     for (auto p : this->pds) {
       int res = p->insert(trace.at(i));
-      // Do not continue to the next PDS if return anything other than 0
       if (!res) {
         break;
       }

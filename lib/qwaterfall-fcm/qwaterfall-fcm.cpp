@@ -70,38 +70,11 @@ void qWaterfall_Fcm<TUPLE, HASH>::analyze(int epoch) {
       true_fsd[count]++;
     }
 
-    this->wmre = 0.0;
-    double wmre_nom = 0.0;
-    double wmre_denom = 0.0;
     auto start = std::chrono::high_resolution_clock::now();
-    vector<double> em_fsd = this->get_distribution(this->qwaterfall.tuples);
-
-    uint32_t max_len = std::max(true_fsd.size(), em_fsd.size());
-    true_fsd.resize(max_len);
-    em_fsd.resize(max_len);
-    // std::cout << "[EM_FSD] True FSD : ";
-    // for (size_t i = 0; i < true_fsd.size(); i++) {
-    //   if (true_fsd[i] != 0) {
-    //
-    //     std::cout << i << " = " << true_fsd[i] << "\t";
-    //   }
-    // }
-    // std::cout << std::endl;
-    // std::cout << "[EM_FSD] Estimated FSD : ";
-    // for (size_t i = 0; i < em_fsd.size(); i++) {
-    //   if (em_fsd[i] != 0) {
-    //     std::cout << i << " = " << em_fsd[i] << "\t";
-    //   }
-    // }
-    // std::cout << std::endl;
-
-    for (size_t i = 0; i < max_len; i++) {
-      wmre_nom += std::abs(double(true_fsd[i]) - em_fsd[i]);
-      wmre_denom += double((double(true_fsd[i]) + em_fsd[i]) / 2);
-    }
-    this->wmre = wmre_nom / wmre_denom;
+    this->wmre = this->calculate_fsd(this->qwaterfall.tuples, true_fsd);
     auto stop = std::chrono::high_resolution_clock::now();
     auto time = duration_cast<std::chrono::milliseconds>(stop - start);
+
     em_time = time.count();
     printf("[EM_FSD] WMRE : %f\n", this->wmre);
     printf("[EM_FSD] Total time %li ms\n", em_time);
@@ -124,8 +97,8 @@ void qWaterfall_Fcm<TUPLE, HASH>::analyze(int epoch) {
 }
 
 template <typename TUPLE, typename HASH>
-vector<double>
-qWaterfall_Fcm<TUPLE, HASH>::get_distribution(set<TUPLE> tuples) {
+double qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd(set<TUPLE> &tuples,
+                                                  vector<uint32_t> &true_fsd) {
   // Setup initial degrees for each input counter (stage 0)
   std::cout << "[qWaterfall_Fcm] Calculate initial degrees from qWaterfall..."
             << std::endl;
@@ -235,26 +208,10 @@ qWaterfall_Fcm<TUPLE, HASH>::get_distribution(set<TUPLE> tuples) {
             thresholds[d].resize(degree + 1);
             virtual_counters[d].resize(degree + 1);
           }
-          // Add entry to VC with its degree [1] and count [0]
-          virtual_counters[d][degree].push_back(count);
           max_degree = std::max(max_degree, degree);
-          if (stage > 1) {
-            std::cout << "Stage 3 counts " << count << std::endl;
-            std::cout << "End of counter of with degree " << degree
-                      << " of index " << i << " at stage " << stage
-                      << std::endl;
-          }
-
-          // Remove 1 collsions
-          // for (size_t j = overflow_paths[d][stage][i].size() - 1; j > 0; --j)
-          // {
-          //   if (overflow_paths[d][stage][i][j][2] <= 1) {
-          //     overflow_paths[d][stage][i].erase(overflow_paths[d][stage][i].begin()
-          //     +
-          //                                    j);
-          //   }
-          // }
-
+          // Add entry to VC with its degree [1] and count [0], and add it to
+          // the thresholds
+          virtual_counters[d][degree].push_back(count);
           thresholds[d][degree].push_back(overflow_paths[d][stage][i]);
         }
       }
@@ -294,7 +251,7 @@ qWaterfall_Fcm<TUPLE, HASH>::get_distribution(set<TUPLE> tuples) {
     std::cout << "Depth " << d << " : ";
     for (size_t st = 0; st < virtual_counters[d].size(); st++) {
       for (auto &val : virtual_counters[d][st]) {
-        std::cout << " " << val;
+        /*std::cout << " " << val;*/
         max_counter_value = std::max(max_counter_value, val);
       }
     }
@@ -308,13 +265,29 @@ qWaterfall_Fcm<TUPLE, HASH>::get_distribution(set<TUPLE> tuples) {
                         virtual_counters);
 
   std::cout << "Initialized EM_FSD, starting estimation..." << std::endl;
+  double wmre = 0.0;
+  double d_wmre = 0.0;
   for (size_t i = 0; i < this->em_iters; i++) {
     em_fsd.next_epoch();
-    /*em_fsd->test();*/
+    vector<double> ns = em_fsd.ns;
+
+    uint32_t max_len = std::max(true_fsd.size(), ns.size());
+    true_fsd.resize(max_len);
+    ns.resize(max_len);
+
+    double wmre_nom = 0.0;
+    double wmre_denom = 0.0;
+    for (size_t i = 0; i < max_len; i++) {
+      wmre_nom += std::abs(double(true_fsd[i]) - ns[i]);
+      wmre_denom += double((double(true_fsd[i]) + ns[i]) / 2);
+    }
+    wmre = wmre_nom / wmre_denom;
+    std::cout << "[qWaterfall_Fcm - EM FSD iter " << i << "] intermediary wmre "
+              << wmre << " delta: " << wmre - d_wmre << std::endl;
+    d_wmre = wmre;
   }
-  vector<double> output = {1, 2}; // em_fsd.ns;
   std::cout << "...done!" << std::endl;
-  return output;
+  return wmre;
 }
 
 #endif // !_Q_WATERFALL_CPP

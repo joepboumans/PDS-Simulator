@@ -39,7 +39,7 @@ int main() {
   }
   globfree(glob_res);
 
-  uint32_t sim_length = 60;
+  uint32_t sim_length = 10;
   uint32_t iter = 1;
 
   for (string &f : filenames) {
@@ -96,7 +96,7 @@ int main() {
     /*    std::numeric_limits<uint32_t>::max(), f, 0, 0);*/
     /*stages.push_back(&qwaterfall);*/
 
-    qWaterfall_Fcm<FLOW_TUPLE, flowTupleHash> qwaterfall_fcm(4, 1, f, 0, 0);
+    qWaterfall_Fcm<FLOW_TUPLE, flowTupleHash> qwaterfall_fcm(4, 3, f, 0, 0);
     stages.push_back(&qwaterfall_fcm);
 
     /*qWaterfall<FLOW_TUPLE, flowTupleHash> qwaterfall(*/
@@ -125,8 +125,9 @@ int main() {
     std::cout << "[Simulator] Starting simulations..." << std::endl;
     sim.run(trace, iter);
     std::cout << "[Simulator] ...done!" << std::endl;
+    std::cout << std::endl << std::endl;
 
-    continue;
+    break;
     // Run simulations on 5-tuple
     /*std::cout << "[DataParser] Start parsing " << f << "..." << std::endl;*/
     /*dataParser<FIVE_TUPLE, TRACE> data_parser_5t;*/

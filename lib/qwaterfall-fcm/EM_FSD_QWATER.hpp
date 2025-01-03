@@ -38,12 +38,14 @@ public:
   double n_sum;
   double card_init; // initial cardinality by MLE
   uint32_t iter = 0;
-  EM_FSD_QW_FCMS(vector<vector<vector<vector<vector<uint32_t>>>>> thresh,
+  EM_FSD_QW_FCMS(vector<vector<vector<vector<vector<uint32_t>>>>> &thresh,
                  uint32_t in_max_value, uint32_t max_degree,
-                 vector<vector<vector<uint32_t>>> counters)
+                 vector<vector<vector<uint32_t>>> &counters)
       : max_degree(max_degree), max_counter_value(in_max_value),
         counter_dist(DEPTH), thresholds(DEPTH) {
+
     std::cout << "[EM_QWATERFALL_FCM] Init EMFSD" << std::endl;
+
     // Setup counters and counters_distribution for estimation, counter_dist is
     // Depth, Degree, Count
     for (size_t d = 0; d < DEPTH; d++) {
@@ -58,7 +60,7 @@ public:
     std::cout << "[EM_WATERFALL_FCM] Finished setting up counter_dist and "
                  "thresholds"
               << std::endl;
-    // Inital guess for # of flows, sum total number of this->counters
+    // Inital guess for # of flows, sum total number of counters
     this->n_new = 0.0; // # of flows (Cardinality)
     for (size_t d = 0; d < DEPTH; d++) {
       for (size_t xi = 0; xi < counters[d].size(); xi++) {
@@ -382,7 +384,6 @@ private:
 
 public:
   void next_epoch() {
-    return;
     std::cout << "[EM_WATERFALL_FCM] Start next epoch" << std::endl;
     auto start = std::chrono::high_resolution_clock::now();
 

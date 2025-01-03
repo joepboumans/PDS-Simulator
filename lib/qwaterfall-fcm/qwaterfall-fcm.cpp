@@ -3,7 +3,6 @@
 
 #include "qwaterfall-fcm.hpp"
 #include "EM_FSD_QWATER.hpp"
-#include "EM_FSD_t.hpp"
 #include "common.h"
 #include <cmath>
 #include <cstdint>
@@ -126,7 +125,7 @@ void qWaterfall_Fcm<TUPLE, HASH>::analyze(int epoch) {
 
 template <typename TUPLE, typename HASH>
 vector<double>
-qWaterfall_Fcm<TUPLE, HASH>::get_distribution(set<TUPLE> &tuples) {
+qWaterfall_Fcm<TUPLE, HASH>::get_distribution(set<TUPLE> tuples) {
   // Setup initial degrees for each input counter (stage 0)
   std::cout << "[qWaterfall_Fcm] Calculate initial degrees from qWaterfall..."
             << std::endl;
@@ -140,10 +139,13 @@ qWaterfall_Fcm<TUPLE, HASH>::get_distribution(set<TUPLE> &tuples) {
     }
   }
   std::cout << "[qWaterfall_Fcm] ...done!" << std::endl;
-  // for (size_t i = 0; i < init_degree.size(); i++) {
-  //   std::cout << i << ":" << init_degree[i] << " ";
-  // }
-  // std::cout << std::endl;
+  for (size_t d = 0; d < DEPTH; d++) {
+    std::cout << "Depth " << d << std::endl;
+    for (size_t i = 0; i < init_degree.size(); i++) {
+      std::cout << i << ":" << init_degree[d][i] << " ";
+    }
+    std::cout << std::endl;
+  }
 
   uint32_t max_counter_value = 0;
   // Summarize sketch and find collisions
@@ -292,7 +294,7 @@ qWaterfall_Fcm<TUPLE, HASH>::get_distribution(set<TUPLE> &tuples) {
     std::cout << "Depth " << d << " : ";
     for (size_t st = 0; st < virtual_counters[d].size(); st++) {
       for (auto &val : virtual_counters[d][st]) {
-        /*std::cout << " " << val;*/
+        std::cout << " " << val;
         max_counter_value = std::max(max_counter_value, val);
       }
     }

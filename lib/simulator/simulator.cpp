@@ -24,7 +24,7 @@ int Simulator<P, T>::run(const T &trace, unsigned int duration) {
   for (size_t i = 0; i < duration; i++) {
     // std::cout << "\rEpoch: " << i << std::flush;
     std::cout << "\rEpoch: " << i << std::endl;
-    this->insert(trace, i * packets_per_epoch, (i + 1) * packets_per_epoch);
+    this->insert(trace, i * packets_per_epoch, (i + 1) * packets_per_epoch - 1);
     // Store data, analyze data and reset the PDS
     for (auto p : this->pds) {
       p->analyze(i);
@@ -42,10 +42,6 @@ int Simulator<P, T>::run(const T &trace, unsigned int duration) {
 template <typename P, typename T>
 int Simulator<P, T>::insert(const T &trace, int start, int end) {
   for (size_t i = start; i < end; i++) {
-    if (i >= trace.size()) {
-      break;
-    }
-
     for (auto p : this->pds) {
       int res = p->insert(trace.at(i));
       // Do not continue to the next PDS if return anything other than 0

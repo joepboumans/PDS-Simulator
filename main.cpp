@@ -100,8 +100,8 @@ int main() {
     /*                                                         f, 0, 0);*/
     /*stages.push_back(&qwaterfall_fcm);*/
     qWaterfall<FLOW_TUPLE, flowTupleHash> qwaterfall(
-        4, 8 * std::numeric_limits<uint16_t>::max(),
-        8 * std::numeric_limits<uint16_t>::max(), f, 0, 0);
+        4, std::numeric_limits<uint16_t>::max(),
+        std::numeric_limits<uint16_t>::max(), f, 0, 0);
     stages.push_back(&qwaterfall);
     /**/
     /*qWaterfall<FLOW_TUPLE, flowTupleHash> qwaterfall_16(*/

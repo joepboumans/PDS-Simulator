@@ -56,7 +56,7 @@ public:
 
   uint32_t insert(TUPLE tuple);
   uint32_t hashing(TUPLE tuple, uint32_t k);
-  uint32_t rehashing(uint32_t idx, uint32_t val, uint32_t k);
+  uint32_t rehashing(uint32_t hashed_val, uint32_t k);
   uint32_t lookup(TUPLE tuple);
   void reset();
 

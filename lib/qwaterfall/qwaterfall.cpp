@@ -44,14 +44,16 @@ uint32_t qWaterfall<TUPLE, HASH>::insert(TUPLE tuple) {
       this->tables[0][idx] = val;
       return 1;
     }
+    // Push new value into the first table
     uint32_t prev_val = this->tables[0][idx];
     this->tables[0][idx] = val;
 
+    // Repeatedly push values into the tables until empty spot
     for (size_t i = 1; i < this->n_tables; i++) {
       idx = this->rehashing(idx, prev_val, i) % this->table_length;
       val =
           this->rehashing(idx, prev_val, i + this->n_tables) % this->val_length;
-      // Repeat until insertion into empty slot or until we run out of tables
+
       if (this->tables[i][idx] == 0) {
         this->tables[i][idx] = val;
         return 1;
@@ -79,6 +81,7 @@ uint32_t qWaterfall<TUPLE, HASH>::lookup(TUPLE tuple) {
       idx = this->rehashing(idx, prev_val, i) % this->table_length;
       val =
           this->rehashing(idx, prev_val, i + this->n_tables) % this->val_length;
+
       if (this->tables[i][idx] == val) {
         return 1;
       }

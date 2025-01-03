@@ -40,7 +40,7 @@ public:
     // Setup Hashing
     this->hash = new BOBHash32[this->n_tables * 2];
     for (size_t i = 0; i < this->n_tables * 2; i++) {
-      this->hash[i].initialize(750 + n_struct * this->n_tables + i);
+      this->hash[i].initialize(750 + n_struct * this->n_tables * 2 + i);
     }
 
     // Setup logging
@@ -70,8 +70,6 @@ public:
 
   void store_data();
   void print_sketch();
-  vector<double> get_distribution(set<TUPLE> tuples);
-  void set_estimate_fsd(bool onoff);
 };
 
 #endif // !_Q_WATERFALL_HPP

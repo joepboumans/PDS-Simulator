@@ -39,29 +39,64 @@ int main() {
   }
   globfree(glob_res);
 
-  uint32_t sim_length = 10;
+  uint32_t sim_length = 2;
   uint32_t iter = 1;
+
   for (string &f : filenames) {
     std::cout << "[DataParser] Start parsing " << f << "..." << std::endl;
     dataParser<FLOW_TUPLE, TRACE_FLOW> data_parser;
     TRACE_FLOW trace = data_parser.get_trace(f.data());
     std::cout << "[DataParser] Finished parsing data" << std::endl;
 
-    vector<PDS<FLOW_TUPLE, flowTupleHash> *> stages;
+    // PDS
+    /*WaterfallFCM<FLOW_TUPLE, flowTupleHash> waterfall_fcm(8192, 3, 8, 100000,
+     * 1,*/
+    /*                                                      4, 65355, f, 0,
+     * 0);*/
+
+    qWaterfall_Fcm<FLOW_TUPLE, flowTupleHash> qwaterfall_fcm(4, 65355, 65355, 5,
+                                                             f, 0, 0);
+
+    unsigned long num_pkts = trace.size();
+    unsigned long packets_per_epoch =
+        std::floor(num_pkts / sim_length) - 1; // per iteration
+    std::cout << "[Sim] Starting run with of " << f << " over " << num_pkts
+              << " packets" << " with a line rate of " << packets_per_epoch
+              << " p/s over " << iter << " epoch(s)" << std::endl;
+
+    // Split into epochs for simulations
+    auto start = std::chrono::high_resolution_clock::now();
+    for (size_t i = 0; i < iter; i++) {
+      std::cout << "\rEpoch: " << i << std::endl;
+      for (size_t j = i * packets_per_epoch; j < (i + 1) * packets_per_epoch;
+           j++) {
+        // Exit if running outside of trace
+        if (j >= trace.size()) {
+          break;
+        }
+
+        // Add PDS here
+        /*waterfall_fcm.insert(trace.at(j));*/
+        qwaterfall_fcm.insert(trace.at(j));
+      }
+      // Store data, analyze data and reset the PDS
+      qwaterfall_fcm.analyze(i);
+      qwaterfall_fcm.reset();
+    }
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto time = duration_cast<std::chrono::milliseconds>(stop - start);
+    std::cout << std::endl;
+    std::cout << "[Sim] Finished data set with time: " << time << std::endl;
 
     /*qWaterfall<FLOW_TUPLE, flowTupleHash> qwaterfall(*/
     /*    4, std::numeric_limits<uint16_t>::max(),*/
     /*    std::numeric_limits<uint32_t>::max(), f, 0, 0);*/
     /*stages.push_back(&qwaterfall);*/
 
-    /*WaterfallFCM<FLOW_TUPLE, flowTupleHash> waterfall_fcm(8192, 3, 8, 100000,
+    /*qWaterfall_Fcm<FLOW_TUPLE, flowTupleHash> qwaterfall_fcm(4, 65355, 65355,
      * 5,*/
-    /*                                                      4, 65355, f, 0,
-     * 0);*/
-    /*stages.push_back(&waterfall_fcm);*/
-    qWaterfall_Fcm<FLOW_TUPLE, flowTupleHash> qwaterfall_fcm(4, 65355, 65355, 5,
-                                                             f, 0, 0);
-    stages.push_back(&qwaterfall_fcm);
+    /*                                                         f, 0, 0);*/
+    /*stages.push_back(&qwaterfall_fcm);*/
     /*qWaterfall<FLOW_TUPLE, flowTupleHash> qwaterfall_8(*/
     /*    4, 4 * std::numeric_limits<uint16_t>::max(),*/
     /*    4 * std::numeric_limits<uint16_t>::max(),
@@ -82,14 +117,15 @@ int main() {
     /*    0, 0);*/
     /*stages.push_back(&cuckoo);*/
 
-    std::cout << "[PDS] Added " << stages.size() << " stages" << std::endl;
-    Simulator<PDS<FLOW_TUPLE, flowTupleHash>, TRACE_FLOW> sim(
-        stages, stages.size(), sim_length);
-    std::cout << "[Simulator] Created simulator for FLOW_TUPLE" << std::endl;
-
-    std::cout << "[Simulator] Starting simulations..." << std::endl;
-    sim.run(trace, iter);
-    std::cout << "[Simulator] ...done!" << std::endl;
+    /*std::cout << "[PDS] Added " << stages.size() << " stages" << std::endl;*/
+    /*Simulator<PDS<FLOW_TUPLE, flowTupleHash>, TRACE_FLOW> sim(*/
+    /*    stages, stages.size(), sim_length);*/
+    /*std::cout << "[Simulator] Created simulator for FLOW_TUPLE" <<
+     * std::endl;*/
+    /**/
+    /*std::cout << "[Simulator] Starting simulations..." << std::endl;*/
+    /*sim.run(trace, iter);*/
+    /*std::cout << "[Simulator] ...done!" << std::endl;*/
 
     continue;
     // Run simulations on 5-tuple

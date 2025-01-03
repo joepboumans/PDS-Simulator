@@ -30,9 +30,13 @@ public:
   qWaterfall(uint32_t n_tables, uint32_t table_length, uint32_t val_length,
              string trace, uint32_t n_stage, uint32_t n_struct)
       : PDS<TUPLE, HASH>(trace, n_stage, n_struct), n_tables(n_tables),
-        table_length(table_length), val_length(val_length),
-        tables(n_tables, vector<uint32_t>(table_length)) {
+        table_length(table_length), val_length(val_length) {
 
+    // Setup Tables
+    this->tables.resize(n_tables);
+    for (auto &table : this->tables) {
+      table.resize(table_length);
+    }
     // Setup Hashing
     this->hash = new BOBHash32[this->n_tables * 2];
     for (size_t i = 0; i < this->n_tables * 2; i++) {
@@ -43,6 +47,8 @@ public:
     this->csv_header = "Epoch,Insertions,Collisions,Recall,Precision,F1";
     this->name = "qWaterfall";
     this->trace_name = trace;
+    this->rows = this->table_length;
+    this->columns = this->n_tables;
     this->mem_sz = this->n_tables * this->table_length;
     std::cout << "Total memory used: " << this->mem_sz << std::endl;
     this->setupLogging();

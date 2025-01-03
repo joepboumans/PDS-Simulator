@@ -49,6 +49,8 @@ public:
                        "Time,Iterations,Insertions,Collisions,F1 Member";
     this->name = "qWaterfall_Fcm";
     this->trace_name = trace;
+    this->rows = table_length;
+    this->columns = n_tables;
     this->mem_sz = this->fcm_sketches.mem_sz + this->qwaterfall.mem_sz;
     std::cout << "Total memory used: " << this->mem_sz << std::endl;
     this->setupLogging();
@@ -73,7 +75,7 @@ public:
 
   void store_data();
   void print_sketch();
-  vector<double> get_distribution(set<TUPLE> tuples);
+  vector<double> get_distribution(set<TUPLE> &tuples);
   void set_estimate_fsd(bool onoff);
 };
 

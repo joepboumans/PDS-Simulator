@@ -3,6 +3,7 @@
 
 #include "qwaterfall-fcm.hpp"
 #include "EM_FSD_QWATER.hpp"
+#include "EM_FSD_t.hpp"
 #include "common.h"
 #include <cmath>
 #include <cstdint>
@@ -125,7 +126,7 @@ void qWaterfall_Fcm<TUPLE, HASH>::analyze(int epoch) {
 
 template <typename TUPLE, typename HASH>
 vector<double>
-qWaterfall_Fcm<TUPLE, HASH>::get_distribution(set<TUPLE> tuples) {
+qWaterfall_Fcm<TUPLE, HASH>::get_distribution(set<TUPLE> &tuples) {
   // Setup initial degrees for each input counter (stage 0)
   std::cout << "[qWaterfall_Fcm] Calculate initial degrees from qWaterfall..."
             << std::endl;
@@ -301,14 +302,13 @@ qWaterfall_Fcm<TUPLE, HASH>::get_distribution(set<TUPLE> tuples) {
   std::cout << "Maximum degree is: " << max_degree << std::endl;
   std::cout << "Maximum counter value is: " << max_counter_value << std::endl;
 
-  EMFSD em_fsd(thresholds, max_counter_value, max_degree, virtual_counters);
-  /*delete em_fsd;*/
+  EM_FSD_QW_FCMS em_fsd(thresholds, max_counter_value, max_degree,
+                        virtual_counters);
 
-  /*EM_FCM<DEPTH, W1, OVERFLOW_LEVEL1, OVERFLOW_LEVEL2> em_fsd;*/
-  /*em_fsd.set_counters(virtual_counters, thresholds);*/
   std::cout << "Initialized EM_FSD, starting estimation..." << std::endl;
   for (size_t i = 0; i < this->em_iters; i++) {
-    /*em_fsd.next_epoch();*/
+    em_fsd.next_epoch();
+    /*em_fsd->test();*/
   }
   vector<double> output = {1, 2}; // em_fsd.ns;
   std::cout << "...done!" << std::endl;

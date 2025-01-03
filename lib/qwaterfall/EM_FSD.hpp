@@ -34,6 +34,7 @@ public:
   double card_init; // initial cardinality by MLE
   uint32_t iter = 0;
   bool inited = false;
+
   EMFSD(vector<uint32_t> szes, vector<vector<vector<vector<uint32_t>>>> thresh,
         uint32_t in_max_value, uint32_t max_degree, uint32_t card,
         vector<vector<uint32_t>> counters)
@@ -42,7 +43,7 @@ public:
 
     // Setup distribution and the thresholds for it
     this->counter_dist = vector<vector<uint32_t>>(
-        max_degree + 1, vector<uint32_t>(this->max_counter_value + 1, 0));
+        this->max_degree + 1, vector<uint32_t>(this->max_counter_value + 1, 0));
     this->thresholds.resize(this->counters.size());
     for (size_t d = 0; d < this->counters.size(); d++) {
       if (counters[d].size() == 0) {
@@ -329,26 +330,25 @@ private:
 public:
   void next_epoch() {
     auto start = std::chrono::high_resolution_clock::now();
-    double lambda = n_old / double(w);
-    dist_old = dist_new;
-    n_old = n_new;
+    this->dist_old = this->dist_new;
+    this->n_old = this->n_new;
 
     vector<vector<double>> nt;
-    nt.resize(max_degree + 1);
-    std::fill(ns.begin(), ns.end(), 0);
+    nt.resize(this->max_degree + 1);
+    std::fill(this->ns.begin(), this->ns.end(), 0);
 
     // Always copy first degree as this is the already perfect estimation
-    nt[1].resize(counter_dist[1].size());
-    for (size_t i = 0; i < counter_dist[1].size(); i++) {
-      nt[1][i] = counter_dist[1][i];
+    nt[1].resize(this->counter_dist[1].size());
+    for (size_t i = 0; i < this->counter_dist[1].size(); i++) {
+      nt[1][i] = this->counter_dist[1][i];
     }
     // Simple Multi thread
-    std::thread threads[max_degree + 1];
-    for (size_t t = 2; t <= max_degree; t++) {
+    std::thread threads[this->max_degree + 1];
+    for (size_t t = 2; t <= this->max_degree; t++) {
       threads[t] =
           std::thread(&EMFSD::calculate_degree, *this, std::ref(nt[t]), t);
     }
-    for (size_t t = 2; t <= max_degree; t++) {
+    for (size_t t = 2; t <= this->max_degree; t++) {
       threads[t].join();
     }
 
@@ -361,18 +361,18 @@ public:
     //   }
     // }
 
-    n_new = 0.0;
+    this->n_new = 0.0;
     for (size_t d = 0; d < nt.size(); d++) {
       // if (nt[d].size() > 0) {
       //   std::cout << "Size of nt[" << d << "] " << nt[d].size() << std::endl;
       // }
       for (uint32_t i = 0; i < nt[d].size(); i++) {
-        ns[i] += nt[d][i];
-        n_new += nt[d][i];
+        this->ns[i] += nt[d][i];
+        this->n_new += nt[d][i];
       }
     }
     for (uint32_t i = 0; i < ns.size(); i++) {
-      dist_new[i] = ns[i] / n_new;
+      this->dist_new[i] = this->ns[i] / this->n_new;
     }
     auto stop = std::chrono::high_resolution_clock::now();
     auto time = duration_cast<std::chrono::milliseconds>(stop - start);

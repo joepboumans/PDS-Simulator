@@ -54,7 +54,9 @@ target_link_libraries(
          lib-cuckoo-hash
          lib-waterfall-fcm
         lib-qwaterfall
-        lib-qwaterfall-fcm)
+        lib-qwaterfall-fcm
+        # xxHash::xxhash
+)
 target_include_directories(main PUBLIC ${CMAKE_SOURCE_DIR}
                                        ${CMAKE_HOME_DIRECTORY})
 target_compile_options(main PRIVATE -Wall -O3)

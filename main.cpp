@@ -39,7 +39,7 @@ int main() {
   }
   globfree(glob_res);
 
-  uint32_t sim_length = 1;
+  uint32_t sim_length = 60;
   uint32_t iter = 1;
 
   for (string &f : filenames) {
@@ -90,19 +90,19 @@ int main() {
     /*std::cout << std::endl;*/
     /*std::cout << "[Sim] Finished data set with time: " << time << std::endl;*/
     /**/
+    vector<PDS<FLOW_TUPLE, flowTupleHash> *> stages;
     /*qWaterfall<FLOW_TUPLE, flowTupleHash> qwaterfall(*/
     /*    4, std::numeric_limits<uint16_t>::max(),*/
     /*    std::numeric_limits<uint32_t>::max(), f, 0, 0);*/
     /*stages.push_back(&qwaterfall);*/
-    vector<PDS<FLOW_TUPLE, flowTupleHash> *> stages;
-    /*qWaterfall_Fcm<FLOW_TUPLE, flowTupleHash> qwaterfall_fcm(4, 65355, 65355,
-     * 1,*/
-    /*                                                         f, 0, 0);*/
-    /*stages.push_back(&qwaterfall_fcm);*/
-    qWaterfall<FLOW_TUPLE, flowTupleHash> qwaterfall(
-        4, std::numeric_limits<uint16_t>::max(),
-        std::numeric_limits<uint16_t>::max(), f, 0, 0);
-    stages.push_back(&qwaterfall);
+
+    qWaterfall_Fcm<FLOW_TUPLE, flowTupleHash> qwaterfall_fcm(4, 1, f, 0, 0);
+    stages.push_back(&qwaterfall_fcm);
+
+    /*qWaterfall<FLOW_TUPLE, flowTupleHash> qwaterfall(*/
+    /*    4, std::numeric_limits<uint16_t>::max(),*/
+    /*    std::numeric_limits<uint16_t>::max(), f, 0, 0);*/
+    /*stages.push_back(&qwaterfall);*/
     /**/
     /*qWaterfall<FLOW_TUPLE, flowTupleHash> qwaterfall_16(*/
     /*    4, 8 * std::numeric_limits<uint16_t>::max(),*/

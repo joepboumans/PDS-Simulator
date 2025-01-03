@@ -20,8 +20,6 @@ template <typename TUPLE, typename HASH>
 class qWaterfall_Fcm : public PDS<TUPLE, HASH> {
 private:
   uint32_t n_tables;
-  uint32_t table_length;
-  uint32_t val_length;
   vector<vector<uint32_t>> tables;
   FCM_Sketches<TUPLE, HASH> fcm_sketches;
   qWaterfall<TUPLE, HASH> qwaterfall;
@@ -31,15 +29,12 @@ private:
   uint32_t em_iters;
 
 public:
-  qWaterfall_Fcm(uint32_t n_tables, uint32_t table_length, uint32_t val_length,
-                 uint32_t em_iters, string trace, uint32_t n_stage,
-                 uint32_t n_struct)
+  qWaterfall_Fcm(uint32_t n_tables, uint32_t em_iters, string trace,
+                 uint32_t n_stage, uint32_t n_struct)
       : PDS<TUPLE, HASH>(trace, n_stage, n_struct), n_tables(n_tables),
-        em_iters(em_iters), table_length(table_length), val_length(val_length),
-        tables(n_tables, vector<uint32_t>(table_length)),
+        em_iters(em_iters),
         fcm_sketches(W3, 3, 8, DEPTH, 10000, 1, trace, n_stage, n_struct),
-        qwaterfall(n_tables, table_length, val_length, trace, n_stage,
-                   n_struct) {
+        qwaterfall(n_tables, trace, n_stage, n_struct) {
 
     this->fcm_sketches.estimate_fsd = false;
     // Setup logging
@@ -49,7 +44,7 @@ public:
                        "Time,Iterations,Insertions,Collisions,F1 Member";
     this->name = "qWaterfall_Fcm";
     this->trace_name = trace;
-    this->rows = table_length;
+    this->rows = std::numeric_limits<uint16_t>::max();
     this->columns = n_tables;
     this->mem_sz = this->fcm_sketches.mem_sz + this->qwaterfall.mem_sz;
     std::cout << "Total memory used: " << this->mem_sz << std::endl;

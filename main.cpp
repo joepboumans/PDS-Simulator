@@ -39,7 +39,7 @@ int main() {
   }
   globfree(glob_res);
 
-  uint32_t sim_length = 2;
+  uint32_t sim_length = 1;
   uint32_t iter = 1;
 
   for (string &f : filenames) {
@@ -54,55 +54,55 @@ int main() {
     /*                                                      4, 65355, f, 0,
      * 0);*/
 
-    qWaterfall_Fcm<FLOW_TUPLE, flowTupleHash> qwaterfall_fcm(4, 65355, 65355, 5,
-                                                             f, 0, 0);
-
-    unsigned long num_pkts = trace.size();
-    unsigned long packets_per_epoch =
-        std::floor(num_pkts / sim_length) - 1; // per iteration
-    std::cout << "[Sim] Starting run with of " << f << " over " << num_pkts
-              << " packets" << " with a line rate of " << packets_per_epoch
-              << " p/s over " << iter << " epoch(s)" << std::endl;
-
-    // Split into epochs for simulations
-    auto start = std::chrono::high_resolution_clock::now();
-    for (size_t i = 0; i < iter; i++) {
-      std::cout << "\rEpoch: " << i << std::endl;
-      for (size_t j = i * packets_per_epoch; j < (i + 1) * packets_per_epoch;
-           j++) {
-        // Exit if running outside of trace
-        if (j >= trace.size()) {
-          break;
-        }
-
-        // Add PDS here
-        /*waterfall_fcm.insert(trace.at(j));*/
-        qwaterfall_fcm.insert(trace.at(j));
-      }
-      // Store data, analyze data and reset the PDS
-      qwaterfall_fcm.analyze(i);
-      qwaterfall_fcm.reset();
-    }
-    auto stop = std::chrono::high_resolution_clock::now();
-    auto time = duration_cast<std::chrono::milliseconds>(stop - start);
-    std::cout << std::endl;
-    std::cout << "[Sim] Finished data set with time: " << time << std::endl;
-
+    /*qWaterfall_Fcm<FLOW_TUPLE, flowTupleHash> qwaterfall_fcm(4, 65355, 65355,
+     * 1,*/
+    /*                                                         f, 0, 0);*/
+    /**/
+    /*unsigned long num_pkts = trace.size();*/
+    /*unsigned long packets_per_epoch =*/
+    /*    std::floor(num_pkts / sim_length) - 1; // per iteration*/
+    /*std::cout << "[Sim] Starting run with of " << f << " over " << num_pkts*/
+    /*          << " packets" << " with a line rate of " << packets_per_epoch*/
+    /*          << " p/s over " << iter << " epoch(s)" << std::endl;*/
+    /**/
+    /*// Split into epochs for simulations*/
+    /*auto start = std::chrono::high_resolution_clock::now();*/
+    /*for (size_t i = 0; i < iter; i++) {*/
+    /*  std::cout << "\rEpoch: " << i << std::endl;*/
+    /*  for (size_t j = i * packets_per_epoch; j < (i + 1) *
+     * packets_per_epoch;*/
+    /*       j++) {*/
+    /*    // Exit if running outside of trace*/
+    /*    if (j >= num_pkts) {*/
+    /*      break;*/
+    /*    }*/
+    /**/
+    /*    // Add PDS here*/
+    /*waterfall_fcm.insert(trace.at(j));*/
+    /*    qwaterfall_fcm.insert(trace.at(j));*/
+    /*  }*/
+    /*  // Store data, analyze data and reset the PDS*/
+    /*  qwaterfall_fcm.analyze(i);*/
+    /*  qwaterfall_fcm.reset();*/
+    /*}*/
+    /*auto stop = std::chrono::high_resolution_clock::now();*/
+    /*auto time = duration_cast<std::chrono::milliseconds>(stop - start);*/
+    /*std::cout << std::endl;*/
+    /*std::cout << "[Sim] Finished data set with time: " << time << std::endl;*/
+    /**/
     /*qWaterfall<FLOW_TUPLE, flowTupleHash> qwaterfall(*/
     /*    4, std::numeric_limits<uint16_t>::max(),*/
     /*    std::numeric_limits<uint32_t>::max(), f, 0, 0);*/
     /*stages.push_back(&qwaterfall);*/
-
+    vector<PDS<FLOW_TUPLE, flowTupleHash> *> stages;
     /*qWaterfall_Fcm<FLOW_TUPLE, flowTupleHash> qwaterfall_fcm(4, 65355, 65355,
-     * 5,*/
+     * 1,*/
     /*                                                         f, 0, 0);*/
     /*stages.push_back(&qwaterfall_fcm);*/
-    /*qWaterfall<FLOW_TUPLE, flowTupleHash> qwaterfall_8(*/
-    /*    4, 4 * std::numeric_limits<uint16_t>::max(),*/
-    /*    4 * std::numeric_limits<uint16_t>::max(),
-     * data_parser.n_unique_tuples,*/
-    /*    f, 0, 0);*/
-    /*stages.push_back(&qwaterfall_8);*/
+    qWaterfall<FLOW_TUPLE, flowTupleHash> qwaterfall(
+        4, 8 * std::numeric_limits<uint16_t>::max(),
+        8 * std::numeric_limits<uint16_t>::max(), f, 0, 0);
+    stages.push_back(&qwaterfall);
     /**/
     /*qWaterfall<FLOW_TUPLE, flowTupleHash> qwaterfall_16(*/
     /*    4, 8 * std::numeric_limits<uint16_t>::max(),*/
@@ -117,15 +117,14 @@ int main() {
     /*    0, 0);*/
     /*stages.push_back(&cuckoo);*/
 
-    /*std::cout << "[PDS] Added " << stages.size() << " stages" << std::endl;*/
-    /*Simulator<PDS<FLOW_TUPLE, flowTupleHash>, TRACE_FLOW> sim(*/
-    /*    stages, stages.size(), sim_length);*/
-    /*std::cout << "[Simulator] Created simulator for FLOW_TUPLE" <<
-     * std::endl;*/
-    /**/
-    /*std::cout << "[Simulator] Starting simulations..." << std::endl;*/
-    /*sim.run(trace, iter);*/
-    /*std::cout << "[Simulator] ...done!" << std::endl;*/
+    std::cout << "[PDS] Added " << stages.size() << " stages" << std::endl;
+    Simulator<PDS<FLOW_TUPLE, flowTupleHash>, TRACE_FLOW> sim(
+        stages, stages.size(), sim_length);
+    std::cout << "[Simulator] Created simulator for FLOW_TUPLE" << std::endl;
+
+    std::cout << "[Simulator] Starting simulations..." << std::endl;
+    sim.run(trace, iter);
+    std::cout << "[Simulator] ...done!" << std::endl;
 
     continue;
     // Run simulations on 5-tuple

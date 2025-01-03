@@ -32,16 +32,16 @@ uint32_t FCM_Sketches<TUPLE, HASH>::insert(TUPLE tuple) {
 
     for (size_t s = 0; s < n_stages; s++) {
       uint32_t hash_idx = this->hashing(tuple, s, d);
-      Counter curr_counter = this->stages[d][s][hash_idx];
-      if (curr_counter.increment()) {
+      Counter *curr_counter = &this->stages[d][s][hash_idx];
+      if (curr_counter->increment()) {
         // Check for complete overflow
         if (s == n_stages - 1) {
           return 1;
         }
-        c += curr_counter.count;
+        c += curr_counter->count;
         continue;
       }
-      c += curr_counter.count;
+      c += curr_counter->count;
       if (c > this->hh_threshold) {
         this->HH_candidates.insert(tuple);
       }
@@ -63,18 +63,18 @@ uint32_t FCM_Sketches<TUPLE, HASH>::insert(TUPLE tuple, uint32_t idx) {
   for (size_t d = 0; d < this->depth; d++) {
     uint32_t c = 0;
     for (size_t s = 0; s < n_stages; s++) {
-      Counter curr_counter = this->stages[d][s][hash_idx];
-      if (curr_counter.overflow) {
+      Counter *curr_counter = &this->stages[d][s][hash_idx];
+      if (curr_counter->overflow) {
         // Check for complete overflow
         if (s == n_stages - 1) {
           return 1;
         }
-        c += curr_counter.count;
+        c += curr_counter->count;
         hash_idx = hash_idx / this->k;
         continue;
       }
-      curr_counter.increment();
-      c += curr_counter.count;
+      curr_counter->increment();
+      c += curr_counter->count;
       if (c > this->hh_threshold) {
         this->HH_candidates.insert(tuple);
       }
@@ -92,17 +92,17 @@ uint32_t FCM_Sketches<TUPLE, HASH>::lookup(TUPLE tuple) {
     uint32_t c = 0;
     for (size_t s = 0; s < n_stages; s++) {
       uint32_t hash_idx = this->hashing(tuple, s, d);
-      /*Counter curr_counter = this->stages[d][s][hash_idx];*/
-      if (this->stages[d][s][hash_idx].overflow) {
+      Counter *curr_counter = &this->stages[d][s][hash_idx];
+      if (curr_counter->overflow) {
         // Check for complete overflow
         if (s == n_stages - 1) {
           ret = std::min(ret, c);
           break;
         }
-        c += this->stages[d][s][hash_idx].count;
+        c += curr_counter->count;
         continue;
       }
-      c += this->stages[d][s][hash_idx].count;
+      c += curr_counter->count;
       ret = std::min(ret, c);
     }
   }

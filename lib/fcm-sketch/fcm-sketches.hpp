@@ -72,8 +72,13 @@ public:
     this->setupLogging();
 
     // Setup stages accoording to k * n_roots over the stages
+    std::cout << "[FCM Sketches] Setting up counters";
     for (size_t d = 0; d < depth; d++) {
+      std::cout << "Depth: " << d << std::endl;
       for (size_t i = 0; i < n_stages; i++) {
+        std::cout << "\tStage: " << i << " N counters: " << this->stages_sz[i]
+                  << "\tMax val " << this->stage_overflows[i] << std::endl;
+
         this->stages[d][i].resize(this->stages_sz[i]);
         for (size_t j = 0; j < this->stages_sz[i]; j++) {
           this->stages[d][i].at(j) = Counter(this->stage_overflows[i]);

@@ -119,6 +119,7 @@ double qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd(set<TUPLE> &tuples,
     }
     std::cout << std::endl;
   }
+  /*this->print_sketch();*/
 
   uint32_t max_counter_value = 0;
   // Summarize sketch and find collisions
@@ -152,7 +153,7 @@ double qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd(set<TUPLE> &tuples,
   for (size_t d = 0; d < DEPTH; d++) {
     std::cout << "Depth " << d << std::endl;
     for (size_t stage = 0; stage < NUM_STAGES; stage++) {
-      std::cout << "Stage " << stage << std::endl;
+      std::cout << "\tStage " << stage << std::endl;
       for (size_t i = 0; i < this->fcm_sketches.stages_sz[stage]; i++) {
         summary[d][stage][i][0] = this->fcm_sketches.stages[d][stage][i].count;
         // If overflown increase the minimal value for the collisions
@@ -203,6 +204,20 @@ double qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd(set<TUPLE> &tuples,
             summary[d][stage][i][0] > 0) {
           uint32_t count = summary[d][stage][i][0];
           uint32_t degree = summary[d][stage][i][1];
+          if (degree == 0) {
+            std::cout << "[ERROR] Should not be getting degree 0" << std::endl;
+            std::cout << "Count: " << count << " stage " << stage << " i " << i
+                      << std::endl;
+            if (stage > 0) {
+              for (size_t k = 0; k < this->fcm_sketches.k; k++) {
+                uint32_t child_idx = i * this->fcm_sketches.k + k;
+                std::cout << child_idx << " "
+                          << summary[d][stage - 1][child_idx][0] << ", "
+                          << summary[d][stage - 1][child_idx][1] << std::endl;
+              }
+            }
+            exit(1);
+          }
 
           if (degree >= thresholds[d].size()) {
             thresholds[d].resize(degree + 1);
@@ -248,10 +263,15 @@ double qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd(set<TUPLE> &tuples,
     if (virtual_counters[d].size() == 0) {
       continue;
     }
-    std::cout << "Depth " << d << " : ";
-    for (size_t st = 0; st < virtual_counters[d].size(); st++) {
-      for (auto &val : virtual_counters[d][st]) {
-        /*std::cout << " " << val;*/
+    std::cout << "Depth " << d << " : " << std::endl;
+    for (size_t xi = 0; xi < virtual_counters[d].size(); xi++) {
+      std::cout << "Degree " << xi << " " << thresholds[d][xi].size() << " = "
+                << virtual_counters[d][xi].size() << std::endl;
+      for (auto &val : virtual_counters[d][xi]) {
+        /*if (xi > 2) {*/
+        /*  std::cout << " " << val << " with " << thresholds[d][xi].size()*/
+        /*            << " ";*/
+        /*}*/
         max_counter_value = std::max(max_counter_value, val);
       }
     }

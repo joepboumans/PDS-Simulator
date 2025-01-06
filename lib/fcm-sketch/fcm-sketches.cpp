@@ -30,17 +30,20 @@ uint32_t FCM_Sketches<TUPLE, HASH>::insert(TUPLE tuple) {
   for (size_t d = 0; d < this->depth; d++) {
     uint32_t c = 0;
 
+    uint32_t hash_idx = this->hashing(tuple, 0, d);
     for (size_t s = 0; s < n_stages; s++) {
-      uint32_t hash_idx = this->hashing(tuple, s, d);
       Counter *curr_counter = &this->stages[d][s][hash_idx];
-      if (curr_counter->increment()) {
+      if (curr_counter->overflow) {
         // Check for complete overflow
         if (s == n_stages - 1) {
           return 1;
         }
         c += curr_counter->count;
+        hash_idx = uint32_t(hash_idx / this->k);
         continue;
       }
+
+      curr_counter->increment();
       c += curr_counter->count;
       if (c > this->hh_threshold) {
         this->HH_candidates.insert(tuple);

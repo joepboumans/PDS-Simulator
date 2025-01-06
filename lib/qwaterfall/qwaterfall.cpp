@@ -13,8 +13,7 @@ template class qWaterfall<FLOW_TUPLE, flowTupleHash>;
 
 template <typename TUPLE, typename HASH>
 uint32_t qWaterfall<TUPLE, HASH>::hashing(TUPLE key, uint32_t k) {
-  return hash[k].run((const char *)key.num_array, sizeof(TUPLE)) %
-         std::numeric_limits<uint32_t>::max();
+  return hash[k].run((const char *)key.num_array, sizeof(TUPLE));
 }
 
 template <typename TUPLE, typename HASH>
@@ -82,7 +81,7 @@ uint32_t qWaterfall<TUPLE, HASH>::lookup(TUPLE tuple) {
     for (size_t i = 1; i < this->n_tables; i++) {
       hash_val = this->rehashing(prev_hash_val, i);
       idx = hash_val >> 16;
-      val = hash_val;
+      val = (uint16_t)hash_val;
       if (this->tables[i][idx] == val) {
         return 1;
       }

@@ -44,7 +44,7 @@ public:
                  uint32_t in_max_value, uint32_t max_degree,
                  vector<vector<vector<uint32_t>>> &counters)
       : max_degree(max_degree), max_counter_value(in_max_value),
-        counter_dist(DEPTH), thresholds(DEPTH), counters(counters) {
+        counter_dist(DEPTH), counters(counters), thresholds(thresh) {
 
     std::cout << "[EM_QWATERFALL_FCM] Init EMFSD" << std::endl;
 
@@ -71,7 +71,7 @@ public:
 
         for (size_t i = 0; i < counters[d][xi].size(); i++) {
           this->counter_dist[d][xi][counters[d][xi][i]]++;
-          this->thresholds[d][xi][counters[d][xi][i]] = thresh[d][xi][i];
+          /*this->thresholds[d][xi][counters[d][xi][i]] = thresh[d][xi][i];*/
         }
       }
     }
@@ -153,7 +153,7 @@ private:
                            vector<vector<uint32_t>> _thresh)
         : sum(_sum), flow_num_limit(_in_degree), in_degree(_in_degree),
           thresh(_thresh) {
-      std::reverse(thresh.begin(), thresh.end());
+      /*std::reverse(thresh.begin(), thresh.end());*/
       now_flow_num = flow_num_limit;
       now_result.resize(_in_degree);
       for (size_t i = 0; i < now_result.size() - 1; i++) {
@@ -353,7 +353,7 @@ private:
   }
 
   double get_p_from_beta(BetaGenerator &bt, double lambda,
-                         vector<double> now_dist, double now_n,
+                         vector<double> &now_dist, double now_n,
                          uint32_t degree) {
     std::unordered_map<uint32_t, uint32_t> mp;
     for (int i = 0; i < bt.now_flow_num; ++i) {
@@ -373,18 +373,24 @@ private:
 
   void calculate_degree(vector<double> &nt, int d, int xi) {
     nt.resize(this->max_counter_value + 1);
-    std::fill(this->ns.begin(), this->ns.end(), 0.0);
 
     printf("[EM_WATERFALL_FCM] ******** Running for degree %2d with a size of "
            "%12zu\t\t"
            "**********\n",
-           xi, this->counter_dist[d][xi].size());
+           xi, this->counters[d][xi].size());
 
     for (uint32_t i = 0; i < this->counters[d][xi].size(); i++) {
       if (this->counters[d][xi][i] == 0) {
         continue;
       }
 
+      if (this->thresholds[d][xi].size() <= i) {
+        std::cout << "Out of bound for thresholds" << std::endl;
+        std::cout << this->thresholds[d].size() << std::endl;
+        std::cout << "At " << xi << " " << i << " with count "
+                  << this->counters[d][xi][i] << " ";
+        exit(1);
+      }
       BetaGenerator alpha(this->counters[d][xi][i], xi,
                           this->thresholds[d][xi][i]),
           beta(this->counters[d][xi][i], xi, this->thresholds[d][xi][i]);
@@ -476,31 +482,33 @@ public:
     std::cout << "[EM_WATERFALL_FCM] Created " << total_degree << " threads"
               << std::endl;
 
-    for (size_t d = 0; d < DEPTH; d++) {
-      for (size_t t = 2; t < threads[d].size(); t++) {
-        std::cout << "[EM_WATERFALL_FCM] Start thread " << t << " at depth "
-                  << d << std::endl;
-        threads[d][t] = std::thread(&EM_FSD_QW_FCMS::calculate_degree, *this,
-                                    std::ref(nt[d][t]), d, t);
-      }
-    }
-
-    std::cout
-        << "[EM_WATERFALL_FCM] Started all threads, wait for them to finish..."
-        << std::endl;
-
-    for (size_t d = 0; d < DEPTH; d++) {
-      for (size_t t = 2; t < threads[d].size(); t++) {
-        threads[d][t].join();
-      }
-    }
-
-    // Single threaded
     /*for (size_t d = 0; d < DEPTH; d++) {*/
-    /*  for (size_t xi = 2; xi <= this->max_degree; xi++) {*/
-    /*    this->calculate_degree(nt[d][xi], d, xi);*/
+    /*  for (size_t t = 2; t < threads[d].size(); t++) {*/
+    /*    std::cout << "[EM_WATERFALL_FCM] Start thread " << t << " at depth "*/
+    /*              << d << std::endl;*/
+    /*    threads[d][t] = std::thread(&EM_FSD_QW_FCMS::calculate_degree,
+     * *this,*/
+    /*                                std::ref(nt[d][t]), d, t);*/
     /*  }*/
     /*}*/
+    /**/
+    /*std::cout*/
+    /*    << "[EM_WATERFALL_FCM] Started all threads, wait for them to
+     * finish..."*/
+    /*    << std::endl;*/
+    /**/
+    /*for (size_t d = 0; d < DEPTH; d++) {*/
+    /*  for (size_t t = 2; t < threads[d].size(); t++) {*/
+    /*    threads[d][t].join();*/
+    /*  }*/
+    /*}*/
+
+    // Single threaded
+    for (size_t d = 0; d < DEPTH; d++) {
+      for (size_t xi = 2; xi <= this->max_degree; xi++) {
+        this->calculate_degree(nt[d][xi], d, xi);
+      }
+    }
 
     std::cout << "[EM_WATERFALL_FCM] Finished calculating nt per degree"
               << std::endl;

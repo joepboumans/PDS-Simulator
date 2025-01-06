@@ -19,7 +19,7 @@ class qWaterfall : public PDS<TUPLE, HASH> {
 private:
   BOBHash32 *hash;
   uint32_t n_tables;
-  vector<vector<uint32_t>> tables;
+  vector<vector<uint16_t>> tables;
 
   uint32_t table_length;
   string trace_name;

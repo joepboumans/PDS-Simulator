@@ -106,7 +106,7 @@ double qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd(set<TUPLE> &tuples,
   uint32_t cht_max_degree = 0;
   for (size_t d = 0; d < DEPTH; d++) {
     for (auto &tuple : tuples) {
-      uint32_t hash_idx = this->fcm_sketches.hashing(tuple, 0, d);
+      uint32_t hash_idx = this->fcm_sketches.hashing(tuple, d);
       init_degree[d][hash_idx]++;
       cht_max_degree = std::max(init_degree[d][hash_idx], cht_max_degree);
     }

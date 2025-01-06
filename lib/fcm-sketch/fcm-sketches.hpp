@@ -89,7 +89,7 @@ public:
 
   uint32_t insert(TUPLE tuple);
   uint32_t insert(TUPLE tuple, uint32_t idx);
-  uint32_t hashing(TUPLE tuple, uint32_t k, uint32_t d);
+  uint32_t hashing(TUPLE tuple, uint32_t d);
   uint32_t lookup(TUPLE tuple);
   void reset();
 

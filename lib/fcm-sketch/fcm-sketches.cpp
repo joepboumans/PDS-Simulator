@@ -18,9 +18,9 @@ template class FCM_Sketches<FIVE_TUPLE, fiveTupleHash>;
 template class FCM_Sketches<FLOW_TUPLE, flowTupleHash>;
 
 template <typename TUPLE, typename HASH>
-uint32_t FCM_Sketches<TUPLE, HASH>::hashing(TUPLE key, uint32_t k, uint32_t d) {
+uint32_t FCM_Sketches<TUPLE, HASH>::hashing(TUPLE key, uint32_t d) {
   return this->hash[d].run((const char *)key.num_array, sizeof(TUPLE)) %
-         this->stages_sz[k];
+         this->stages_sz[0];
 }
 
 template <typename TUPLE, typename HASH>
@@ -30,7 +30,7 @@ uint32_t FCM_Sketches<TUPLE, HASH>::insert(TUPLE tuple) {
   for (size_t d = 0; d < this->depth; d++) {
     uint32_t c = 0;
 
-    uint32_t hash_idx = this->hashing(tuple, 0, d);
+    uint32_t hash_idx = this->hashing(tuple, d);
     for (size_t s = 0; s < n_stages; s++) {
       Counter *curr_counter = &this->stages[d][s][hash_idx];
       if (curr_counter->overflow) {
@@ -93,8 +93,8 @@ uint32_t FCM_Sketches<TUPLE, HASH>::lookup(TUPLE tuple) {
   uint32_t ret = std::numeric_limits<uint32_t>::max();
   for (size_t d = 0; d < this->depth; d++) {
     uint32_t c = 0;
+    uint32_t hash_idx = this->hashing(tuple, d);
     for (size_t s = 0; s < n_stages; s++) {
-      uint32_t hash_idx = this->hashing(tuple, s, d);
       Counter *curr_counter = &this->stages[d][s][hash_idx];
       if (curr_counter->overflow) {
         // Check for complete overflow
@@ -103,6 +103,7 @@ uint32_t FCM_Sketches<TUPLE, HASH>::lookup(TUPLE tuple) {
           break;
         }
         c += curr_counter->count;
+        hash_idx = uint32_t(hash_idx / this->k);
         continue;
       }
       c += curr_counter->count;

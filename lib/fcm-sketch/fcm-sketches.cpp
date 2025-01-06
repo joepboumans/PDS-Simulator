@@ -94,6 +94,7 @@ uint32_t FCM_Sketches<TUPLE, HASH>::lookup(TUPLE tuple) {
   for (size_t d = 0; d < this->depth; d++) {
     uint32_t c = 0;
     uint32_t hash_idx = this->hashing(tuple, d);
+
     for (size_t s = 0; s < n_stages; s++) {
       Counter *curr_counter = &this->stages[d][s][hash_idx];
       if (curr_counter->overflow) {
@@ -108,6 +109,7 @@ uint32_t FCM_Sketches<TUPLE, HASH>::lookup(TUPLE tuple) {
       }
       c += curr_counter->count;
       ret = std::min(ret, c);
+      break;
     }
   }
   return ret;
@@ -148,7 +150,6 @@ void FCM_Sketches<TUPLE, HASH>::reset() {
 
 template <typename TUPLE, typename HASH>
 void FCM_Sketches<TUPLE, HASH>::analyze(int epoch) {
-  // Use lookup to find tuples
   this->average_absolute_error = 0;
   this->average_relative_error = 0;
   double n = this->true_data.size();

@@ -39,7 +39,7 @@ int main() {
   }
   globfree(glob_res);
 
-  uint32_t sim_length = 10;
+  uint32_t sim_length = 30;
   uint32_t iter = 1;
 
   for (string &f : filenames) {

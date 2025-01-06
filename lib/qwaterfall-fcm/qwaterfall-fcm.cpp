@@ -149,7 +149,7 @@ double qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd(set<TUPLE> &tuples,
 
   std::cout << "[qWaterfall_Fcm] Setup virtual counters and thresholds..."
             << std::endl;
-  uint32_t max_degree = 0;
+  vector<uint32_t> max_degree(DEPTH, 0);
   for (size_t d = 0; d < DEPTH; d++) {
     std::cout << "Depth " << d << std::endl;
     for (size_t stage = 0; stage < NUM_STAGES; stage++) {
@@ -204,26 +204,17 @@ double qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd(set<TUPLE> &tuples,
             summary[d][stage][i][0] > 0) {
           uint32_t count = summary[d][stage][i][0];
           uint32_t degree = summary[d][stage][i][1];
-          if (degree == 0) {
-            std::cout << "[ERROR] Should not be getting degree 0" << std::endl;
-            std::cout << "Count: " << count << " stage " << stage << " i " << i
-                      << std::endl;
-            if (stage > 0) {
-              for (size_t k = 0; k < this->fcm_sketches.k; k++) {
-                uint32_t child_idx = i * this->fcm_sketches.k + k;
-                std::cout << child_idx << " "
-                          << summary[d][stage - 1][child_idx][0] << ", "
-                          << summary[d][stage - 1][child_idx][1] << std::endl;
-              }
-            }
-            exit(1);
+          if (overflow_paths[d][stage][i].empty()) {
+            std::cout << "[ERROR] OVerflow path is empty" << std::endl;
+            printf("d:%zu, s:%zu, i:%zu, count:%i, degree:%i\n", d, stage, i,
+                   count, degree);
           }
 
           if (degree >= thresholds[d].size()) {
             thresholds[d].resize(degree + 1);
             virtual_counters[d].resize(degree + 1);
           }
-          max_degree = std::max(max_degree, degree);
+          max_degree[d] = std::max(max_degree[d], degree);
           // Add entry to VC with its degree [1] and count [0], and add it to
           // the thresholds
           virtual_counters[d][degree].push_back(count);
@@ -265,20 +256,23 @@ double qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd(set<TUPLE> &tuples,
     }
     std::cout << "Depth " << d << " : " << std::endl;
     for (size_t xi = 0; xi < virtual_counters[d].size(); xi++) {
-      std::cout << "Degree " << xi << " " << thresholds[d][xi].size() << " = "
-                << virtual_counters[d][xi].size() << std::endl;
+      std::cout << "Degree " << xi
+                << " Threshold size: " << thresholds[d][xi].size()
+                << "VC size: " << virtual_counters[d][xi].size();
       for (auto &val : virtual_counters[d][xi]) {
         /*if (xi > 2) {*/
         /*  std::cout << " " << val << " with " << thresholds[d][xi].size()*/
         /*            << " ";*/
         /*}*/
         max_counter_value = std::max(max_counter_value, val);
+        std::cout << " Maximum value: " << max_counter_value << std::endl;
       }
     }
     std::cout << std::endl;
   }
   std::cout << "CHT maximum degree is: " << cht_max_degree << std::endl;
-  std::cout << "Maximum degree is: " << max_degree << std::endl;
+  std::cout << "Maximum degree is: " << max_degree[0] << ", " << max_degree[1]
+            << std::endl;
   std::cout << "Maximum counter value is: " << max_counter_value << std::endl;
 
   EM_FSD_QW_FCMS em_fsd(thresholds, max_counter_value, max_degree,

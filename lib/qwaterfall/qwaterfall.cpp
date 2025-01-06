@@ -149,7 +149,8 @@ void qWaterfall<TUPLE, HASH>::analyze(int epoch) {
 
   // Load factor
   this->load_factor = double(this->insertions) / n;
-  std::cout << "[qWaterfall] True data size " << n << std::endl;
+  std::cout << "[qWaterfall] True data size " << n << " Estimated size "
+            << this->tuples.size() << std::endl;
 
   char msg[200];
   sprintf(msg,

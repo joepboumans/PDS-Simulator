@@ -33,7 +33,7 @@ private:
 public:
   vector<double> ns; // for integer n
   uint32_t max_counter_value = 0;
-  uint32_t max_degree = 0;
+  vector<uint32_t> max_degree;
   bool inited = false;
   double n_old,
       n_new; // cardinality
@@ -41,7 +41,7 @@ public:
   double card_init; // initial cardinality by MLE
   uint32_t iter = 0;
   EM_FSD_QW_FCMS(vector<vector<vector<vector<vector<uint32_t>>>>> &thresh,
-                 uint32_t in_max_value, uint32_t max_degree,
+                 uint32_t in_max_value, vector<uint32_t> max_degree,
                  vector<vector<vector<uint32_t>>> &counters)
       : max_degree(max_degree), max_counter_value(in_max_value),
         counter_dist(DEPTH), counters(counters), thresholds(thresh) {
@@ -51,12 +51,10 @@ public:
     // Setup counters and counters_distribution for estimation, counter_dist is
     // Depth, Degree, Count
     for (size_t d = 0; d < DEPTH; d++) {
-      this->counter_dist[d].resize(this->max_degree + 1);
-      this->thresholds[d].resize(this->max_degree + 1);
+      this->counter_dist[d].resize(this->max_degree[d] + 1);
 
       for (size_t xi = 0; xi < this->counter_dist[d].size(); xi++) {
         this->counter_dist[d][xi].resize(this->max_counter_value + 1);
-        this->thresholds[d][xi].resize(this->max_counter_value + 1);
       }
     }
     std::cout << "[EM_WATERFALL_FCM] Finished setting up counter_dist and "
@@ -66,12 +64,10 @@ public:
     this->n_new = 0.0; // # of flows (Cardinality)
     for (size_t d = 0; d < DEPTH; d++) {
       for (size_t xi = 0; xi < counters[d].size(); xi++) {
-
         this->n_new += counters[d][xi].size();
 
         for (size_t i = 0; i < counters[d][xi].size(); i++) {
           this->counter_dist[d][xi][counters[d][xi][i]]++;
-          /*this->thresholds[d][xi][counters[d][xi][i]] = thresh[d][xi][i];*/
         }
       }
     }
@@ -137,7 +133,8 @@ public:
     printf("[EM_WATERFALL_FCM] Initial Cardinality : %9.1f\n", this->n_new);
     printf("[EM_WATERFALL_FCM] Max Counter value : %d\n",
            this->max_counter_value);
-    printf("[EM_WATERFALL_FCM] Max degree : %d\n", this->max_degree);
+    printf("[EM_WATERFALL_FCM] Max degree : %d, %d\n", this->max_degree[0],
+           this->max_degree[1]);
   }
 
 private:
@@ -153,7 +150,7 @@ private:
                            vector<vector<uint32_t>> _thresh)
         : sum(_sum), flow_num_limit(_in_degree), in_degree(_in_degree),
           thresh(_thresh) {
-      /*std::reverse(thresh.begin(), thresh.end());*/
+      std::reverse(thresh.begin(), thresh.end());
       now_flow_num = flow_num_limit;
       now_result.resize(_in_degree);
       for (size_t i = 0; i < now_result.size() - 1; i++) {
@@ -265,7 +262,6 @@ private:
           continue;
         }
 
-        allOne = false;
         if (&t == &thresh.front()) {
           continue;
         }
@@ -441,10 +437,10 @@ private:
       }
       std::cout << std::endl;
     }
-    if (this->counter_dist[d][xi].size() != 0)
+    if (this->counters[d][xi].size() != 0)
       printf("[EM_WATERFALL_FCM] ******** depth %d degree %2d is "
              "finished...(accum:%10.1f #val:%8d)\t**********\n",
-             d, xi, accum, (int)this->counter_dist[d][xi].size());
+             d, xi, accum, (int)this->counters[d][xi].size());
   }
 
 public:
@@ -462,7 +458,7 @@ public:
     // estimation. qWaterfall is not perfect, but assumed to be
     vector<vector<vector<double>>> nt(DEPTH);
     for (size_t d = 0; d < DEPTH; d++) {
-      nt[d].resize(this->max_degree + 1);
+      nt[d].resize(this->max_degree[d] + 1);
 
       nt[d][1].resize(this->counter_dist[d][1].size());
       for (size_t i = 0; i < this->counter_dist[d][1].size(); i++) {
@@ -475,40 +471,38 @@ public:
     // Simple Multi thread
     vector<vector<std::thread>> threads(DEPTH);
     for (size_t d = 0; d < threads.size(); d++) {
-      threads[d].resize(this->max_degree + 1);
+      threads[d].resize(this->max_degree[d] + 1);
     }
 
-    uint32_t total_degree = this->max_degree * 2 + 1;
+    uint32_t total_degree = this->max_degree[0] + this->max_degree[1] + 1;
     std::cout << "[EM_WATERFALL_FCM] Created " << total_degree << " threads"
               << std::endl;
 
-    /*for (size_t d = 0; d < DEPTH; d++) {*/
-    /*  for (size_t t = 2; t < threads[d].size(); t++) {*/
-    /*    std::cout << "[EM_WATERFALL_FCM] Start thread " << t << " at depth "*/
-    /*              << d << std::endl;*/
-    /*    threads[d][t] = std::thread(&EM_FSD_QW_FCMS::calculate_degree,
-     * *this,*/
-    /*                                std::ref(nt[d][t]), d, t);*/
-    /*  }*/
-    /*}*/
-    /**/
-    /*std::cout*/
-    /*    << "[EM_WATERFALL_FCM] Started all threads, wait for them to
-     * finish..."*/
-    /*    << std::endl;*/
-    /**/
-    /*for (size_t d = 0; d < DEPTH; d++) {*/
-    /*  for (size_t t = 2; t < threads[d].size(); t++) {*/
-    /*    threads[d][t].join();*/
-    /*  }*/
-    /*}*/
-
-    // Single threaded
     for (size_t d = 0; d < DEPTH; d++) {
-      for (size_t xi = 2; xi <= this->max_degree; xi++) {
-        this->calculate_degree(nt[d][xi], d, xi);
+      for (size_t t = 2; t < threads[d].size(); t++) {
+        std::cout << "[EM_WATERFALL_FCM] Start thread " << t << " at depth "
+                  << d << std::endl;
+        threads[d][t] = std::thread(&EM_FSD_QW_FCMS::calculate_degree, *this,
+                                    std::ref(nt[d][t]), d, t);
       }
     }
+
+    std::cout
+        << "[EM_WATERFALL_FCM] Started all threads, wait for them to finish..."
+        << std::endl;
+
+    for (size_t d = 0; d < DEPTH; d++) {
+      for (size_t t = 2; t < threads[d].size(); t++) {
+        threads[d][t].join();
+      }
+    }
+
+    // Single threaded
+    /*for (size_t d = 0; d < DEPTH; d++) {*/
+    /*  for (size_t xi = 2; xi <= this->max_degree[d]; xi++) {*/
+    /*    this->calculate_degree(nt[d][xi], d, xi);*/
+    /*  }*/
+    /*}*/
 
     std::cout << "[EM_WATERFALL_FCM] Finished calculating nt per degree"
               << std::endl;

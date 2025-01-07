@@ -4,9 +4,11 @@
 #include "qwaterfall-fcm.hpp"
 #include "EM_FSD_QWATER.hpp"
 #include "common.h"
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <iostream>
 #include <sys/types.h>
 
 template class qWaterfall_Fcm<FIVE_TUPLE, fiveTupleHash>;
@@ -71,7 +73,8 @@ void qWaterfall_Fcm<TUPLE, HASH>::analyze(int epoch) {
     }
 
     auto start = std::chrono::high_resolution_clock::now();
-    this->wmre = this->calculate_fsd(this->qwaterfall.tuples, true_fsd);
+    /*this->wmre = this->calculate_fsd(this->qwaterfall.tuples, true_fsd);*/
+    this->wmre = this->calculate_fsd_peeling(this->qwaterfall.tuples, true_fsd);
     auto stop = std::chrono::high_resolution_clock::now();
     auto time = duration_cast<std::chrono::milliseconds>(stop - start);
 
@@ -336,4 +339,356 @@ double qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd(set<TUPLE> &tuples,
   return wmre;
 }
 
+template <typename TUPLE, typename HASH>
+double
+qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd_peeling(set<TUPLE> &tuples,
+                                                   vector<uint32_t> &true_fsd) {
+  // Setup initial degrees for each input counter (stage 0)
+  std::cout << "[qWaterfall_Fcm] Calculate initial degrees from qWaterfall..."
+            << std::endl;
+  vector<vector<uint32_t>> init_degree(DEPTH, vector<uint32_t>(W1));
+  vector<vector<uint32_t>> init_count(DEPTH, vector<uint32_t>(W1));
+  vector<vector<vector<TUPLE>>> coll_tuples(DEPTH, vector<vector<TUPLE>>(W1));
+
+  uint32_t cht_max_degree = 0;
+  for (size_t d = 0; d < DEPTH; d++) {
+    for (auto &tuple : tuples) {
+      uint32_t hash_idx = this->fcm_sketches.hashing(tuple, d);
+      init_degree[d][hash_idx]++;
+      cht_max_degree = std::max(init_degree[d][hash_idx], cht_max_degree);
+
+      init_count[d][hash_idx] = this->fcm_sketches.stages[d][0][hash_idx].count;
+      coll_tuples[d][hash_idx].push_back(tuple);
+    }
+  }
+
+  std::cout << "[qWaterfall_Fcm] ...done!" << std::endl;
+  for (size_t d = 0; d < DEPTH; d++) {
+    std::cout << "Depth " << d << std::endl;
+    for (size_t i = 0; i < init_degree.size(); i++) {
+      std::cout << i << ":" << init_degree[d][i] << " ";
+    }
+    std::cout << std::endl;
+  }
+
+  std::cout << "[qWaterfall_Fcm] Start collecting stage 0 1 degree counters "
+               "for peeling"
+            << std::endl;
+
+  vector<uint32_t> n_remain = {0, 0};
+  for (size_t d = 0; d < DEPTH; d++) {
+    for (size_t i = 0; i < coll_tuples[d].size(); i++) {
+      if (coll_tuples[d][i].empty()) {
+        continue;
+      }
+      n_remain[d]++;
+    }
+  }
+
+  std::cout << "Remaining flows in coll_tuples " << n_remain[0] << ", "
+            << n_remain[1] << std::endl;
+
+  vector<uint32_t> init_fsd;
+  vector<uint32_t> solved_counters;
+  uint32_t d_curr = 0;
+  uint32_t d_next = 1;
+  do {
+
+    // Clear previous solved counters and find next batch
+    solved_counters.clear();
+    for (size_t i = 0; i < coll_tuples[d_curr].size(); i++) {
+      if (coll_tuples[d_curr][i].size() == 1) {
+        if (init_count[d_curr][i] <= 254) {
+          solved_counters.push_back(i);
+          init_fsd.push_back(init_count[d_curr][i]);
+
+          coll_tuples[d_curr][i].clear();
+        }
+      }
+    }
+    std::cout << "Solved " << solved_counters.size()
+              << " counters in Stage 0 of Depth " << d_curr << std::endl;
+
+    // Remove found single degree small flow counters from other FCM Sketch
+    for (auto &i : solved_counters) {
+      TUPLE sub_tuple = coll_tuples[d_curr][i][0];
+      uint32_t sub_count = init_count[d_curr][i];
+      uint32_t hash_idx = this->fcm_sketches.hashing(sub_tuple, d_next);
+
+      if (std::find(coll_tuples[d_next][hash_idx].begin(),
+                    coll_tuples[d_next][hash_idx].end(),
+                    sub_tuple) != coll_tuples[d_next][hash_idx].end()) {
+
+        init_count[d_next][hash_idx] -= sub_count;
+        coll_tuples[d_next][hash_idx].erase(
+            std::find(coll_tuples[d_next][hash_idx].begin(),
+                      coll_tuples[d_next][hash_idx].end(), sub_tuple));
+      } else {
+        std::cout << "Could not find tuple in other depth " << d_next
+                  << " found at depth " << d_curr
+                  << " with tuple: " << sub_tuple << std::endl;
+        std::cout << "D_n has following tuples: ";
+        for (auto &t : coll_tuples[d_next][hash_idx]) {
+          std::cout << t << std::endl;
+        }
+        std::cout << std::endl;
+        exit(0);
+      }
+    }
+
+    // Switch around the sketches
+    uint32_t t = d_curr;
+    d_curr = d_next;
+    d_next = t;
+
+    std::cout << "Found " << init_fsd.size() << " total flows" << std::endl;
+  } while (solved_counters.size() > 0);
+
+  n_remain = {0, 0};
+  for (size_t d = 0; d < DEPTH; d++) {
+    for (size_t i = 0; i < coll_tuples[d].size(); i++) {
+      if (coll_tuples[d][i].empty()) {
+        continue;
+      }
+      n_remain[d]++;
+    }
+  }
+
+  std::cout << "Remaining flows in coll_tuples " << n_remain[0] << ", "
+            << n_remain[1] << std::endl;
+  uint32_t max_count = *std::max_element(init_fsd.begin(), init_fsd.end());
+  vector<double> ns(max_count, 0);
+  for (auto &x : init_fsd) {
+    ns[x]++;
+  }
+
+  uint32_t max_len = std::max(true_fsd.size(), ns.size());
+  true_fsd.resize(max_len);
+  ns.resize(max_len);
+
+  double wmre_nom = 0.0;
+  double wmre_denom = 0.0;
+  for (size_t i = 0; i < max_len; i++) {
+    wmre_nom += std::abs(double(true_fsd[i]) - ns[i]);
+    wmre_denom += double((double(true_fsd[i]) + ns[i]) / 2);
+  }
+  wmre = wmre_nom / wmre_denom;
+  return wmre;
+  exit(0);
+
+  uint32_t max_counter_value = 0;
+  // Summarize sketch and find collisions
+  // depth, stage, idx, (count, degree, min_value)
+  vector<vector<vector<vector<uint32_t>>>> summary(DEPTH);
+  // depth, stage, idx, layer, (stage, total degree/collisions, local
+  // collisions, min value)
+  vector<vector<vector<vector<vector<uint32_t>>>>> overflow_paths(DEPTH);
+
+  // Setup sizes for summary and overflow_paths
+  for (size_t d = 0; d < DEPTH; d++) {
+    summary[d].resize(NUM_STAGES);
+    overflow_paths[d].resize(NUM_STAGES);
+    for (size_t stage = 0; stage < NUM_STAGES; stage++) {
+      summary[d][stage].resize(this->fcm_sketches.stages_sz[stage],
+                               vector<uint32_t>(3, 0));
+      overflow_paths[d][stage].resize(this->fcm_sketches.stages_sz[stage]);
+    }
+  }
+
+  // Create virtual counters based on degree and count
+  // degree, count value, n
+  vector<vector<vector<uint32_t>>> virtual_counters(
+      DEPTH, vector<vector<uint32_t>>(cht_max_degree + 1));
+  vector<vector<vector<vector<vector<uint32_t>>>>> thresholds(
+      DEPTH, vector<vector<vector<vector<uint32_t>>>>(cht_max_degree + 1));
+
+  std::cout << "[qWaterfall_Fcm] Setup virtual counters and thresholds..."
+            << std::endl;
+  vector<uint32_t> max_degree(DEPTH, 0);
+  for (size_t d = 0; d < DEPTH; d++) {
+    std::cout << "Depth " << d << std::endl;
+    for (size_t stage = 0; stage < NUM_STAGES; stage++) {
+      std::cout << "\tStage " << stage << std::endl;
+      for (size_t i = 0; i < this->fcm_sketches.stages_sz[stage]; i++) {
+        summary[d][stage][i][0] = this->fcm_sketches.stages[d][stage][i].count;
+        // If overflown increase the minimal value for the collisions
+        if (this->fcm_sketches.stages[d][stage][i].overflow) {
+          summary[d][stage][i][0] =
+              this->fcm_sketches.stages[d][stage][i].max_count;
+        }
+
+        if (stage == 0) {
+          summary[d][stage][i][1] = init_degree[d][i];
+          if (summary[d][stage][i][0] > 0 && init_degree[d][i] < 1) {
+            summary[d][stage][i][1] = 1;
+          }
+          overflow_paths[d][stage][i].push_back(
+              {(uint32_t)stage, init_degree[d][i], 1, summary[d][stage][i][0]});
+        }
+        // Start checking childeren from stage 1 and up
+        else {
+          uint32_t overflown = 0;
+          // Loop over all childeren
+          for (size_t k = 0; k < this->fcm_sketches.k; k++) {
+            uint32_t child_idx = i * this->fcm_sketches.k + k;
+            // Add childs count, degree and min_value to current counter
+            if (this->fcm_sketches.stages[d][stage - 1][child_idx].overflow) {
+              summary[d][stage][i][0] += summary[d][stage - 1][child_idx][0];
+              summary[d][stage][i][1] += summary[d][stage - 1][child_idx][1];
+              // If any of my predecessors have overflown, add them to my
+              // overflown paths
+              overflown++;
+              for (size_t j = 0;
+                   j < overflow_paths[d][stage - 1][child_idx].size(); j++) {
+                overflow_paths[d][stage][i].push_back(
+                    overflow_paths[d][stage - 1][child_idx][j]);
+              }
+            }
+          }
+          // If any of my childeren have overflown, add me to the overflow path
+          if (overflown > 0) {
+            vector<uint32_t> imm_overflow = {(uint32_t)stage,
+                                             summary[d][stage][i][1], overflown,
+                                             summary[d][stage][i][0]};
+            overflow_paths[d][stage][i].push_back(imm_overflow);
+          }
+        }
+
+        // If not overflown and non-zero, we are at the end of the path
+        if (!this->fcm_sketches.stages[d][stage][i].overflow &&
+            summary[d][stage][i][0] > 0) {
+          uint32_t count = summary[d][stage][i][0];
+          uint32_t degree = summary[d][stage][i][1];
+          if (overflow_paths[d][stage][i].empty()) {
+            std::cout << "[ERROR] OVerflow path is empty" << std::endl;
+            printf("d:%zu, s:%zu, i:%zu, count:%i, degree:%i\n", d, stage, i,
+                   count, degree);
+          }
+
+          if (degree >= thresholds[d].size()) {
+            thresholds[d].resize(degree + 1);
+            virtual_counters[d].resize(degree + 1);
+          }
+          max_degree[d] = std::max(max_degree[d], degree);
+          // Add entry to VC with its degree [1] and count [0], and add it to
+          // the thresholds
+          virtual_counters[d][degree].push_back(count);
+          thresholds[d][degree].push_back(overflow_paths[d][stage][i]);
+        }
+      }
+    }
+  }
+
+  std::cout << "[qWaterfall_Fcm] ...done!" << std::endl;
+  /*for (size_t d = 0; d < thresholds.size(); d++) {*/
+  /*  if (thresholds[d].size() == 0) {*/
+  /*    continue;*/
+  /*  }*/
+  /*  std::cout << "Depth: " << d << std::endl;*/
+  /*  for (size_t xi = 0; xi < thresholds[d].size(); xi++) {*/
+  /**/
+  /*    for (size_t i = 0; i < thresholds[d][xi].size(); i++) {*/
+  /*      std::cout << "i " << i << ":";*/
+  /*      for (size_t l = 0; l < thresholds[d][xi][i].size(); l++) {*/
+  /*        std::cout << " <";*/
+  /*        for (auto &col : thresholds[d][xi][i][l]) {*/
+  /*          std::cout << col;*/
+  /*          if (&col != &thresholds[d][xi][i][l].back()) {*/
+  /*            std::cout << ", ";*/
+  /*          }*/
+  /*        }*/
+  /*        std::cout << "> ";*/
+  /*      }*/
+  /*      std::cout << std::endl;*/
+  /*    }*/
+  /*  }*/
+  /*}*/
+
+  std::cout << std::endl;
+  for (size_t d = 0; d < virtual_counters.size(); d++) {
+    if (virtual_counters[d].size() == 0) {
+      continue;
+    }
+    std::cout << "Depth " << d << " : " << std::endl;
+    for (size_t xi = 0; xi < virtual_counters[d].size(); xi++) {
+      std::cout << "Degree " << xi
+                << "\tThreshold size: " << thresholds[d][xi].size()
+                << "\tVC size: " << virtual_counters[d][xi].size();
+      for (auto &val : virtual_counters[d][xi]) {
+        /*if (xi > 2) {*/
+        /*  std::cout << " " << val << " with " << thresholds[d][xi].size()*/
+        /*            << " ";*/
+        /*}*/
+        max_counter_value = std::max(max_counter_value, val);
+      }
+      std::cout << "\tMaximum value: " << max_counter_value << std::endl;
+    }
+    std::cout << std::endl;
+  }
+  std::cout << "CHT maximum degree is: " << cht_max_degree << std::endl;
+  std::cout << "Maximum degree is: " << max_degree[0] << ", " << max_degree[1]
+            << std::endl;
+  std::cout << "Maximum counter value is: " << max_counter_value << std::endl;
+
+  EM_FSD_QW_FCMS em_fsd(thresholds, max_counter_value, max_degree,
+                        virtual_counters);
+
+  std::cout << "Initialized EM_FSD, starting estimation..." << std::endl;
+  double wmre = 0.0;
+  double d_wmre = 0.0;
+  for (size_t i = 0; i < this->em_iters; i++) {
+    em_fsd.next_epoch();
+    vector<double> ns = em_fsd.ns;
+
+    uint32_t max_len = std::max(true_fsd.size(), ns.size());
+    true_fsd.resize(max_len);
+    ns.resize(max_len);
+
+    double wmre_nom = 0.0;
+    double wmre_denom = 0.0;
+    for (size_t i = 0; i < max_len; i++) {
+      wmre_nom += std::abs(double(true_fsd[i]) - ns[i]);
+      wmre_denom += double((double(true_fsd[i]) + ns[i]) / 2);
+    }
+    wmre = wmre_nom / wmre_denom;
+    std::cout << "[qWaterfall_Fcm - EM FSD iter " << i << "] intermediary wmre "
+              << wmre << " delta: " << wmre - d_wmre << std::endl;
+    d_wmre = wmre;
+  }
+
+  uint32_t card_waterfall = tuples.size();
+  uint32_t card_em = em_fsd.n_new;
+  if (card_em < card_waterfall) {
+    uint32_t d_card = card_waterfall - card_em;
+    std::cout << "[qWaterfall_Fcm - Card Padding] Still missing " << d_card
+              << " number of flows as EM " << card_em << " with qWaterfall has "
+              << card_waterfall << std::endl;
+
+    vector<double> ns = em_fsd.ns;
+    // TODO: Use zipf distribution for calculation diff
+    // These values are from FlowLiDAR as flows are split up like this. With
+    // remaining flows being >3
+    ns[1] += (double)0.60 * d_card;
+    ns[2] += (double)0.10 * d_card;
+    /*ns[3] += 0.10 * d_card;*/
+
+    uint32_t max_len = std::max(true_fsd.size(), ns.size());
+    true_fsd.resize(max_len);
+    ns.resize(max_len);
+
+    double wmre_nom = 0.0;
+    double wmre_denom = 0.0;
+    for (size_t i = 0; i < max_len; i++) {
+      wmre_nom += std::abs(double(true_fsd[i]) - ns[i]);
+      wmre_denom += double((double(true_fsd[i]) + ns[i]) / 2);
+    }
+    wmre = wmre_nom / wmre_denom;
+    std::cout << "[qWaterfall_Fcm - Card Padding] wmre " << wmre
+              << " delta: " << wmre - d_wmre << std::endl;
+    d_wmre = wmre;
+  }
+
+  std::cout << "...done!" << std::endl;
+  return wmre;
+}
 #endif // !_Q_WATERFALL_CPP

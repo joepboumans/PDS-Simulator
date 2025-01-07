@@ -71,6 +71,7 @@ public:
   void store_data();
   void print_sketch();
   double calculate_fsd(set<TUPLE> &tuples, vector<uint32_t> &true_fsd);
+  double calculate_fsd_peeling(set<TUPLE> &tuples, vector<uint32_t> &true_fsd);
   void set_estimate_fsd(bool onoff);
 };
 

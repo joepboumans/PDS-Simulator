@@ -12,7 +12,6 @@
 
 template <typename TUPLE, typename T> class dataParser {
 public:
-  size_t n_unique_tuples = 0;
   unordered_map<string, T> get_traces(vector<string> filenames) {
     vector<T> traces(filenames.size());
     unordered_map<string, T> data_traces;
@@ -67,22 +66,20 @@ public:
       std::cout << "ERROR: Input file is NULL" << std::endl;
     }
     uint32_t i = 0;
+    std::set<TUPLE> unique_tuples;
     while (fread(&tin, 1, sizeof(FIVE_TUPLE), this->fin)) {
       trace[i++] = TUPLE(tin);
       unique_tuples.insert(tin);
     }
 
-    n_unique_tuples = unique_tuples.size();
     std::cout << "Total tuples " << trace.size()
               << "\tUnique tuples in trace : " << unique_tuples.size()
               << " tuples" << std::endl;
-    unique_tuples.clear();
 
     return trace;
   }
 
 private:
-  std::set<TUPLE> unique_tuples;
   char filename[100];
   FILE *fin;
 

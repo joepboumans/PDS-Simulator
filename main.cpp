@@ -39,7 +39,7 @@ int main() {
   }
   globfree(glob_res);
 
-  uint32_t sim_length = 30;
+  uint32_t sim_length = 1;
   uint32_t iter = 1;
 
   for (string &f : filenames) {
@@ -96,7 +96,7 @@ int main() {
     /*    std::numeric_limits<uint32_t>::max(), f, 0, 0);*/
     /*stages.push_back(&qwaterfall);*/
 
-    qWaterfall_Fcm<FLOW_TUPLE, flowTupleHash> qwaterfall_fcm(4, 3, f, 0, 0);
+    qWaterfall_Fcm<FLOW_TUPLE, flowTupleHash> qwaterfall_fcm(4, 1, f, 0, 0);
     stages.push_back(&qwaterfall_fcm);
 
     /*qWaterfall<FLOW_TUPLE, flowTupleHash> qwaterfall(*/

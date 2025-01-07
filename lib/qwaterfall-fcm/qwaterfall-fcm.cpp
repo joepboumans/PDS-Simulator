@@ -119,7 +119,6 @@ double qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd(set<TUPLE> &tuples,
     }
     std::cout << std::endl;
   }
-  /*this->print_sketch();*/
 
   uint32_t max_counter_value = 0;
   // Summarize sketch and find collisions
@@ -257,16 +256,16 @@ double qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd(set<TUPLE> &tuples,
     std::cout << "Depth " << d << " : " << std::endl;
     for (size_t xi = 0; xi < virtual_counters[d].size(); xi++) {
       std::cout << "Degree " << xi
-                << " Threshold size: " << thresholds[d][xi].size()
-                << "VC size: " << virtual_counters[d][xi].size();
+                << "\tThreshold size: " << thresholds[d][xi].size()
+                << "\tVC size: " << virtual_counters[d][xi].size();
       for (auto &val : virtual_counters[d][xi]) {
         /*if (xi > 2) {*/
         /*  std::cout << " " << val << " with " << thresholds[d][xi].size()*/
         /*            << " ";*/
         /*}*/
         max_counter_value = std::max(max_counter_value, val);
-        std::cout << " Maximum value: " << max_counter_value << std::endl;
       }
+      std::cout << "\tMaximum value: " << max_counter_value << std::endl;
     }
     std::cout << std::endl;
   }
@@ -300,6 +299,39 @@ double qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd(set<TUPLE> &tuples,
               << wmre << " delta: " << wmre - d_wmre << std::endl;
     d_wmre = wmre;
   }
+
+  uint32_t card_waterfall = tuples.size();
+  uint32_t card_em = em_fsd.n_new;
+  if (card_em < card_waterfall) {
+    uint32_t d_card = card_waterfall - card_em;
+    std::cout << "[qWaterfall_Fcm - Card Padding] Still missing " << d_card
+              << " number of flows as EM " << card_em << " with qWaterfall has "
+              << card_waterfall << std::endl;
+
+    vector<double> ns = em_fsd.ns;
+    // TODO: Use zipf distribution for calculation diff
+    // These values are from FlowLiDAR as flows are split up like this. With
+    // remaining flows being >3
+    ns[1] += (double)0.60 * d_card;
+    ns[2] += (double)0.10 * d_card;
+    /*ns[3] += 0.10 * d_card;*/
+
+    uint32_t max_len = std::max(true_fsd.size(), ns.size());
+    true_fsd.resize(max_len);
+    ns.resize(max_len);
+
+    double wmre_nom = 0.0;
+    double wmre_denom = 0.0;
+    for (size_t i = 0; i < max_len; i++) {
+      wmre_nom += std::abs(double(true_fsd[i]) - ns[i]);
+      wmre_denom += double((double(true_fsd[i]) + ns[i]) / 2);
+    }
+    wmre = wmre_nom / wmre_denom;
+    std::cout << "[qWaterfall_Fcm - Card Padding] wmre " << wmre
+              << " delta: " << wmre - d_wmre << std::endl;
+    d_wmre = wmre;
+  }
+
   std::cout << "...done!" << std::endl;
   return wmre;
 }

@@ -2,6 +2,7 @@
 #define _DATA_PARSER_H_
 
 #include "common.h"
+#include <algorithm>
 #include <cassert>
 #include <cstdint>
 #include <cstdio>

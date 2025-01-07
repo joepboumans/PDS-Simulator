@@ -36,7 +36,7 @@ uint32_t FCM_Sketches<TUPLE, HASH>::insert(TUPLE tuple) {
       if (curr_counter->overflow) {
         // Check for complete overflow
         if (s == n_stages - 1) {
-          return 1;
+          return 0;
         }
         c += curr_counter->count;
         hash_idx = uint32_t(hash_idx / this->k);

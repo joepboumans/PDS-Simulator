@@ -72,7 +72,7 @@ public:
     this->setupLogging();
 
     // Setup stages accoording to k * n_roots over the stages
-    std::cout << "[FCM Sketches] Setting up counters";
+    std::cout << "[FCM Sketches] Setting up counters" << std::endl;
     for (size_t d = 0; d < depth; d++) {
       std::cout << "Depth: " << d << std::endl;
       for (size_t i = 0; i < n_stages; i++) {

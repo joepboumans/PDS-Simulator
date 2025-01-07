@@ -72,15 +72,27 @@ void qWaterfall_Fcm<TUPLE, HASH>::analyze(int epoch) {
       true_fsd[count]++;
     }
 
-    auto start = std::chrono::high_resolution_clock::now();
+    uint32_t true_max = *std::max_element(true_fsd.begin(), true_fsd.end());
+    std::cout << "[qWaterfall_Fcm] True maximum counter values: " << true_max
+              << std::endl;
+
+    /*auto start = std::chrono::high_resolution_clock::now();*/
     /*this->wmre = this->calculate_fsd(this->qwaterfall.tuples, true_fsd);*/
+    /*auto stop = std::chrono::high_resolution_clock::now();*/
+    /*auto time = duration_cast<std::chrono::milliseconds>(stop - start);*/
+    /**/
+    /*em_time = time.count();*/
+    /*printf("[EM_FSD] WMRE : %f\n", this->wmre);*/
+    /*printf("[EM_FSD] Total time %li ms\n", em_time);*/
+
+    auto start = std::chrono::high_resolution_clock::now();
     this->wmre = this->calculate_fsd_peeling(this->qwaterfall.tuples, true_fsd);
     auto stop = std::chrono::high_resolution_clock::now();
     auto time = duration_cast<std::chrono::milliseconds>(stop - start);
 
     em_time = time.count();
-    printf("[EM_FSD] WMRE : %f\n", this->wmre);
-    printf("[EM_FSD] Total time %li ms\n", em_time);
+    printf("[EM_FSD] Peeling WMRE : %f\n", this->wmre);
+    printf("[EM_FSD] Peeling time %li ms\n", em_time);
   } else {
     this->wmre = this->fcm_sketches.wmre;
   }
@@ -208,6 +220,12 @@ double qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd(set<TUPLE> &tuples,
           uint32_t degree = summary[d][stage][i][1];
           if (overflow_paths[d][stage][i].empty()) {
             std::cout << "[ERROR] OVerflow path is empty" << std::endl;
+            printf("d:%zu, s:%zu, i:%zu, count:%i, degree:%i\n", d, stage, i,
+                   count, degree);
+          }
+
+          if (count >= 18000000) {
+            std::cout << "Found large number at ";
             printf("d:%zu, s:%zu, i:%zu, count:%i, degree:%i\n", d, stage, i,
                    count, degree);
           }
@@ -388,7 +406,7 @@ qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd_peeling(set<TUPLE> &tuples,
   std::cout << "Remaining flows in coll_tuples " << n_remain[0] << ", "
             << n_remain[1] << std::endl;
 
-  vector<uint32_t> init_fsd;
+  vector<vector<uint32_t>> init_fsd(DEPTH);
   vector<uint32_t> solved_counters;
   uint32_t d_curr = 0;
   uint32_t d_next = 1;
@@ -400,7 +418,7 @@ qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd_peeling(set<TUPLE> &tuples,
       if (coll_tuples[d_curr][i].size() == 1) {
         if (init_count[d_curr][i] <= 254) {
           solved_counters.push_back(i);
-          init_fsd.push_back(init_count[d_curr][i]);
+          init_fsd[d_curr].push_back(init_count[d_curr][i]);
 
           coll_tuples[d_curr][i].clear();
         }
@@ -455,27 +473,14 @@ qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd_peeling(set<TUPLE> &tuples,
     }
   }
 
+  std::cout << "Found a total of " << init_fsd[0].size() + init_fsd[1].size()
+            << " flows of degree 1, count <= 254" << std::endl;
   std::cout << "Remaining flows in coll_tuples " << n_remain[0] << ", "
             << n_remain[1] << std::endl;
-  uint32_t max_count = *std::max_element(init_fsd.begin(), init_fsd.end());
-  vector<double> ns(max_count, 0);
-  for (auto &x : init_fsd) {
-    ns[x]++;
-  }
 
-  uint32_t max_len = std::max(true_fsd.size(), ns.size());
-  true_fsd.resize(max_len);
-  ns.resize(max_len);
-
-  double wmre_nom = 0.0;
-  double wmre_denom = 0.0;
-  for (size_t i = 0; i < max_len; i++) {
-    wmre_nom += std::abs(double(true_fsd[i]) - ns[i]);
-    wmre_denom += double((double(true_fsd[i]) + ns[i]) / 2);
-  }
-  wmre = wmre_nom / wmre_denom;
-  return wmre;
-  exit(0);
+  // ********************************* //
+  // Start setting up summary and VC's //
+  // ********************************* //
 
   uint32_t max_counter_value = 0;
   // Summarize sketch and find collisions
@@ -500,6 +505,14 @@ qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd_peeling(set<TUPLE> &tuples,
   // degree, count value, n
   vector<vector<vector<uint32_t>>> virtual_counters(
       DEPTH, vector<vector<uint32_t>>(cht_max_degree + 1));
+
+  // Add inital FSD to VC's
+  for (size_t d = 0; d < DEPTH; d++) {
+    for (auto &flow_size : init_fsd[d]) {
+      virtual_counters[d][1].push_back(flow_size);
+    }
+  }
+
   vector<vector<vector<vector<vector<uint32_t>>>>> thresholds(
       DEPTH, vector<vector<vector<vector<uint32_t>>>>(cht_max_degree + 1));
 
@@ -565,6 +578,12 @@ qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd_peeling(set<TUPLE> &tuples,
             printf("d:%zu, s:%zu, i:%zu, count:%i, degree:%i\n", d, stage, i,
                    count, degree);
           }
+          if (count >= 18000000) {
+            std::cout << "Found large number at ";
+            printf("d:%zu, s:%zu, i:%zu, count:%i, degree:%i\n", d, stage, i,
+                   count, degree);
+            exit(1);
+          }
 
           if (degree >= thresholds[d].size()) {
             thresholds[d].resize(degree + 1);
@@ -615,14 +634,16 @@ qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd_peeling(set<TUPLE> &tuples,
       std::cout << "Degree " << xi
                 << "\tThreshold size: " << thresholds[d][xi].size()
                 << "\tVC size: " << virtual_counters[d][xi].size();
+      uint32_t im_max_val = 0;
       for (auto &val : virtual_counters[d][xi]) {
         /*if (xi > 2) {*/
         /*  std::cout << " " << val << " with " << thresholds[d][xi].size()*/
         /*            << " ";*/
         /*}*/
-        max_counter_value = std::max(max_counter_value, val);
+        im_max_val = std::max(im_max_val, val);
       }
-      std::cout << "\tMaximum value: " << max_counter_value << std::endl;
+      std::cout << "\tMaximum value: " << im_max_val << std::endl;
+      max_counter_value = std::max(max_counter_value, im_max_val);
     }
     std::cout << std::endl;
   }

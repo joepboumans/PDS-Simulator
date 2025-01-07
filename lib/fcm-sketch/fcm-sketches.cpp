@@ -116,6 +116,28 @@ uint32_t FCM_Sketches<TUPLE, HASH>::lookup(TUPLE tuple) {
 }
 
 template <typename TUPLE, typename HASH>
+uint32_t FCM_Sketches<TUPLE, HASH>::subtract(TUPLE tuple, uint32_t count) {
+  for (size_t d = 0; d < this->depth; d++) {
+    for (int s = n_stages - 1; s >= 0; s--) {
+      // Get correct hash_idx for counter
+      uint32_t hash_idx = this->hashing(tuple, d);
+      for (int i = 0; i < s; i++) {
+        hash_idx = uint32_t(hash_idx / this->k);
+      }
+
+      // Subtract count and exit if no remained
+      Counter *curr_counter = &this->stages[d][s][hash_idx];
+      uint32_t remain = curr_counter->decrement(count);
+      if (!remain) {
+        return 0;
+      }
+      count = remain;
+    }
+  }
+  return 1;
+}
+
+template <typename TUPLE, typename HASH>
 void FCM_Sketches<TUPLE, HASH>::print_sketch() {
   std::cout << "[FCM] ------------------" << std::endl;
   for (size_t d = 0; d < this->depth; d++) {

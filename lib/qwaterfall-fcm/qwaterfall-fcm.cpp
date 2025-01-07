@@ -420,6 +420,7 @@ qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd_peeling(set<TUPLE> &tuples,
                     sub_tuple) != coll_tuples[d_next][hash_idx].end()) {
 
         init_count[d_next][hash_idx] -= sub_count;
+        this->fcm_sketches.subtract(sub_tuple, sub_count);
         coll_tuples[d_next][hash_idx].erase(
             std::find(coll_tuples[d_next][hash_idx].begin(),
                       coll_tuples[d_next][hash_idx].end(), sub_tuple));

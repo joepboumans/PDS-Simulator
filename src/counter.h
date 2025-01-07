@@ -29,11 +29,15 @@ public:
       this->overflow = false;
       this->count = this->max_count - 1;
     }
-    if (this->count > 0) {
+    if (this->count >= c) {
       this->count -= c;
       return 0;
+    } else {
+      c -= this->count;
+      this->count = 0;
+      return c;
     }
-    return 1;
+    return 0;
   }
 };
 #endif // !_COUNTER_H

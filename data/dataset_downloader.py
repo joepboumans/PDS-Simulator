@@ -67,6 +67,9 @@ if __name__ == "__main__":
                     try:
                         if not UDP in packet and not TCP in packet or IPv6 in packet:
                             continue
+                        
+                        if packet.src == "0.0.0.0" or packet.dst == "0.0.0.0":
+                            continue
 
                         out = get_field_bytes(packet, "src")
                         out += get_field_bytes(packet, "dst")

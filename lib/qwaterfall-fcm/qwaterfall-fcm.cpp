@@ -16,6 +16,10 @@ template class qWaterfall_Fcm<FLOW_TUPLE, flowTupleHash>;
 
 template <typename TUPLE, typename HASH>
 uint32_t qWaterfall_Fcm<TUPLE, HASH>::insert(TUPLE tuple) {
+  TUPLE empty;
+  if (tuple == empty) {
+    return 1;
+  }
   this->qwaterfall.insert(tuple);
   this->fcm_sketches.insert(tuple);
   return 0;
@@ -507,11 +511,13 @@ qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd_peeling(set<TUPLE> &tuples,
       DEPTH, vector<vector<uint32_t>>(cht_max_degree + 1));
 
   // Add inital FSD to VC's
-  for (size_t d = 0; d < DEPTH; d++) {
-    for (auto &flow_size : init_fsd[d]) {
-      virtual_counters[d][1].push_back(flow_size);
-    }
-  }
+  /*for (size_t d = 0; d < DEPTH; d++) {*/
+  /*  for (auto &flow_size : init_fsd[d]) {*/
+  /*    virtual_counters[d][1].push_back(flow_size);*/
+  /*  }*/
+  /*}*/
+
+  vector<uint32_t> missing_fsd;
 
   vector<vector<vector<vector<vector<uint32_t>>>>> thresholds(
       DEPTH, vector<vector<vector<vector<uint32_t>>>>(cht_max_degree + 1));
@@ -524,7 +530,11 @@ qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd_peeling(set<TUPLE> &tuples,
     for (size_t stage = 0; stage < NUM_STAGES; stage++) {
       std::cout << "\tStage " << stage << std::endl;
       for (size_t i = 0; i < this->fcm_sketches.stages_sz[stage]; i++) {
+
         summary[d][stage][i][0] = this->fcm_sketches.stages[d][stage][i].count;
+        if (summary[d][stage][i][0] == 0) {
+          continue;
+        }
         // If overflown increase the minimal value for the collisions
         if (this->fcm_sketches.stages[d][stage][i].overflow) {
           summary[d][stage][i][0] =
@@ -534,7 +544,17 @@ qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd_peeling(set<TUPLE> &tuples,
         if (stage == 0) {
           summary[d][stage][i][1] = init_degree[d][i];
           if (summary[d][stage][i][0] > 0 && init_degree[d][i] < 1) {
-            summary[d][stage][i][1] = 1;
+            std::cout << "Found count with no initial degree: ";
+            printf("d:%zu, s:%zu, i:%zu, count:%d \n", d, stage, i,
+                   summary[d][stage][i][0]);
+            if (this->fcm_sketches.stages[d][stage][i].overflow) {
+              std::cout << "It has overflown so handle it as a regular flow"
+                        << std::endl;
+              summary[d][stage][i][1] = 1;
+            } else {
+              missing_fsd.push_back(summary[d][stage][i][0]);
+              continue;
+            }
           }
           overflow_paths[d][stage][i].push_back(
               {(uint32_t)stage, init_degree[d][i], 1, summary[d][stage][i][0]});
@@ -560,12 +580,10 @@ qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd_peeling(set<TUPLE> &tuples,
             }
           }
           // If any of my childeren have overflown, add me to the overflow path
-          if (overflown > 0) {
-            vector<uint32_t> imm_overflow = {(uint32_t)stage,
-                                             summary[d][stage][i][1], overflown,
-                                             summary[d][stage][i][0]};
-            overflow_paths[d][stage][i].push_back(imm_overflow);
-          }
+          vector<uint32_t> imm_overflow = {(uint32_t)stage,
+                                           summary[d][stage][i][1], overflown,
+                                           summary[d][stage][i][0]};
+          overflow_paths[d][stage][i].push_back(imm_overflow);
         }
 
         // If not overflown and non-zero, we are at the end of the path

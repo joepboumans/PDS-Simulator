@@ -45,6 +45,12 @@ uint32_t FCM_Sketches<TUPLE, HASH>::insert(TUPLE tuple) {
 
       curr_counter->increment();
       c += curr_counter->count;
+      if (c > 18000000) {
+        std::cout << "Big number insert by tuples: " << tuple << std::endl;
+      }
+      if (c > 18100000) {
+        exit(1);
+      }
       if (c > this->hh_threshold) {
         this->HH_candidates.insert(tuple);
       }

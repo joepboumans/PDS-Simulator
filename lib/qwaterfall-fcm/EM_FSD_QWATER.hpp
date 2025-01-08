@@ -165,8 +165,8 @@ private:
         flow_num_limit = std::min(4, flow_num_limit);
       else if (sum > 50)
         flow_num_limit = std::min(5, flow_num_limit);
-      else
-        flow_num_limit = std::min(6, flow_num_limit);
+      /*else*/
+      /*flow_num_limit = std::min(6, flow_num_limit);*/
     }
 
     bool get_new_comb() {

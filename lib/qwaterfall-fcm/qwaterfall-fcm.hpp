@@ -33,7 +33,7 @@ public:
                  uint32_t n_stage, uint32_t n_struct)
       : PDS<TUPLE, HASH>(trace, n_stage, n_struct), n_tables(n_tables),
         em_iters(em_iters),
-        fcm_sketches(W3, 3, 8, DEPTH, 10000, 1, trace, n_stage, n_struct),
+        fcm_sketches(W3, 3, 8, DEPTH, 100000, 1, trace, n_stage, n_struct),
         qwaterfall(n_tables, trace, n_stage, n_struct) {
 
     this->fcm_sketches.estimate_fsd = false;

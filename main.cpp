@@ -42,6 +42,7 @@ int main() {
   uint32_t sim_length = 1;
   uint32_t iter = 1;
 
+  uint32_t curr_file = 0;
   for (string &f : filenames) {
     std::cout << "[DataParser] Start parsing " << f << "..." << std::endl;
     dataParser<FLOW_TUPLE, TRACE_FLOW> data_parser;
@@ -127,7 +128,10 @@ int main() {
     std::cout << "[Simulator] ...done!" << std::endl;
     std::cout << std::endl << std::endl;
 
-    break;
+    curr_file++;
+    if (curr_file > 0) {
+      break;
+    }
     // Run simulations on 5-tuple
     /*std::cout << "[DataParser] Start parsing " << f << "..." << std::endl;*/
     /*dataParser<FIVE_TUPLE, TRACE> data_parser_5t;*/

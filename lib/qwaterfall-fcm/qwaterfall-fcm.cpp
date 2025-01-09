@@ -376,94 +376,135 @@ vector<vector<uint32_t>> qWaterfall_Fcm<TUPLE, HASH>::peel_sketches(
     }
   }
 
-  std::cout << "Starting flows in coll_tuples " << n_remain[0] << ", "
-            << n_remain[1] << std::endl;
+  std::cout << "--- Starting flows in coll_tuples " << n_remain[0] << ", "
+            << n_remain[1] << " ---" << std::endl;
 
   vector<vector<uint32_t>> init_fsd(DEPTH);
-  vector<uint32_t> solved_counters;
   uint32_t d_curr = 0;
   uint32_t d_next = 1;
   // First perform for "perfected" matched flows; Peel flows that are singular
   // in both sketches
-  do {
+  uint32_t found = 0;
+  found = 0;
+  for (size_t i = 0; i < coll_tuples[d_curr].size(); i++) {
+    if (coll_tuples[d_curr][i].size() < 1) {
+      continue;
+    }
 
-    // Clear previous solved counters and find next batch
-    solved_counters.clear();
+    if (coll_tuples[d_curr][i].size() != 1) {
+      continue;
+    }
+
+    TUPLE tuple = coll_tuples[d_curr][i][0];
+    uint32_t i_next = this->fcm_sketches.hashing(tuple, d_next);
+    uint32_t degree = this->fcm_sketches.lookup_degree(tuple, d_curr);
+    if (degree != 1) {
+      continue;
+    }
+
+    // Check if in other sketch this counter also only has this tuple
+    if (coll_tuples[d_next][i_next].size() != 1 ||
+        coll_tuples[d_next][i_next][0] != tuple) {
+      continue;
+    }
+
+    // Count needs to be equal, in case of missing tuple
+    if (counts[d_curr][i] != counts[d_next][i_next]) {
+      continue;
+    }
+
+    std::cout << "Deleting " << tuple << " with counts " << counts[d_curr][i]
+              << ", " << counts[d_next][i_next] << std::endl;
+    std::cout << "\twith tuples curr: ";
+    for (auto &t : coll_tuples[d_curr][i]) {
+      std::cout << t << ", ";
+    }
+    std::cout << std::endl;
+    std::cout << "\twith tuples next: ";
+    for (auto &t : coll_tuples[d_next][i_next]) {
+      std::cout << t << ", ";
+    }
+    std::cout << std::endl;
+    // Clear the perfect match and add their counts to the FSD
+    coll_tuples[d_curr][i].clear();
+    coll_tuples[d_next][i_next].clear();
+    init_fsd[d_curr].push_back(counts[d_curr][i]);
+    init_fsd[d_next].push_back(counts[d_curr][i]);
+    found++;
+  }
+  std::cout << "Found " << found << " counters in Stage 0 of Depth " << d_curr
+            << std::endl;
+
+  std::cout << "Found " << init_fsd[0].size() + init_fsd[1].size()
+            << " total flows" << std::endl;
+
+  std::cout << "--- Calculate counters with count matching the degree ---"
+            << std::endl;
+  // Now remove counters where the number of flows matches the count
+  do {
+    found = 0;
     for (size_t i = 0; i < coll_tuples[d_curr].size(); i++) {
-      // Only pass for single inital degree counters
-      if (coll_tuples[d_curr][i].size() != 1) {
+      if (coll_tuples[d_curr][i].size() < 1) {
+        continue;
+      }
+
+      // Check if the count matches the number of matched tuples
+      if (coll_tuples[d_curr][i].size() != counts[d_curr][i]) {
         continue;
       }
 
       TUPLE tuple = coll_tuples[d_curr][i][0];
-      uint32_t hash_idx = this->fcm_sketches.hashing(tuple, d_next);
-      // Only pass if the in the other sketch there is only one tuple
-      if (coll_tuples[d_next][hash_idx].size() != 1) {
-        continue;
-      }
-      // Has to be equal
-      if (coll_tuples[d_next][hash_idx][0] != tuple) {
-        continue;
+      // Add found flow sizes to FSD
+      // TODO: Look at if double is need or better way of FSD setup
+      for (size_t i = 0; i < counts[d_curr][i]; i++) {
+        init_fsd[d_next].push_back(1);
+        init_fsd[d_curr].push_back(1);
       }
 
-      uint32_t degree = this->fcm_sketches.lookup_degree(tuple, d_curr);
-      if (degree == 1) {
-        solved_counters.push_back(i);
+      // Remove flows from other sketch
+      for (auto &sub_tuple : coll_tuples[d_curr][i]) {
+        uint32_t i_next = this->fcm_sketches.hashing(sub_tuple, d_next);
 
-        coll_tuples[d_curr][i].clear();
-      }
-    }
-    std::cout << "Solved " << solved_counters.size()
-              << " counters in Stage 0 of Depth " << d_curr << std::endl;
-
-    // Remove found single degree small flow counters from other FCM Sketch
-    for (auto &i : solved_counters) {
-      TUPLE sub_tuple = coll_tuples[d_curr][i][0];
-      uint32_t sub_count = counts[d_curr][i];
-      uint32_t hash_idx = this->fcm_sketches.hashing(sub_tuple, d_next);
-
-      if (std::find(coll_tuples[d_next][hash_idx].begin(),
-                    coll_tuples[d_next][hash_idx].end(),
-                    sub_tuple) == coll_tuples[d_next][hash_idx].end()) {
-        std::cout << "Could not find tuple in other depth " << d_next
-                  << " found at depth " << d_curr
-                  << " with tuple: " << sub_tuple << std::endl;
-        std::cout << "D_n has following tuples: ";
-        for (auto &t : coll_tuples[d_next][hash_idx]) {
-          std::cout << t << std::endl;
+        if (std::find(coll_tuples[d_next][i_next].begin(),
+                      coll_tuples[d_next][i_next].end(),
+                      sub_tuple) == coll_tuples[d_next][i_next].end()) {
+          std::cout << "Could not find tuple in other depth " << d_next
+                    << " found at depth " << d_curr
+                    << " with tuple: " << sub_tuple << std::endl;
+          exit(1);
         }
-        std::cout << std::endl;
-        exit(1);
-      }
 
-      if (sub_count > counts[d_next][hash_idx]) {
-        std::cout << "Subcount mismatch at " << hash_idx
-                  << " with tuple: " << sub_tuple << " and sub count "
-                  << sub_count << ", counts " << counts[d_next][hash_idx]
-                  << std::endl;
-        uint32_t diff = sub_count - counts[d_next][hash_idx];
-        init_fsd[d_curr].push_back(counts[d_next][hash_idx]);
-        init_fsd[d_next].push_back(diff);
-        counts[d_next][hash_idx] = 0;
-      } else {
-        counts[d_next][hash_idx] -= sub_count;
-        init_fsd[d_curr].push_back(counts[d_curr][i]);
-      }
+        if (counts[d_next][i_next] == 0) {
+          std::cout << "[ERROR] Counter is emtpy, cannot remove count"
+                    << std::endl;
+          std::cout << "At " << i_next << " with count "
+                    << counts[d_next][i_next] << " with tuple: " << sub_tuple
+                    << std::endl;
+          exit(1);
+        }
 
-      // Subtract if from the local records and from the sketch
-      this->fcm_sketches.subtract(sub_tuple, sub_count);
-      coll_tuples[d_next][hash_idx].erase(
-          std::find(coll_tuples[d_next][hash_idx].begin(),
-                    coll_tuples[d_next][hash_idx].end(), sub_tuple));
+        // Subtract if from the local records and from the sketch
+        this->fcm_sketches.subtract(sub_tuple, 1);
+        coll_tuples[d_next][i_next].erase(
+            std::find(coll_tuples[d_next][i_next].begin(),
+                      coll_tuples[d_next][i_next].end(), sub_tuple));
+      }
+      // Updated the other sketch, now clean up own tuples
+      coll_tuples[d_curr][i].clear();
+      counts[d_curr][i] = 0;
+      found++;
     }
+    std::cout << "Found " << found << " counters in Stage 0 of Depth " << d_curr
+              << std::endl;
 
     // Switch around the sketches
     uint32_t t = d_curr;
     d_curr = d_next;
     d_next = t;
 
-    std::cout << "Found " << init_fsd.size() << " total flows" << std::endl;
-  } while (solved_counters.size() > 0);
+    std::cout << "Found " << init_fsd[0].size() + init_fsd[1].size()
+              << " total flows" << std::endl;
+  } while (found > 0);
 
   n_remain = {0, 0};
   for (size_t d = 0; d < DEPTH; d++) {
@@ -475,6 +516,10 @@ vector<vector<uint32_t>> qWaterfall_Fcm<TUPLE, HASH>::peel_sketches(
     }
   }
 
+  std::cout << "--- Calculate imperfect flows " << n_remain[0] << ", "
+            << n_remain[1] << " ---" << std::endl;
+
+  vector<uint32_t> solved_counters;
   d_curr = 0;
   d_next = 1;
   // Now match imperfect matches

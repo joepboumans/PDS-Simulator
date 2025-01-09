@@ -128,6 +128,11 @@ int main() {
     std::cout << "[Simulator] ...done!" << std::endl;
     std::cout << std::endl << std::endl;
 
+    curr_file++;
+    if (curr_file > 0) {
+      break;
+    }
+
     // Run simulations on 5-tuple
     std::cout << "[DataParser] Start parsing " << f << "..." << std::endl;
     dataParser<FIVE_TUPLE, TRACE> data_parser_5t;

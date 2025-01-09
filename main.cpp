@@ -128,17 +128,13 @@ int main() {
     std::cout << "[Simulator] ...done!" << std::endl;
     std::cout << std::endl << std::endl;
 
-    curr_file++;
-    if (curr_file > 0) {
-      break;
-    }
     // Run simulations on 5-tuple
-    /*std::cout << "[DataParser] Start parsing " << f << "..." << std::endl;*/
-    /*dataParser<FIVE_TUPLE, TRACE> data_parser_5t;*/
-    /*TRACE trace_5t = data_parser_5t.get_trace(f.data());*/
-    /*std::cout << "[DataParser] Finished parsing data" << std::endl;*/
-    /**/
-    /*vector<PDS<FIVE_TUPLE, fiveTupleHash> *> stages_5t;*/
+    std::cout << "[DataParser] Start parsing " << f << "..." << std::endl;
+    dataParser<FIVE_TUPLE, TRACE> data_parser_5t;
+    TRACE trace_5t = data_parser_5t.get_trace(f.data());
+    std::cout << "[DataParser] Finished parsing data" << std::endl;
+
+    vector<PDS<FIVE_TUPLE, fiveTupleHash> *> stages_5t;
 
     /*qWaterfall<FIVE_TUPLE, fiveTupleHash> qwaterfall_5t(*/
     /*    6, std::numeric_limits<uint16_t>::max(),
@@ -151,17 +147,21 @@ int main() {
      * data_parser_5t.n_unique_tuples,*/
     /*    f, 0, 0);*/
     /*stages_5t.push_back(&cuckoo);*/
+    qWaterfall_Fcm<FIVE_TUPLE, fiveTupleHash> qwaterfall_fcm_5t(4, 1, f, 0, 0);
+    stages_5t.push_back(&qwaterfall_fcm_5t);
 
-    /*std::cout << "[PDS] Added " << stages_5t.size() << " stages" <<
-     * std::endl;*/
-    /*Simulator<PDS<FIVE_TUPLE, fiveTupleHash>, TRACE> sim_5t(*/
-    /*    stages_5t, stages_5t.size(), sim_length);*/
-    /*std::cout << "[Simulator] Created simulator for FIVE_TUPLE" <<
-     * std::endl;*/
-    /**/
-    /*std::cout << "[Simulator] Starting simulations..." << std::endl;*/
-    /*sim_5t.run(trace_5t, iter);*/
-    /*std::cout << "[Simulator] ...done!" << std::endl;*/
+    std::cout << "[PDS] Added " << stages_5t.size() << " stages" << std::endl;
+    Simulator<PDS<FIVE_TUPLE, fiveTupleHash>, TRACE> sim_5t(
+        stages_5t, stages_5t.size(), sim_length);
+    std::cout << "[Simulator] Created simulator for FIVE_TUPLE" << std::endl;
+
+    std::cout << "[Simulator] Starting simulations..." << std::endl;
+    sim_5t.run(trace_5t, iter);
+    std::cout << "[Simulator] ...done!" << std::endl;
+    curr_file++;
+    if (curr_file > 0) {
+      break;
+    }
   }
 
   std::cout << "------" << std::endl;

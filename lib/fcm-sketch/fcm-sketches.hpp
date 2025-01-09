@@ -92,6 +92,8 @@ public:
   uint32_t subtract(TUPLE tuple, uint32_t count);
   uint32_t hashing(TUPLE tuple, uint32_t d);
   uint32_t lookup(TUPLE tuple);
+  uint32_t lookup_sketch(TUPLE tuple, uint32_t d);
+  uint32_t lookup_degree(TUPLE tuple, uint32_t d);
   void reset();
 
   void analyze(int epoch);

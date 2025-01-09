@@ -121,6 +121,66 @@ uint32_t FCM_Sketches<TUPLE, HASH>::lookup(TUPLE tuple) {
   return ret;
 }
 
+// Lookup the count of a tuple at depth d
+template <typename TUPLE, typename HASH>
+uint32_t FCM_Sketches<TUPLE, HASH>::lookup_sketch(TUPLE tuple, uint32_t d) {
+  uint32_t ret = std::numeric_limits<uint32_t>::max();
+  uint32_t c = 0;
+  uint32_t hash_idx = this->hashing(tuple, d);
+
+  for (size_t s = 0; s < n_stages; s++) {
+    Counter *curr_counter = &this->stages[d][s][hash_idx];
+    if (curr_counter->overflow) {
+      // Check for complete overflow
+      if (s == n_stages - 1) {
+        ret = std::min(ret, c);
+        break;
+      }
+      c += curr_counter->count;
+      hash_idx = uint32_t(hash_idx / this->k);
+      continue;
+    }
+    c += curr_counter->count;
+    ret = std::min(ret, c);
+    break;
+  }
+  return ret;
+}
+
+// Lookup the degree of a tuple at depth d
+template <typename TUPLE, typename HASH>
+uint32_t FCM_Sketches<TUPLE, HASH>::lookup_degree(TUPLE tuple, uint32_t d) {
+  uint32_t degree = 1;
+  uint32_t hash_idx = this->hashing(tuple, d);
+
+  for (size_t s = 0; s < this->n_stages; s++) {
+    Counter *curr_counter = &this->stages[d][s][hash_idx];
+    if (!curr_counter->overflow) {
+
+      if (degree == 1 && s > 0) {
+        std::cout << "Lookup degree at mid with tuple: " << tuple
+                  << " and degree: " << degree << " at stage " << s
+                  << std::endl;
+      }
+      return degree;
+    }
+
+    // Base idx for sibling counters
+    hash_idx = uint32_t(hash_idx / this->k) * this->k;
+    for (size_t i = hash_idx; i < hash_idx + this->k; i++) {
+      Counter *sibling_counter = &this->stages[d][s][i];
+      if (sibling_counter->overflow) {
+        degree++;
+      }
+    }
+
+    // Set hash_idx for next layer
+    hash_idx = uint32_t(hash_idx / this->k);
+  }
+  std::cout << "Lookup degree at end with tuple: " << tuple << std::endl;
+  return degree;
+}
+
 template <typename TUPLE, typename HASH>
 uint32_t FCM_Sketches<TUPLE, HASH>::subtract(TUPLE tuple, uint32_t count) {
   for (size_t d = 0; d < this->depth; d++) {

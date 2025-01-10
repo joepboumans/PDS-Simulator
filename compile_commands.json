@@ -1,1 +1,52 @@
-build/compile_commands.json
+[
+{
+  "directory": "/workspace/PDS-Simulator",
+  "command": "/usr/bin/c++ -DSYSTEM=\\\"UNIX\\\" -I/workspace/PDS-Simulator/src -I/workspace/PDS-Simulator -I/workspace/PDS-Simulator/lib/count-min -I/workspace/PDS-Simulator/lib/fcm-sketch -I/workspace/PDS-Simulator/lib/simulator -I/workspace/PDS-Simulator/lib/iblt -I/workspace/PDS-Simulator/lib/cuckoo-hash -I/workspace/PDS-Simulator/lib/waterfall-fcm -I/workspace/PDS-Simulator/lib/qwaterfall -I/workspace/PDS-Simulator/lib/qwaterfall-fcm  -Wall -O3 -lpthread -march=native -msse4.2 -msse4.1 -msse3 -msse2 -std=gnu++20 -o CMakeFiles/main.dir/main.cpp.o -c /workspace/PDS-Simulator/main.cpp",
+  "file": "/workspace/PDS-Simulator/main.cpp"
+},
+{
+  "directory": "/workspace/PDS-Simulator/lib/count-min",
+  "command": "/usr/bin/c++ -DSYSTEM=\\\"UNIX\\\" -I/workspace/PDS-Simulator/lib/count-min -I/workspace/PDS-Simulator/src  -Wall -O3 -lpthread -march=native -msse4.2 -msse4.1 -msse3 -msse2 -std=gnu++20 -o CMakeFiles/lib-count-min.dir/count-min.cpp.o -c /workspace/PDS-Simulator/lib/count-min/count-min.cpp",
+  "file": "/workspace/PDS-Simulator/lib/count-min/count-min.cpp"
+},
+{
+  "directory": "/workspace/PDS-Simulator/lib/fcm-sketch",
+  "command": "/usr/bin/c++ -DSYSTEM=\\\"UNIX\\\" -I/workspace/PDS-Simulator/lib/fcm-sketch -I/workspace/PDS-Simulator/src  -Wall -O3 -lpthread -march=native -msse4.2 -msse4.1 -msse3 -msse2 -std=gnu++20 -o CMakeFiles/lib-fcm-sketch.dir/fcm-sketch.cpp.o -c /workspace/PDS-Simulator/lib/fcm-sketch/fcm-sketch.cpp",
+  "file": "/workspace/PDS-Simulator/lib/fcm-sketch/fcm-sketch.cpp"
+},
+{
+  "directory": "/workspace/PDS-Simulator/lib/fcm-sketch",
+  "command": "/usr/bin/c++ -DSYSTEM=\\\"UNIX\\\" -I/workspace/PDS-Simulator/lib/fcm-sketch -I/workspace/PDS-Simulator/src  -Wall -O3 -lpthread -march=native -msse4.2 -msse4.1 -msse3 -msse2 -std=gnu++20 -o CMakeFiles/lib-fcm-sketch.dir/fcm-sketches.cpp.o -c /workspace/PDS-Simulator/lib/fcm-sketch/fcm-sketches.cpp",
+  "file": "/workspace/PDS-Simulator/lib/fcm-sketch/fcm-sketches.cpp"
+},
+{
+  "directory": "/workspace/PDS-Simulator/lib/simulator",
+  "command": "/usr/bin/c++ -DSYSTEM=\\\"UNIX\\\" -I/workspace/PDS-Simulator -I/workspace/PDS-Simulator/lib/simulator -I/workspace/PDS-Simulator/src  -Wall -O3 -lpthread -march=native -msse4.2 -msse4.1 -msse3 -msse2 -std=gnu++20 -o CMakeFiles/lib-simulator.dir/simulator.cpp.o -c /workspace/PDS-Simulator/lib/simulator/simulator.cpp",
+  "file": "/workspace/PDS-Simulator/lib/simulator/simulator.cpp"
+},
+{
+  "directory": "/workspace/PDS-Simulator/lib/iblt",
+  "command": "/usr/bin/c++ -DSYSTEM=\\\"UNIX\\\" -I/workspace/PDS-Simulator/lib/iblt -I/workspace/PDS-Simulator/src  -Wall -O3 -lpthread -march=native -msse4.2 -msse4.1 -msse3 -msse2 -std=gnu++20 -o CMakeFiles/lib-iblt.dir/iblt.cpp.o -c /workspace/PDS-Simulator/lib/iblt/iblt.cpp",
+  "file": "/workspace/PDS-Simulator/lib/iblt/iblt.cpp"
+},
+{
+  "directory": "/workspace/PDS-Simulator/lib/cuckoo-hash",
+  "command": "/usr/bin/c++ -DSYSTEM=\\\"UNIX\\\" -I/workspace/PDS-Simulator/lib/cuckoo-hash -I/workspace/PDS-Simulator/src  -Wall -O3 -lpthread -march=native -msse4.2 -msse4.1 -msse3 -msse2 -std=gnu++20 -o CMakeFiles/lib-cuckoo-hash.dir/cuckoo-hash.cpp.o -c /workspace/PDS-Simulator/lib/cuckoo-hash/cuckoo-hash.cpp",
+  "file": "/workspace/PDS-Simulator/lib/cuckoo-hash/cuckoo-hash.cpp"
+},
+{
+  "directory": "/workspace/PDS-Simulator/lib/waterfall-fcm",
+  "command": "/usr/bin/c++ -DSYSTEM=\\\"UNIX\\\" -I/workspace/PDS-Simulator/lib/waterfall-fcm -I/workspace/PDS-Simulator/src -I/workspace/PDS-Simulator/lib/fcm-sketch -I/workspace/PDS-Simulator/lib/cuckoo-hash  -Wall -O3 -lpthread -march=native -msse4.2 -msse4.1 -msse3 -msse2 -std=gnu++20 -o CMakeFiles/lib-waterfall-fcm.dir/waterfall-fcm.cpp.o -c /workspace/PDS-Simulator/lib/waterfall-fcm/waterfall-fcm.cpp",
+  "file": "/workspace/PDS-Simulator/lib/waterfall-fcm/waterfall-fcm.cpp"
+},
+{
+  "directory": "/workspace/PDS-Simulator/lib/qwaterfall",
+  "command": "/usr/bin/c++ -DSYSTEM=\\\"UNIX\\\" -I/workspace/PDS-Simulator/lib/qwaterfall -I/workspace/PDS-Simulator/src  -Wall -O3 -lpthread -march=native -msse4.2 -msse4.1 -msse3 -msse2 -std=gnu++20 -o CMakeFiles/lib-qwaterfall.dir/qwaterfall.cpp.o -c /workspace/PDS-Simulator/lib/qwaterfall/qwaterfall.cpp",
+  "file": "/workspace/PDS-Simulator/lib/qwaterfall/qwaterfall.cpp"
+},
+{
+  "directory": "/workspace/PDS-Simulator/lib/qwaterfall-fcm",
+  "command": "/usr/bin/c++ -DSYSTEM=\\\"UNIX\\\" -I/workspace/PDS-Simulator/lib/qwaterfall-fcm -I/workspace/PDS-Simulator/src -I/workspace/PDS-Simulator/lib/fcm-sketch -I/workspace/PDS-Simulator/lib/qwaterfall  -Wall -O3 -lpthread -march=native -msse4.2 -msse4.1 -msse3 -msse2 -std=gnu++20 -o CMakeFiles/lib-qwaterfall-fcm.dir/qwaterfall-fcm.cpp.o -c /workspace/PDS-Simulator/lib/qwaterfall-fcm/qwaterfall-fcm.cpp",
+  "file": "/workspace/PDS-Simulator/lib/qwaterfall-fcm/qwaterfall-fcm.cpp"
+}
+]

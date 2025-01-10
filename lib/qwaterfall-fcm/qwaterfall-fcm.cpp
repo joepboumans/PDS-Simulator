@@ -2,6 +2,7 @@
 #define _Q_WATERFALL_CPP
 
 #include "qwaterfall-fcm.hpp"
+#include "EM_FCM_org.h"
 #include "EM_FSD_QWATER.hpp"
 #include "common.h"
 #include <algorithm>
@@ -90,7 +91,9 @@ void qWaterfall_Fcm<TUPLE, HASH>::analyze(int epoch) {
     /*printf("[EM_FSD] Total time %li ms\n", em_time);*/
 
     auto start = std::chrono::high_resolution_clock::now();
-    this->wmre = this->calculate_fsd_peeling(this->qwaterfall.tuples, true_fsd);
+    /*this->wmre = this->calculate_fsd_peeling(this->qwaterfall.tuples,
+     * true_fsd);*/
+    this->wmre = this->calculate_fsd_org(this->qwaterfall.tuples, true_fsd);
     auto stop = std::chrono::high_resolution_clock::now();
     auto time = duration_cast<std::chrono::milliseconds>(stop - start);
 
@@ -299,8 +302,9 @@ double qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd(set<TUPLE> &tuples,
             << std::endl;
   std::cout << "Maximum counter value is: " << max_counter_value << std::endl;
 
+  vector<uint32_t> init_fsd = {0};
   EM_FSD_QW_FCMS em_fsd(thresholds, max_counter_value, max_degree,
-                        virtual_counters);
+                        virtual_counters, init_fsd);
 
   std::cout << "Initialized EM_FSD, starting estimation..." << std::endl;
   double wmre = 0.0;
@@ -362,7 +366,7 @@ double qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd(set<TUPLE> &tuples,
 }
 
 template <typename TUPLE, typename HASH>
-vector<vector<uint32_t>> qWaterfall_Fcm<TUPLE, HASH>::peel_sketches(
+vector<uint32_t> qWaterfall_Fcm<TUPLE, HASH>::peel_sketches(
     vector<vector<uint32_t>> counts,
     vector<vector<vector<TUPLE>>> coll_tuples) {
 
@@ -379,7 +383,7 @@ vector<vector<uint32_t>> qWaterfall_Fcm<TUPLE, HASH>::peel_sketches(
   std::cout << "--- Starting flows in coll_tuples " << n_remain[0] << ", "
             << n_remain[1] << " ---" << std::endl;
 
-  vector<vector<uint32_t>> init_fsd(DEPTH);
+  vector<uint32_t> init_fsd(DEPTH);
   uint32_t d_curr = 0;
   uint32_t d_next = 1;
   // First perform for "perfected" matched flows; Peel flows that are singular
@@ -413,30 +417,16 @@ vector<vector<uint32_t>> qWaterfall_Fcm<TUPLE, HASH>::peel_sketches(
       continue;
     }
 
-    std::cout << "Deleting " << tuple << " with counts " << counts[d_curr][i]
-              << ", " << counts[d_next][i_next] << std::endl;
-    std::cout << "\twith tuples curr: ";
-    for (auto &t : coll_tuples[d_curr][i]) {
-      std::cout << t << ", ";
-    }
-    std::cout << std::endl;
-    std::cout << "\twith tuples next: ";
-    for (auto &t : coll_tuples[d_next][i_next]) {
-      std::cout << t << ", ";
-    }
-    std::cout << std::endl;
     // Clear the perfect match and add their counts to the FSD
     coll_tuples[d_curr][i].clear();
     coll_tuples[d_next][i_next].clear();
-    init_fsd[d_curr].push_back(counts[d_curr][i]);
-    init_fsd[d_next].push_back(counts[d_curr][i]);
+    init_fsd.push_back(counts[d_curr][i]);
     found++;
   }
   std::cout << "Found " << found << " counters in Stage 0 of Depth " << d_curr
             << std::endl;
 
-  std::cout << "Found " << init_fsd[0].size() + init_fsd[1].size()
-            << " total flows" << std::endl;
+  std::cout << "Found " << init_fsd.size() << " total flows" << std::endl;
 
   std::cout << "--- Calculate counters with count matching the degree ---"
             << std::endl;
@@ -455,10 +445,8 @@ vector<vector<uint32_t>> qWaterfall_Fcm<TUPLE, HASH>::peel_sketches(
 
       TUPLE tuple = coll_tuples[d_curr][i][0];
       // Add found flow sizes to FSD
-      // TODO: Look at if double is need or better way of FSD setup
       for (size_t i = 0; i < counts[d_curr][i]; i++) {
-        init_fsd[d_next].push_back(1);
-        init_fsd[d_curr].push_back(1);
+        init_fsd.push_back(1);
       }
 
       // Remove flows from other sketch
@@ -502,8 +490,7 @@ vector<vector<uint32_t>> qWaterfall_Fcm<TUPLE, HASH>::peel_sketches(
     d_curr = d_next;
     d_next = t;
 
-    std::cout << "Found " << init_fsd[0].size() + init_fsd[1].size()
-              << " total flows" << std::endl;
+    std::cout << "Found " << init_fsd.size() << " total flows" << std::endl;
   } while (found > 0);
 
   n_remain = {0, 0};
@@ -515,87 +502,8 @@ vector<vector<uint32_t>> qWaterfall_Fcm<TUPLE, HASH>::peel_sketches(
       n_remain[d]++;
     }
   }
-
-  std::cout << "--- Calculate imperfect flows " << n_remain[0] << ", "
-            << n_remain[1] << " ---" << std::endl;
-
-  vector<uint32_t> solved_counters;
-  d_curr = 0;
-  d_next = 1;
-  // Now match imperfect matches
-  do {
-
-    // Clear previous solved counters and find next batch
-    solved_counters.clear();
-    for (size_t i = 0; i < coll_tuples[d_curr].size(); i++) {
-      // Degree 1 for curr depth
-      if (coll_tuples[d_curr][i].size() != 1) {
-        continue;
-      }
-
-      // If other sketchs has less count, then this is not actually a degree 1
-      // counter
-      TUPLE tuple = coll_tuples[d_curr][i][0];
-      uint32_t sub_count = counts[d_curr][i];
-      uint32_t hash_idx = this->fcm_sketches.hashing(tuple, d_next);
-      if (sub_count > counts[d_next][hash_idx]) {
-        continue;
-      }
-
-      solved_counters.push_back(i);
-      coll_tuples[d_curr][i].clear();
-    }
-    std::cout << "Solved " << solved_counters.size()
-              << " counters in Stage 0 of Depth " << d_curr << std::endl;
-
-    // Remove found single degree small flow counters from other FCM Sketch
-    for (auto &i : solved_counters) {
-      TUPLE sub_tuple = coll_tuples[d_curr][i][0];
-      uint32_t sub_count = counts[d_curr][i];
-      uint32_t hash_idx = this->fcm_sketches.hashing(sub_tuple, d_next);
-
-      if (std::find(coll_tuples[d_next][hash_idx].begin(),
-                    coll_tuples[d_next][hash_idx].end(),
-                    sub_tuple) == coll_tuples[d_next][hash_idx].end()) {
-        std::cout << "Could not find tuple in other depth " << d_next
-                  << " found at depth " << d_curr
-                  << " with tuple: " << sub_tuple << std::endl;
-        exit(1);
-      }
-
-      if (sub_count > counts[d_next][hash_idx]) {
-        std::cout << "Subcount mismatch at " << hash_idx
-                  << " with tuple: " << sub_tuple << " and sub count "
-                  << sub_count << ", counts " << counts[d_next][hash_idx]
-                  << std::endl;
-        uint32_t diff = sub_count - counts[d_next][hash_idx];
-        init_fsd[d_curr].push_back(counts[d_next][hash_idx]);
-        init_fsd[d_next].push_back(diff);
-        counts[d_next][hash_idx] = 0;
-      } else {
-        counts[d_next][hash_idx] -= sub_count;
-        init_fsd[d_curr].push_back(counts[d_curr][i]);
-      }
-
-      // Subtract if from the local records and from the sketch
-      this->fcm_sketches.subtract(sub_tuple, sub_count);
-      coll_tuples[d_next][hash_idx].erase(
-          std::find(coll_tuples[d_next][hash_idx].begin(),
-                    coll_tuples[d_next][hash_idx].end(), sub_tuple));
-    }
-
-    // Switch around the sketches
-    uint32_t t = d_curr;
-    d_curr = d_next;
-    d_next = t;
-
-    std::cout << "Found " << init_fsd.size() << " total flows" << std::endl;
-  } while (solved_counters.size() > 0);
-
-  std::cout << "Found a total of " << init_fsd[0].size() + init_fsd[1].size()
-            << " flows of degree 1, count <= 254" << std::endl;
-  std::cout << "Remaining flows in coll_tuples " << n_remain[0] << ", "
-            << n_remain[1] << std::endl;
+  std::cout << "Remaining unsolved flows: " << n_remain[0] + n_remain[1]
+            << "\tSolved flows " << init_fsd.size() << std::endl;
 
   return init_fsd;
 }
@@ -640,8 +548,22 @@ qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd_peeling(set<TUPLE> &tuples,
                "for peeling"
             << std::endl;
 
-  vector<vector<uint32_t>> init_fsd =
-      this->peel_sketches(init_count, coll_tuples);
+  vector<uint32_t> init_fsd = this->peel_sketches(init_count, coll_tuples);
+
+  uint32_t max_len = std::max(true_fsd.size(), init_fsd.size());
+  true_fsd.resize(max_len);
+  init_fsd.resize(max_len);
+
+  double wmre = 0.0;
+  double wmre_nom = 0.0;
+  double wmre_denom = 0.0;
+  for (size_t i = 0; i < max_len; i++) {
+    wmre_nom += std::abs(double(true_fsd[i]) - init_fsd[i]);
+    wmre_denom += double((double(true_fsd[i]) + init_fsd[i]) / 2);
+  }
+  wmre = wmre_nom / wmre_denom;
+  std::cout << "[qWaterfall_Fcm - Peeling ] intermediary wmre " << wmre
+            << std::endl;
 
   // ********************************* //
   // Start setting up summary and VC's //
@@ -701,13 +623,12 @@ qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd_peeling(set<TUPLE> &tuples,
             std::cout << "Found count with no initial degree: ";
             printf("d:%zu, s:%zu, i:%zu, count:%d \n", d, stage, i,
                    summary[d][stage][i][0]);
-            if (this->fcm_sketches.stages[d][stage][i].overflow) {
-              std::cout << "It has overflown so handle it as a regular flow"
-                        << std::endl;
-              summary[d][stage][i][1] = 1;
-            } else {
-              missing_fsd.push_back(summary[d][stage][i][0]);
+            // Single count always is 1 degree
+            if (summary[d][stage][i][0] == 1) {
+              init_fsd.push_back(1);
               continue;
+            } else {
+              summary[d][stage][i][1] = 1;
             }
           }
           overflow_paths[d][stage][i].push_back(
@@ -772,13 +693,6 @@ qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd_peeling(set<TUPLE> &tuples,
     }
   }
 
-  // Add inital FSD to VC's
-  for (size_t d = 0; d < DEPTH; d++) {
-    for (auto &flow_size : init_fsd[d]) {
-      virtual_counters[d][1].push_back(flow_size);
-    }
-  }
-
   std::cout << "[qWaterfall_Fcm] ...done!" << std::endl;
   /*for (size_t d = 0; d < thresholds.size(); d++) {*/
   /*  if (thresholds[d].size() == 0) {*/
@@ -833,10 +747,9 @@ qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd_peeling(set<TUPLE> &tuples,
   std::cout << "Maximum counter value is: " << max_counter_value << std::endl;
 
   EM_FSD_QW_FCMS em_fsd(thresholds, max_counter_value, max_degree,
-                        virtual_counters);
+                        virtual_counters, init_fsd);
 
   std::cout << "Initialized EM_FSD, starting estimation..." << std::endl;
-  double wmre = 0.0;
   double d_wmre = 0.0;
   for (size_t i = 0; i < this->em_iters; i++) {
     em_fsd.next_epoch();
@@ -891,6 +804,217 @@ qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd_peeling(set<TUPLE> &tuples,
   }
 
   std::cout << "...done!" << std::endl;
+  return wmre;
+}
+
+template <typename TUPLE, typename HASH>
+double
+qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd_org(set<TUPLE> &tuples,
+                                               vector<uint32_t> &true_fsd) {
+  /* Making summary note for conversion algorithm (4-tuple summary)
+                 Each dimension is for (tree, layer, width, tuple)
+                 */
+  vector<int> get_width{W1, W2, W3};
+  vector<vector<vector<vector<uint32_t>>>> summary(DEPTH);
+
+  /* To track how paths are merged along the layers */
+  vector<vector<vector<vector<vector<uint32_t>>>>> track_thres(DEPTH);
+
+  /*
+          When tracking paths, save <a,b,c> in track_thres, where
+          a : layer (where paths have met)
+          b : number of path that have met (always less or equal than degree of
+     virtual counter) c : accumulated max-count value of overflowed registers
+     (e.g., 254, 65534+254, 65534+254+254, etc)
+          */
+
+  for (int d = 0; d < DEPTH; ++d) {
+    summary[d].resize(NUM_STAGES);
+    track_thres[d].resize(NUM_STAGES);
+    for (uint32_t i = 0; i < NUM_STAGES; ++i) {
+      summary[d][i].resize(get_width[i], vector<uint32_t>(4, 0)); // initialize
+      track_thres[d][i].resize(get_width[i]);                     // initialize
+      for (int w = 0; w < get_width[i]; ++w) {
+        if (i == 0) {              // stage 1
+          summary[d][i][w][2] = 1; // default
+          summary[d][i][w][3] =
+              this->fcm_sketches.stages[d][0][w].count;       // depth 0
+          if (!this->fcm_sketches.stages[d][0][w].overflow) { // not overflow
+            {
+              summary[d][i][w][0] = 1;
+            }
+          } else { // if counter is overflow
+            track_thres[d][i][w].push_back(
+                vector<uint32_t>{0, 1, summary[d][i][w][3]});
+          }
+        } else if (i == 1) { // stage 2
+          summary[d][i][w][2] = std::pow(K, i);
+          for (int t = 0; t < K; ++t)
+            summary[d][i][w][1] += summary[d][i - 1][K * w + t][0] +
+                                   summary[d][i - 1][K * w + t][1];
+          summary[d][i][w][3] = this->fcm_sketches.stages[d][1][w].count;
+
+          // if child is overflow, then accumulate both "value" and "threshold"
+          for (int ch = 0; ch < K; ++ch)
+            if (this->fcm_sketches.stages[d][0][K * w + ch]
+                    .overflow) { // if child is overflow
+              summary[d][i][w][3] += summary[d][i - 1][K * w + ch][3];
+              track_thres[d][i][w].insert(
+                  track_thres[d][i][w].end(),
+                  track_thres[d][i - 1][K * w + ch].begin(),
+                  track_thres[d][i - 1][K * w + ch].end());
+            }
+
+          if (!this->fcm_sketches.stages[d][1][w]
+                   .overflow) // non-overflow, end of path
+          {
+            summary[d][i][w][0] = summary[d][i][w][2] - summary[d][i][w][1];
+          } else {
+            // if overflow, then push new threshold <layer, #path, value>
+            track_thres[d][i][w].push_back(
+                vector<uint32_t>{i, summary[d][i][w][2] - summary[d][i][w][1],
+                                 summary[d][i][w][3]});
+          }
+        } else if (i == 2) { // stage 3
+          summary[d][i][w][2] = std::pow(K, i);
+          for (int t = 0; t < K; ++t)
+            summary[d][i][w][1] += summary[d][i - 1][K * w + t][0] +
+                                   summary[d][i - 1][K * w + t][1];
+          summary[d][i][w][3] = this->fcm_sketches.stages[d][2][w].count;
+
+          // if child is overflow, then accumulate both "value" and "threshold"
+          for (int ch = 0; ch < K; ++ch)
+            if (this->fcm_sketches.stages[d][1][K * w + ch]
+                    .overflow) { // if child is overflow
+              summary[d][i][w][3] += summary[d][i - 1][K * w + ch][3];
+              track_thres[d][i][w].insert(
+                  track_thres[d][i][w].end(),
+                  track_thres[d][i - 1][K * w + ch].begin(),
+                  track_thres[d][i - 1][K * w + ch].end());
+            }
+
+          if (!this->fcm_sketches.stages[d][2][w]
+                   .overflow) // non-overflow, end of path
+          {
+            summary[d][i][w][0] = summary[d][i][w][2] - summary[d][i][w][1];
+          } else {
+            // if overflow, then push new threshold <layer, #path, value>
+            track_thres[d][i][w].push_back(
+                vector<uint32_t>{i, summary[d][i][w][2] - summary[d][i][w][1],
+                                 summary[d][i][w][3]});
+          }
+        } else {
+          printf("[ERROR] DEPTH(%d) is not mathcing with allocated counter "
+                 "arrays...\n",
+                 DEPTH);
+          return -1;
+        }
+      }
+    }
+  }
+
+  // make new sketch with specific degree, (depth, degree, value)
+  vector<vector<vector<uint32_t>>> newsk(DEPTH);
+
+  // (depth, degree, vector(layer)<vector(#.paths)<threshold>>>)
+  vector<vector<vector<vector<vector<uint32_t>>>>> newsk_thres(DEPTH);
+
+  for (int d = 0; d < DEPTH; ++d) {
+    // size = all possible degree
+    newsk[d].resize(std::pow(K, NUM_STAGES - 1) +
+                    1); // maximum degree : k^(L-1) + 1 (except 0 index)
+    newsk_thres[d].resize(std::pow(K, NUM_STAGES - 1) +
+                          1); // maximum degree : k^(L-1) + 1 (except 0 index)
+    for (int i = 0; i < NUM_STAGES; ++i) {
+      for (int w = 0; w < get_width[i]; ++w) {
+        if (i == 0) // lowest level, degree 1
+        {
+          if (summary[d][i][w][0] > 0 and
+              summary[d][i][w][3] > 0) { // not full and nonzero
+            newsk[d][summary[d][i][w][0]].push_back(summary[d][i][w][3]);
+            newsk_thres[d][summary[d][i][w][0]].push_back(track_thres[d][i][w]);
+          }
+        } else // upper level
+        {
+          if (summary[d][i][w][0] >
+              0) { // the highest node that paths could reach
+            newsk[d][summary[d][i][w][0]].push_back(summary[d][i][w][3]);
+            newsk_thres[d][summary[d][i][w][0]].push_back(track_thres[d][i][w]);
+          }
+        }
+      }
+    }
+  }
+
+  // just for debugging, 1 for print, 0 for not print.
+  if (0) {
+    int maximum_val = 0;
+    for (int d = 0; d < DEPTH; ++d) {
+      for (int i = 0; i < newsk[d].size(); ++i) {
+        if (newsk[d][i].size() > 0) {
+          printf("degree : %d - %lu\n", i, newsk[d][i].size());
+          if (newsk_thres[d][i].size() != newsk[d][i].size()) {
+            printf("[Error] newsk and newsk_thres sizes are different!!!\n\n");
+            return -1;
+          }
+          for (int j = 0; j < newsk[d][i].size(); ++j) {
+            printf("[Depth:%d, Degree:%d, index:%d] ==> ", d, i, j);
+            printf("val:%d //", newsk[d][i][j]);
+            for (int k = 0; k < newsk_thres[d][i][j].size(); ++k) {
+              printf("<%d, %d, %d>, ", newsk_thres[d][i][j][k][0],
+                     newsk_thres[d][i][j][k][1], newsk_thres[d][i][j][k][2]);
+            }
+            maximum_val =
+                (maximum_val < newsk[d][i][j] ? newsk[d][i][j] : maximum_val);
+            printf("\n");
+          }
+        }
+      }
+      printf("[Depth : %d] Maximum counter value : %d\n\n\n", d, maximum_val);
+    }
+  }
+
+  EM_FCM_org<DEPTH, W1, OVERFLOW_LEVEL1, OVERFLOW_LEVEL2> *em_fsd_algo =
+      new EM_FCM_org<DEPTH, W1, OVERFLOW_LEVEL1, OVERFLOW_LEVEL2>(); // new
+
+  /* now, make the distribution of each degree */
+  em_fsd_algo->set_counters(newsk, newsk_thres); // new
+
+  std::cout << "Initialized EM_FSD, starting estimation..." << std::endl;
+  double d_wmre = 0.0;
+  for (size_t i = 0; i < this->em_iters; i++) {
+    em_fsd_algo->next_epoch();
+    vector<double> ns = em_fsd_algo->ns;
+
+    uint32_t max_len = std::max(true_fsd.size(), ns.size());
+    true_fsd.resize(max_len);
+    ns.resize(max_len);
+
+    double wmre_nom = 0.0;
+    double wmre_denom = 0.0;
+    for (size_t i = 0; i < max_len; i++) {
+      wmre_nom += std::abs(double(true_fsd[i]) - ns[i]);
+      wmre_denom += double((double(true_fsd[i]) + ns[i]) / 2);
+    }
+    wmre = wmre_nom / wmre_denom;
+    std::cout << "[qWaterfall_Fcm - EM FSD iter " << i << "] intermediary wmre "
+              << wmre << " delta: " << wmre - d_wmre << std::endl;
+    d_wmre = wmre;
+  }
+
+  // if (0){ // For debugging, 1 if printing final distribution
+  //  for(int i = 0, j = 0; i < (int)dist.size(); ++i){
+  //      if(ROUND_2_INT(dist[i]) > 0)
+  //      {
+  //          printf("<%4d, %4d>", i, ROUND_2_INT(dist[i]));
+  //          if(++j % 10 == 0)
+  //              printf("\n");
+  //          else printf("\t");
+  //      }
+  //  }
+  //  printf("\n\n\n");
+  // }
+  delete em_fsd_algo;
   return wmre;
 }
 #endif // !_Q_WATERFALL_CPP

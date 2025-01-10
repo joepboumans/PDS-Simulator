@@ -29,7 +29,8 @@ private:
   vector<vector<vector<uint32_t>>> counters;
   vector<vector<vector<uint32_t>>> counter_dist; // initial counter values
   vector<double> dist_old, dist_new;             // for ratio \phi
-  uint32_t w = W1;                               // width of counters
+  vector<double> init_fsd;
+  uint32_t w = W1; // width of counters
 public:
   vector<double> ns; // for integer n
   uint32_t max_counter_value = 0;
@@ -42,7 +43,8 @@ public:
   uint32_t iter = 0;
   EM_FSD_QW_FCMS(vector<vector<vector<vector<vector<uint32_t>>>>> &thresh,
                  uint32_t in_max_value, vector<uint32_t> max_degree,
-                 vector<vector<vector<uint32_t>>> &counters)
+                 vector<vector<vector<uint32_t>>> &counters,
+                 vector<uint32_t> &init_fsd)
       : max_degree(max_degree), max_counter_value(in_max_value),
         counter_dist(DEPTH), counters(counters), thresholds(thresh) {
 
@@ -73,6 +75,7 @@ public:
     }
     // Divide by number of sketches
     this->n_new = this->n_new / double(DEPTH);
+    this->n_new += double(init_fsd.size()); // Add initial found fsd
 
     std::cout << "[EM_WATERFALL_FCM] Initial cardinality guess : "
               << this->n_new << std::endl;
@@ -108,6 +111,14 @@ public:
         }
       }
     }
+    // Add initial guess
+    for (auto &x : init_fsd) {
+      this->init_fsd.push_back(double(x));
+    }
+    for (auto &x : this->init_fsd) {
+      this->dist_new[x]++;
+      this->ns[x]++;
+    }
     std::cout << "[EM_WATERFALL_FCM] Summed Flow Size Distribution"
               << std::endl;
     /*for (auto &x : this->dist_new) {*/
@@ -142,6 +153,7 @@ private:
     int sum;
     int now_flow_num;
     int flow_num_limit;
+    int start_pos;
     uint32_t in_degree;
     vector<int> now_result;
     vector<vector<uint32_t>> thresh;
@@ -167,16 +179,17 @@ private:
         flow_num_limit = std::min(5, flow_num_limit);
       /*else*/
       /*flow_num_limit = std::min(6, flow_num_limit);*/
+      start_pos = _in_degree - flow_num_limit;
     }
 
     bool get_new_comb() {
-      for (int j = now_flow_num - 2; j >= 0; --j) {
+      for (int j = now_flow_num - 2; j >= start_pos; --j) {
         int t = ++now_result[j];
-        for (int k = j + 1; k < now_flow_num - 1; ++k) {
+        for (int k = j + 1; k < now_result.size(); ++k) {
           now_result[k] = t;
         }
         int partial_sum = 0;
-        for (int k = 0; k < now_flow_num - 1; ++k) {
+        for (int k = start_pos; k < now_result.size(); ++k) {
           partial_sum += now_result[k];
         }
         int remain = sum - partial_sum;
@@ -190,25 +203,15 @@ private:
     }
 
     bool get_next() {
-      while (now_flow_num <= flow_num_limit) {
-        if (get_new_comb()) {
-          if (check_condition()) {
-            // std::ostringstream oss;
-            // oss << "Current combi : ";
-            // for (auto &x : now_result) {
-            //   oss << x << " ";
-            // }
-            // std::cout << oss.str().c_str() << std::endl;
-            return true;
-          }
-        } else {
-          // Extend current combination, e.g. 1 0 to 1 1 0
-          now_flow_num++;
-          now_result.resize(now_flow_num);
-          for (int i = 0; i < now_flow_num - 2; ++i) {
-            now_result[i] = 1;
-          }
-          now_result[now_flow_num - 2] = 0;
+      if (get_new_comb()) {
+        if (check_condition()) {
+          // std::ostringstream oss;
+          // oss << "Current combi : ";
+          // for (auto &x : now_result) {
+          //   oss << x << " ";
+          // }
+          // std::cout << oss.str().c_str() << std::endl;
+          return true;
         }
       }
 
@@ -382,7 +385,7 @@ private:
 
       if (this->thresholds[d][xi].size() <= i) {
         std::cout << "Out of bound for thresholds" << std::endl;
-        std::cout << this->thresholds[d].size() << std::endl;
+        std::cout << this->thresholds[d][xi].size() << std::endl;
         std::cout << "At " << xi << " " << i << " with count "
                   << this->counters[d][xi][i] << " ";
         exit(1);
@@ -462,7 +465,7 @@ public:
 
       nt[d][1].resize(this->counter_dist[d][1].size());
       for (size_t i = 0; i < this->counter_dist[d][1].size(); i++) {
-        nt[d][1][i] += this->counter_dist[d][1][i];
+        nt[d][1][i] = this->counter_dist[d][1][i];
       }
     }
 

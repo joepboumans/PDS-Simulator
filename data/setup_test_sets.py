@@ -40,7 +40,8 @@ def setup_dataset(data_name, test_name):
 
 def setup_dataset_length(data_name, test_name, length):
     print(f"[Dataset Loader] Get data from {data_name}")
-    os.remove(f"{test_name}.pcap")
+    if(os.path.exists(f"test_name.pcap")):
+        os.remove(f"{test_name}.pcap")
     with open(f"{test_name}.dat", 'wb') as fout:
         start = time.perf_counter_ns()
         count = 0
@@ -74,7 +75,8 @@ def setup_dataset_length(data_name, test_name, length):
 
 def setup_dataset_bursty(data_name, test_name, length, burst_length):
     print(f"[Dataset Loader] Get data from {data_name}")
-    os.remove(f"{test_name}.pcap")
+    if(os.path.exists(f"test_name.pcap")):
+        os.remove(f"{test_name}.pcap")
 
     with open(f"{test_name}.dat", 'wb') as fout:
         start = time.perf_counter_ns()

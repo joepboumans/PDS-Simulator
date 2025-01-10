@@ -59,7 +59,7 @@ public:
     std::cout << "Total size of dataset " << this->filename << ": " << sz
               << std::endl;
 
-    T trace(sz / sizeof(TUPLE));
+    T trace(sz / sizeof(FIVE_TUPLE));
     // Create 5-tuple and trace, dataset is always a 5 tuple set
     FIVE_TUPLE tin;
     // Load trace with 5-tuple

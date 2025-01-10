@@ -25,8 +25,8 @@
 #define W3 8192          // 32-bit, level 3
 #define ADD_LEVEL1 255   // 2^8 -2 + 1 (actual count is 254)
 #define ADD_LEVEL2 65789 // (2^8 - 2) + (2^16 - 2) + 1 (actual count is 65788)
-#define OVERFLOW_LEVEL1 255   // 2^8 - 1 maximum count is 254
-#define OVERFLOW_LEVEL2 65535 // 2^16 - 1 maximum count is 65536
+#define OVERFLOW_LEVEL1 254   // 2^8 - 1 maximum count is 254
+#define OVERFLOW_LEVEL2 65534 // 2^16 - 1 maximum count is 65536
 
 using std::string;
 using std::vector;

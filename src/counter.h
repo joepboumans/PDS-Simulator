@@ -18,7 +18,7 @@ public:
     this->count += c;
     if (this->count > this->max_count) {
       this->overflow = true;
-      this->count = this->max_reg;
+      this->count = this->max_count;
       return 1;
     }
     return 0;
@@ -27,7 +27,7 @@ public:
   uint32_t decrement(uint32_t c = 1) {
     if (this->overflow) {
       this->overflow = false;
-      this->count = this->max_count - 1;
+      this->count = this->max_count;
     }
     if (this->count >= c) {
       this->count -= c;

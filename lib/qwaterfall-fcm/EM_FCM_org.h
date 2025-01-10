@@ -266,9 +266,9 @@ private:
           int thres_l2_1 = thres[beta_degree][2];
           int thres_l2_2 = thres[beta_degree + 1][2];
           if (beta_degree == 2) // degree 2
-            if (now_result[0] <= thres_l2_1 or now_result[1] <= thres_l2_2)
+            if (now_result[0] <= thres_l2_1 or now_result[1] <= thres_l2_2) {
               return false;
-            else { // degree 3
+            } else { // degree 3
               int val_1 = 0;
               int val_2 = 0;
               for (int i = 0; i < thres[beta_degree][1]; ++i)
@@ -511,10 +511,14 @@ public:
     collect_counters(_newsk); // align the input counters
 
     // Initialize total number of flows
-    for (int d = 0; d < FCM_DEPTH; ++d)
-      for (int i = 1; i < m[d].size(); ++i)
-        n_new +=
-            m[d][i]; // total number of counters, for initializing distribution
+    for (int d = 0; d < FCM_DEPTH; ++d) {
+      {
+        for (int i = 1; i < m[d].size(); ++i)
+          n_new +=
+              m[d]
+               [i]; // total number of counters, for initializing distribution
+      }
+    }
     n_new = n_new / static_cast<double>(FCM_DEPTH); // normalize
 
     /** Initialization **/
@@ -548,8 +552,9 @@ public:
     nt_vec.resize(this->max_val + 1);
     std::fill(nt_vec.begin(), nt_vec.end(), 0.0);          // initilize
     for (int i = 1; i < counter_dist[d][xi].size(); ++i) { // start size 1
-      if (counter_dist[d][xi][i] == 0)
+      if (counter_dist[d][xi][i] == 0) {
         continue; // no value, then move next
+      }
       // iterate all combinations of size i flows
       BetaGenerator bts1(i), bts2(i);
 
@@ -572,10 +577,11 @@ public:
     }
 
     double accum = std::accumulate(nt_vec.begin(), nt_vec.end(), 0.0);
-    if (counter_dist[d][xi].size() != 0)
+    if (counter_dist[d][xi].size() != 0) {
       printf("[EM_FCM] ******** depth %2d, degree %2d is "
              "finished...(accum:%10.1f, #val:%8d) **********\n",
              d, xi, accum, (int)newsk[d][xi].size());
+    }
   }
 
   void epoch_parallel_multideg(vector<double> &nt_vec, int d, int xi) {
@@ -584,8 +590,9 @@ public:
     nt_vec.resize(this->max_val);
     std::fill(nt_vec.begin(), nt_vec.end(), 0); // initialize
     for (int i = 0; i < newsk[d][xi].size(); ++i) {
-      if (newsk[d][xi][i] == 0)
+      if (newsk[d][xi][i] == 0) {
         continue;
+      }
 
       /* iterate for all combinations of size newsk[d][xi][i] with threshold
        * newsk_thres[d][xi][i] : vector<vector<uint32_t> > : list of

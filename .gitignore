@@ -46,3 +46,4 @@
 build/*
 .cmake
 *CMakeCache.txt
+compile_commands.json

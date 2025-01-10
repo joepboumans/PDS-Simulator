@@ -44,3 +44,5 @@
 
 # CMake
 build/*
+.cmake
+*CMakeCache.txt

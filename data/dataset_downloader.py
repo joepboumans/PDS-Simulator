@@ -43,7 +43,7 @@ if __name__ == "__main__":
 
             #gzip dataset
             if (not os.path.isfile(file_name)):
-                proc = subprocess.Popen(["gzip", download_file, "-d"], stdout=subprocess.PIPE)
+                proc = subprocess.Popen(["gzip",  "-d", download_file], stdout=subprocess.PIPE)
                 outs, errs = proc.communicate()
                 print(outs)
                 if errs:

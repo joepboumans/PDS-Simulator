@@ -30,7 +30,6 @@ def setup_dataset(data_name, test_name):
                 out += packet.dport.to_bytes(2, byteorder='big')
                 out += packet.proto.to_bytes(1, byteorder='big')
                 fout.write(out)
-                write2pcap(packet, test_name)
             except:
                 packet.show()
                 exit(1)
@@ -41,6 +40,7 @@ def setup_dataset(data_name, test_name):
 
 def setup_dataset_length(data_name, test_name, length):
     print(f"[Dataset Loader] Get data from {data_name}")
+    os.remove(f"{test_name}.pcap")
     with open(f"{test_name}.dat", 'wb') as fout:
         start = time.perf_counter_ns()
         count = 0
@@ -74,6 +74,8 @@ def setup_dataset_length(data_name, test_name, length):
 
 def setup_dataset_bursty(data_name, test_name, length, burst_length):
     print(f"[Dataset Loader] Get data from {data_name}")
+    os.remove(f"{test_name}.pcap")
+
     with open(f"{test_name}.dat", 'wb') as fout:
         start = time.perf_counter_ns()
         count = 0
@@ -113,6 +115,8 @@ def main():
    setup_dataset_length("equinix-chicago.20160121-130000.UTC.pcap", "single_test", 1)
    setup_dataset_bursty("equinix-chicago.20160121-130000.UTC.pcap", "single_burst_test", 1, 32)
    setup_dataset_bursty("equinix-chicago.20160121-130000.UTC.pcap", "small_burst_test", 32, 32)
+   setup_dataset_bursty("equinix-chicago.20160121-130000.UTC.pcap", "l2_test", 1, 300)
+   setup_dataset_bursty("equinix-chicago.20160121-130000.UTC.pcap", "l3_test", 1, 70000)
     
     
    path = os.getcwd()

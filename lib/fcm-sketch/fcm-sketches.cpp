@@ -33,18 +33,17 @@ uint32_t FCM_Sketches<TUPLE, HASH>::insert(TUPLE tuple) {
     uint32_t hash_idx = this->hashing(tuple, d);
     for (size_t s = 0; s < n_stages; s++) {
       Counter *curr_counter = &this->stages[d][s][hash_idx];
+      curr_counter->increment();
+      c += curr_counter->count;
       if (curr_counter->overflow) {
         // Check for complete overflow
         if (s == n_stages - 1) {
           return 0;
         }
-        c += curr_counter->count;
         hash_idx = uint32_t(hash_idx / this->k);
         continue;
       }
 
-      curr_counter->increment();
-      c += curr_counter->count;
       if (c > 18000000) {
         std::cout << "Big number insert by tuples: " << tuple << std::endl;
       }

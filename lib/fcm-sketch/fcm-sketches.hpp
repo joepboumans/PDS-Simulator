@@ -13,8 +13,7 @@
 #include <limits>
 #include <ostream>
 
-template <typename TUPLE, typename HASH>
-class FCM_Sketches : public PDS<TUPLE, HASH> {
+class FCM_Sketches : public PDS {
 public:
   vector<vector<vector<Counter>>> stages;
   vector<uint32_t> stages_sz;
@@ -25,14 +24,14 @@ public:
   vector<BOBHash32> hash;
 
   uint32_t hh_threshold;
-  std::unordered_set<TUPLE, HASH> HH_candidates;
+  std::unordered_set<TUPLE, TupleHash> HH_candidates;
   FCM_Sketches(uint32_t n_roots, uint32_t n_stages, uint32_t k, uint32_t depth,
                uint32_t hh_threshold, uint32_t em_iters, string trace,
                uint32_t n_stage, uint32_t n_struct)
-      : PDS<TUPLE, HASH>(trace, n_stage, n_struct), stages_sz(n_stages),
+      : PDS(trace, n_stage, n_struct),
+        stages(DEPTH, vector<vector<Counter>>(NUM_STAGES)), stages_sz(n_stages),
         stage_overflows(n_stages), n_stages(n_stages), k(k), depth(depth),
-        hh_threshold(hh_threshold), em_iters(em_iters), hash(depth),
-        stages(DEPTH, vector<vector<Counter>>(NUM_STAGES)) {
+        hash(depth), hh_threshold(hh_threshold), em_iters(em_iters) {
 
     if (this->depth < 1) {
       std::cout << "[ERROR] Set depth is smaller than zero, needs minimum 1"
@@ -110,5 +109,4 @@ public:
   void store_data();
   void print_sketch();
 };
-
 #endif // !_FCM_SKETCHES_HPP

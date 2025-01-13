@@ -12,18 +12,13 @@
 #include <iostream>
 #include <sys/types.h>
 
-template class qWaterfall_Fcm<FIVE_TUPLE, fiveTupleHash>;
-template class qWaterfall_Fcm<FLOW_TUPLE, flowTupleHash>;
-
-template <typename TUPLE, typename HASH>
-uint32_t qWaterfall_Fcm<TUPLE, HASH>::insert(TUPLE tuple) {
+uint32_t qWaterfall_Fcm::insert(TUPLE tuple) {
   this->qwaterfall.insert(tuple);
   this->fcm_sketches.insert(tuple);
   return 0;
 }
 
-template <typename TUPLE, typename HASH>
-uint32_t qWaterfall_Fcm<TUPLE, HASH>::lookup(TUPLE tuple) {
+uint32_t qWaterfall_Fcm::lookup(TUPLE tuple) {
   uint32_t member = this->qwaterfall.lookup(tuple);
   uint32_t count = this->fcm_sketches.lookup(tuple);
   if (member) {
@@ -32,25 +27,21 @@ uint32_t qWaterfall_Fcm<TUPLE, HASH>::lookup(TUPLE tuple) {
   return 0;
 }
 
-template <typename TUPLE, typename HASH>
-void qWaterfall_Fcm<TUPLE, HASH>::reset() {
+void qWaterfall_Fcm::reset() {
   this->qwaterfall.reset();
   this->fcm_sketches.reset();
 }
 
-template <typename TUPLE, typename HASH>
-void qWaterfall_Fcm<TUPLE, HASH>::set_estimate_fsd(bool onoff) {
+void qWaterfall_Fcm::set_estimate_fsd(bool onoff) {
   this->fcm_sketches.estimate_fsd = onoff;
 }
 
-template <typename TUPLE, typename HASH>
-void qWaterfall_Fcm<TUPLE, HASH>::print_sketch() {
+void qWaterfall_Fcm::print_sketch() {
   this->qwaterfall.print_sketch();
   this->fcm_sketches.print_sketch();
 }
 
-template <typename TUPLE, typename HASH>
-void qWaterfall_Fcm<TUPLE, HASH>::analyze(int epoch) {
+void qWaterfall_Fcm::analyze(int epoch) {
   this->qwaterfall.analyze(epoch);
   this->fcm_sketches.analyze(epoch);
 
@@ -114,9 +105,8 @@ void qWaterfall_Fcm<TUPLE, HASH>::analyze(int epoch) {
   return;
 }
 
-template <typename TUPLE, typename HASH>
-double qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd(set<TUPLE> &tuples,
-                                                  vector<uint32_t> &true_fsd) {
+double qWaterfall_Fcm::calculate_fsd(set<TUPLE> &tuples,
+                                     vector<uint32_t> &true_fsd) {
   // Setup initial degrees for each input counter (stage 0)
   std::cout << "[qWaterfall_Fcm] Calculate initial degrees from qWaterfall..."
             << std::endl;
@@ -361,10 +351,9 @@ double qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd(set<TUPLE> &tuples,
   return wmre;
 }
 
-template <typename TUPLE, typename HASH>
-vector<uint32_t> qWaterfall_Fcm<TUPLE, HASH>::peel_sketches(
-    vector<vector<uint32_t>> counts,
-    vector<vector<vector<TUPLE>>> coll_tuples) {
+vector<uint32_t>
+qWaterfall_Fcm::peel_sketches(vector<vector<uint32_t>> counts,
+                              vector<vector<vector<TUPLE>>> coll_tuples) {
 
   vector<uint32_t> n_remain = {0, 0};
   for (size_t d = 0; d < DEPTH; d++) {
@@ -504,10 +493,8 @@ vector<uint32_t> qWaterfall_Fcm<TUPLE, HASH>::peel_sketches(
   return init_fsd;
 }
 
-template <typename TUPLE, typename HASH>
-double
-qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd_peeling(set<TUPLE> &tuples,
-                                                   vector<uint32_t> &true_fsd) {
+double qWaterfall_Fcm::calculate_fsd_peeling(set<TUPLE> &tuples,
+                                             vector<uint32_t> &true_fsd) {
   // Setup initial degrees for each input counter (stage 0)
   std::cout << "[qWaterfall_Fcm] Calculate initial degrees from qWaterfall..."
             << std::endl;
@@ -803,10 +790,8 @@ qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd_peeling(set<TUPLE> &tuples,
   return wmre;
 }
 
-template <typename TUPLE, typename HASH>
-double
-qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd_org(set<TUPLE> &tuples,
-                                               vector<uint32_t> &true_fsd) {
+double qWaterfall_Fcm::calculate_fsd_org(set<TUPLE> &tuples,
+                                         vector<uint32_t> &true_fsd) {
   /* Making summary note for conversion algorithm (4-tuple summary)
                  Each dimension is for (tree, layer, width, tuple)
                  */

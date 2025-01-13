@@ -7,23 +7,23 @@
 #include <cstdint>
 #include <sys/types.h>
 
-template <typename TUPLE> struct IBLT_entry {
+struct IBLT_entry {
   uint32_t count;
   TUPLE tupleXOR;
   uint32_t hashXOR;
 };
 
-template <typename TUPLE, typename HASH> class IBLT : public PDS<TUPLE, HASH> {
+class IBLT : public PDS {
 public:
   BOBHash32 *hash;
   uint32_t n_hash;
   uint32_t length;
   string trace_name;
-  vector<IBLT_entry<TUPLE>> table;
+  vector<IBLT_entry> table;
 
   IBLT(uint32_t length, string trace, uint32_t k, uint32_t n_stage,
        uint32_t n_struct)
-      : PDS<TUPLE, HASH>{trace, n_stage, n_struct}, table(length) {
+      : PDS{trace, n_stage, n_struct}, table(length) {
     // Assign defaults
     this->n_hash = k;
     this->length = length;

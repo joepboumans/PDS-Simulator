@@ -12,19 +12,14 @@
 #include <sys/types.h>
 #include <vector>
 
-template class WaterfallFCM<FIVE_TUPLE, fiveTupleHash>;
-template class WaterfallFCM<FLOW_TUPLE, flowTupleHash>;
-
-template <typename TUPLE, typename HASH>
-uint32_t WaterfallFCM<TUPLE, HASH>::insert(TUPLE tuple) {
-  this->cuckoo.insert(tuple);
+uint32_t WaterfallFCM::insert(TUPLE tuple) {
+  this->waterfall.insert(tuple);
   this->fcm.insert(tuple);
   return 0;
 }
 
-template <typename TUPLE, typename HASH>
-uint32_t WaterfallFCM<TUPLE, HASH>::lookup(TUPLE tuple) {
-  uint32_t member = this->cuckoo.lookup(tuple);
+uint32_t WaterfallFCM::lookup(TUPLE tuple) {
+  uint32_t member = this->waterfall.lookup(tuple);
   uint32_t count = this->fcm.lookup(tuple);
   if (member) {
     return count;
@@ -32,29 +27,25 @@ uint32_t WaterfallFCM<TUPLE, HASH>::lookup(TUPLE tuple) {
   return 0;
 }
 
-template <typename TUPLE, typename HASH>
-void WaterfallFCM<TUPLE, HASH>::reset() {
-  this->cuckoo.reset();
+void WaterfallFCM::reset() {
+  this->waterfall.reset();
   this->fcm.reset();
 }
 
-template <typename TUPLE, typename HASH>
-void WaterfallFCM<TUPLE, HASH>::print_sketch() {
-  this->cuckoo.print_sketch();
+void WaterfallFCM::print_sketch() {
+  this->waterfall.print_sketch();
   this->fcm.print_sketch();
 }
 
-template <typename TUPLE, typename HASH>
-void WaterfallFCM<TUPLE, HASH>::set_estimate_fsd(bool onoff) {
+void WaterfallFCM::set_estimate_fsd(bool onoff) {
   this->fcm.estimate_fsd = onoff;
 }
 
-template <typename TUPLE, typename HASH>
-void WaterfallFCM<TUPLE, HASH>::analyze(int epoch) {
-  this->cuckoo.analyze(epoch);
+void WaterfallFCM::analyze(int epoch) {
+  this->waterfall.analyze(epoch);
   this->fcm.analyze(epoch);
-  uint32_t cuckoo_card = this->cuckoo.tuples.size();
-  std::cout << "[CHT] Cardinality : " << cuckoo_card << std::endl;
+  uint32_t waterfall_card = this->waterfall.tuples.size();
+  std::cout << "[CHT] Cardinality : " << waterfall_card << std::endl;
 
   long em_time = 0;
   // Flow Size Distribution (Weighted Mean Relative Error)
@@ -77,7 +68,7 @@ void WaterfallFCM<TUPLE, HASH>::analyze(int epoch) {
     double wmre_nom = 0.0;
     double wmre_denom = 0.0;
     auto start = std::chrono::high_resolution_clock::now();
-    vector<double> em_fsd = this->get_distribution(this->cuckoo.tuples);
+    vector<double> em_fsd = this->get_distribution(this->waterfall.tuples);
 
     uint32_t max_len = std::max(true_fsd.size(), em_fsd.size());
     true_fsd.resize(max_len);
@@ -113,21 +104,20 @@ void WaterfallFCM<TUPLE, HASH>::analyze(int epoch) {
   }
   // Save data into c  // Save data into csv
   char csv[300];
-  this->insertions = this->cuckoo.insertions;
-  this->f1_member = this->cuckoo.f1;
+  this->insertions = this->waterfall.insertions;
+  this->f1_member = this->waterfall.f1;
   this->average_absolute_error = this->fcm.average_absolute_error;
   this->average_relative_error = this->fcm.average_relative_error;
   this->f1_hh = this->fcm.f1;
   sprintf(csv, "%i,%.3f,%.3f,%.3f,%.3f,%li,%i,%i,%.3f", epoch,
           this->average_relative_error, this->average_absolute_error,
           this->wmre, this->f1_hh, em_time, this->em_iters,
-          this->cuckoo.insertions, this->cuckoo.f1);
+          this->waterfall.insertions, this->waterfall.f1);
   this->fcsv << csv << std::endl;
   return;
 }
 
-template <typename TUPLE, typename HASH>
-vector<double> WaterfallFCM<TUPLE, HASH>::get_distribution(set<TUPLE> tuples) {
+vector<double> WaterfallFCM::get_distribution(set<TUPLE> tuples) {
   // Setup initial degrees for each input counter (stage 0)
   vector<uint32_t> init_degree(this->fcm.stages_sz[0]);
   uint32_t cht_max_degree = 0;

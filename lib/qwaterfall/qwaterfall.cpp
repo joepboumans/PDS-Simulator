@@ -8,24 +8,18 @@
 #include <cstdio>
 #include <sys/types.h>
 
-template class qWaterfall<FIVE_TUPLE, fiveTupleHash>;
-template class qWaterfall<FLOW_TUPLE, flowTupleHash>;
-
-template <typename TUPLE, typename HASH>
-uint32_t qWaterfall<TUPLE, HASH>::hashing(TUPLE key, uint32_t k) {
+uint32_t qWaterfall::hashing(TUPLE key, uint32_t k) {
   return hash[k].run((const char *)key.num_array, sizeof(TUPLE));
 }
 
-template <typename TUPLE, typename HASH>
-uint32_t qWaterfall<TUPLE, HASH>::rehashing(uint32_t hashed_val, uint32_t k) {
+uint32_t qWaterfall::rehashing(uint32_t hashed_val, uint32_t k) {
   uint8_t in_val[4];
   memcpy(in_val, &hashed_val, sizeof(in_val));
   return hash[k].run((const char *)in_val, sizeof(in_val)) %
          std::numeric_limits<uint32_t>::max();
 }
 
-template <typename TUPLE, typename HASH>
-uint32_t qWaterfall<TUPLE, HASH>::insert(TUPLE tuple) {
+uint32_t qWaterfall::insert(TUPLE tuple) {
   this->true_data[tuple]++;
   // If it is present CHT do not insert
   if (!this->lookup(tuple)) {
@@ -67,8 +61,7 @@ uint32_t qWaterfall<TUPLE, HASH>::insert(TUPLE tuple) {
   return 1;
 }
 
-template <typename TUPLE, typename HASH>
-uint32_t qWaterfall<TUPLE, HASH>::lookup(TUPLE tuple) {
+uint32_t qWaterfall::lookup(TUPLE tuple) {
   // Hash the inital tuple for starting insertion
   uint32_t hash_val = this->hashing(tuple, 0);
   uint32_t prev_hash_val = hash_val;
@@ -92,7 +85,7 @@ uint32_t qWaterfall<TUPLE, HASH>::lookup(TUPLE tuple) {
   return 0;
 }
 
-template <typename TUPLE, typename HASH> void qWaterfall<TUPLE, HASH>::reset() {
+void qWaterfall::reset() {
   this->insertions = 0;
   this->collisions = 0;
   this->true_data.clear();
@@ -105,8 +98,7 @@ template <typename TUPLE, typename HASH> void qWaterfall<TUPLE, HASH>::reset() {
   }
 }
 
-template <typename TUPLE, typename HASH>
-void qWaterfall<TUPLE, HASH>::print_sketch() {
+void qWaterfall::print_sketch() {
   char msg[100];
   sprintf(msg, "Printing qWaterfall of %ix%i with mem sz %i", this->n_tables,
           this->table_length, this->mem_sz);
@@ -120,8 +112,7 @@ void qWaterfall<TUPLE, HASH>::print_sketch() {
   }
 }
 
-template <typename TUPLE, typename HASH>
-void qWaterfall<TUPLE, HASH>::analyze(int epoch) {
+void qWaterfall::analyze(int epoch) {
   double n = this->true_data.size();
 
   // Find True/False positives

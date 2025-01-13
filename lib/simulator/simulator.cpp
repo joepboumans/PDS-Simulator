@@ -7,11 +7,7 @@
 #include <cmath>
 #include <iostream>
 
-template class Simulator<PDS<FIVE_TUPLE, fiveTupleHash>, TRACE>;
-template class Simulator<PDS<FLOW_TUPLE, flowTupleHash>, TRACE_FLOW>;
-
-template <typename P, typename T>
-int Simulator<P, T>::run(const T &trace, unsigned int iters) {
+int Simulator::run(const TRACE &trace, unsigned int iters) {
   // Scale duration to a minimum for smaller datasets
   unsigned long num_pkts = trace.size();
   if (num_pkts < this->duration) {
@@ -44,8 +40,7 @@ int Simulator<P, T>::run(const T &trace, unsigned int iters) {
   return 0;
 }
 
-template <typename P, typename T>
-int Simulator<P, T>::insert(const T &trace, int start, int end) {
+int Simulator::insert(const TRACE &trace, int start, int end) {
   for (size_t i = start; i < end; i++) {
     // Prevent going out of bounds
     if (i >= trace.size()) {

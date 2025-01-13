@@ -2,7 +2,6 @@
 #define _DATA_PARSER_H_
 
 #include "common.h"
-#include <algorithm>
 #include <cassert>
 #include <cstdint>
 #include <cstdio>
@@ -11,11 +10,11 @@
 #include <unistd.h>
 #include <unordered_map>
 
-template <typename TUPLE, typename T> class dataParser {
+template <uint8_t TUPLE_SZ> class dataParser {
 public:
-  unordered_map<string, T> get_traces(vector<string> filenames) {
-    vector<T> traces(filenames.size());
-    unordered_map<string, T> data_traces;
+  unordered_map<string, TRACE> get_traces(vector<string> filenames) {
+    vector<TRACE> traces(filenames.size());
+    unordered_map<string, TRACE> data_traces;
 
     string dir = "data/";
     string dat = ".dat";
@@ -38,7 +37,7 @@ public:
     return data_traces;
   }
 
-  T get_trace(char *filename) {
+  TRACE get_trace(char *filename) {
     // Load filename
     sprintf(this->filename, "%s", filename);
 
@@ -59,17 +58,18 @@ public:
     std::cout << "Total size of dataset " << this->filename << ": " << sz
               << std::endl;
 
-    T trace(sz / sizeof(FIVE_TUPLE));
+    TRACE trace(sz / sizeof(TUPLE));
     // Create 5-tuple and trace, dataset is always a 5 tuple set
-    FIVE_TUPLE tin;
+    TUPLE tin;
     // Load trace with 5-tuple
     if (this->fin == NULL) {
       std::cout << "ERROR: Input file is NULL" << std::endl;
     }
     uint32_t i = 0;
     std::set<TUPLE> unique_tuples;
-    while (fread(&tin, 1, sizeof(FIVE_TUPLE), this->fin)) {
-      trace[i++] = TUPLE(tin);
+    while (fread(&tin, 1, sizeof(TUPLE), this->fin)) {
+      trace[i].sz = TUPLE_SZ;
+      trace[i++] = tin;
       unique_tuples.insert(tin);
     }
 

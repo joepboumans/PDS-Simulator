@@ -2,12 +2,13 @@
 #define _SIMULATOR_H
 
 #include "common.h"
+#include "pds.h"
 #include <cstdint>
 #include <unordered_map>
 
-template <typename P, typename T> class Simulator {
+class Simulator {
 public:
-  Simulator(vector<P *> pds, int n_pds, float duration) {
+  Simulator(vector<PDS *> pds, int n_pds, float duration) {
     this->n_pds = n_pds;
     this->duration = duration;
     this->pds = pds;
@@ -19,14 +20,14 @@ public:
 
   vector<std::unordered_map<string, uint32_t>> true_data_sets;
 
-  int run(const T &trace, unsigned int duration);
+  int run(const TRACE &trace, unsigned int duration);
 
 private:
-  vector<P *> pds;
+  vector<PDS *> pds;
   int n_pds;
   float duration;
 
-  int insert(const T &trace, int start, int end);
+  int insert(const TRACE &trace, int start, int end);
   int analyze();
   int store();
 };

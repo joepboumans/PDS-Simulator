@@ -12,17 +12,15 @@
 #include <limits>
 #include <ostream>
 #include <sys/types.h>
-#include <vector>
 
 // Waterfall/Cuckoo tables, but uses quotient for indexing and remained as
 // compare value
-template <typename TUPLE, typename HASH>
-class qWaterfall_Fcm : public PDS<TUPLE, HASH> {
+class qWaterfall_Fcm : public PDS {
 private:
   uint32_t n_tables;
   vector<vector<uint32_t>> tables;
-  FCM_Sketches<TUPLE, HASH> fcm_sketches;
-  qWaterfall<TUPLE, HASH> qwaterfall;
+  FCM_Sketches fcm_sketches;
+  qWaterfall qwaterfall;
 
   string trace_name;
   set<TUPLE> tuples;
@@ -31,10 +29,9 @@ private:
 public:
   qWaterfall_Fcm(uint32_t n_tables, uint32_t em_iters, string trace,
                  uint32_t n_stage, uint32_t n_struct)
-      : PDS<TUPLE, HASH>(trace, n_stage, n_struct), n_tables(n_tables),
-        em_iters(em_iters),
+      : PDS(trace, n_stage, n_struct), n_tables(n_tables),
         fcm_sketches(W3, 3, 8, DEPTH, 100000, 1, trace, n_stage, n_struct),
-        qwaterfall(n_tables, trace, n_stage, n_struct) {
+        qwaterfall(n_tables, trace, n_stage, n_struct), em_iters(em_iters) {
 
     this->fcm_sketches.estimate_fsd = false;
     // Setup logging

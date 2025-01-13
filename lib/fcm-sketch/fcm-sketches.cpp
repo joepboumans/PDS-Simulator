@@ -14,17 +14,12 @@
 #include <sys/types.h>
 #include <vector>
 
-template class FCM_Sketches<FIVE_TUPLE, fiveTupleHash>;
-template class FCM_Sketches<FLOW_TUPLE, flowTupleHash>;
-
-template <typename TUPLE, typename HASH>
-uint32_t FCM_Sketches<TUPLE, HASH>::hashing(TUPLE key, uint32_t d) {
-  return this->hash[d].run((const char *)key.num_array, sizeof(TUPLE)) %
+uint32_t FCM_Sketches::hashing(TUPLE key, uint32_t d) {
+  return this->hash[d].run((const char *)key.num_array, key.sz) %
          this->stages_sz[0];
 }
 
-template <typename TUPLE, typename HASH>
-uint32_t FCM_Sketches<TUPLE, HASH>::insert(TUPLE tuple) {
+uint32_t FCM_Sketches::insert(TUPLE tuple) {
   this->true_data[tuple]++;
 
   for (size_t d = 0; d < this->depth; d++) {
@@ -59,8 +54,7 @@ uint32_t FCM_Sketches<TUPLE, HASH>::insert(TUPLE tuple) {
   return 1;
 }
 
-template <typename TUPLE, typename HASH>
-uint32_t FCM_Sketches<TUPLE, HASH>::insert(TUPLE tuple, uint32_t idx) {
+uint32_t FCM_Sketches::insert(TUPLE tuple, uint32_t idx) {
   this->true_data[tuple]++;
 
   uint32_t hash_idx = idx;
@@ -93,8 +87,7 @@ uint32_t FCM_Sketches<TUPLE, HASH>::insert(TUPLE tuple, uint32_t idx) {
 }
 
 // Lookup value in all sketches and return minimal value
-template <typename TUPLE, typename HASH>
-uint32_t FCM_Sketches<TUPLE, HASH>::lookup(TUPLE tuple) {
+uint32_t FCM_Sketches::lookup(TUPLE tuple) {
   uint32_t ret = std::numeric_limits<uint32_t>::max();
   for (size_t d = 0; d < this->depth; d++) {
     uint32_t c = 0;
@@ -121,8 +114,7 @@ uint32_t FCM_Sketches<TUPLE, HASH>::lookup(TUPLE tuple) {
 }
 
 // Lookup the count of a tuple at depth d
-template <typename TUPLE, typename HASH>
-uint32_t FCM_Sketches<TUPLE, HASH>::lookup_sketch(TUPLE tuple, uint32_t d) {
+uint32_t FCM_Sketches::lookup_sketch(TUPLE tuple, uint32_t d) {
   uint32_t ret = std::numeric_limits<uint32_t>::max();
   uint32_t c = 0;
   uint32_t hash_idx = this->hashing(tuple, d);
@@ -147,8 +139,7 @@ uint32_t FCM_Sketches<TUPLE, HASH>::lookup_sketch(TUPLE tuple, uint32_t d) {
 }
 
 // Lookup the degree of a tuple at depth d
-template <typename TUPLE, typename HASH>
-uint32_t FCM_Sketches<TUPLE, HASH>::lookup_degree(TUPLE tuple, uint32_t d) {
+uint32_t FCM_Sketches::lookup_degree(TUPLE tuple, uint32_t d) {
   uint32_t degree = 1;
   uint32_t hash_idx = this->hashing(tuple, d);
 
@@ -180,8 +171,7 @@ uint32_t FCM_Sketches<TUPLE, HASH>::lookup_degree(TUPLE tuple, uint32_t d) {
   return degree;
 }
 
-template <typename TUPLE, typename HASH>
-uint32_t FCM_Sketches<TUPLE, HASH>::subtract(TUPLE tuple, uint32_t count) {
+uint32_t FCM_Sketches::subtract(TUPLE tuple, uint32_t count) {
   for (size_t d = 0; d < this->depth; d++) {
     for (int s = n_stages - 1; s >= 0; s--) {
       // Get correct hash_idx for counter
@@ -202,8 +192,7 @@ uint32_t FCM_Sketches<TUPLE, HASH>::subtract(TUPLE tuple, uint32_t count) {
   return 1;
 }
 
-template <typename TUPLE, typename HASH>
-void FCM_Sketches<TUPLE, HASH>::print_sketch() {
+void FCM_Sketches::print_sketch() {
   std::cout << "[FCM] ------------------" << std::endl;
   for (size_t d = 0; d < this->depth; d++) {
     std::cout << "[FCM] Depth " << d << std::endl;
@@ -220,8 +209,7 @@ void FCM_Sketches<TUPLE, HASH>::print_sketch() {
   std::cout << "[FCM] ------------------" << std::endl;
 }
 
-template <typename TUPLE, typename HASH>
-void FCM_Sketches<TUPLE, HASH>::reset() {
+void FCM_Sketches::reset() {
   this->true_data.clear();
   this->HH_candidates.clear();
 
@@ -235,8 +223,7 @@ void FCM_Sketches<TUPLE, HASH>::reset() {
   }
 }
 
-template <typename TUPLE, typename HASH>
-void FCM_Sketches<TUPLE, HASH>::analyze(int epoch) {
+void FCM_Sketches::analyze(int epoch) {
   this->average_absolute_error = 0;
   this->average_relative_error = 0;
   double n = this->true_data.size();
@@ -353,8 +340,7 @@ void FCM_Sketches<TUPLE, HASH>::analyze(int epoch) {
   this->fcsv << csv << std::endl;
 }
 
-template <typename TUPLE, typename HASH>
-vector<double> FCM_Sketches<TUPLE, HASH>::get_distribution() {
+vector<double> FCM_Sketches::get_distribution() {
   uint32_t max_counter_value = 0;
   uint32_t max_degree = 0;
   // Summarize sketch and find collisions
@@ -417,7 +403,6 @@ vector<double> FCM_Sketches<TUPLE, HASH>::get_distribution() {
         // Start checking childeren from stage 1 and up
         if (stage > 0) {
           uint32_t overflown = 0;
-          uint32_t imm_overflow = 0;
           bool child_overflown = false;
           // Loop over all childeren
           for (size_t k = 0; k < this->k; k++) {

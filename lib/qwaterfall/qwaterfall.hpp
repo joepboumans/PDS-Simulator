@@ -14,8 +14,7 @@
 
 // Waterfall/Cuckoo tables, but uses quotient for indexing and remained as
 // compare value
-template <typename TUPLE, typename HASH>
-class qWaterfall : public PDS<TUPLE, HASH> {
+class qWaterfall : public PDS {
 private:
   BOBHash32 *hash;
   uint32_t n_tables;
@@ -28,7 +27,7 @@ public:
   set<TUPLE> tuples;
   qWaterfall(uint32_t n_tables, string trace, uint32_t n_stage,
              uint32_t n_struct)
-      : PDS<TUPLE, HASH>(trace, n_stage, n_struct), n_tables(n_tables) {
+      : PDS(trace, n_stage, n_struct), n_tables(n_tables) {
 
     // Setup Tables
     this->table_length = std::numeric_limits<uint16_t>::max();

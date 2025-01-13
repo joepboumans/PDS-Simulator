@@ -2,9 +2,9 @@
 #define _WATERFALL_FCM_HPP
 
 #include "common.h"
-#include "cuckoo-hash.hpp"
 #include "fcm-sketch.hpp"
 #include "pds.h"
+#include "waterfall.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -14,28 +14,26 @@
 #include <ostream>
 #include <vector>
 
-template <typename TUPLE, typename HASH>
-class WaterfallFCM : public PDS<TUPLE, HASH> {
+class WaterfallFCM : public PDS {
 private:
-  FCM_Sketch<TUPLE, HASH> fcm;
-  CuckooHash<TUPLE, HASH> cuckoo;
+  FCM_Sketch fcm;
+  Waterfall waterfall;
   uint32_t n_stages;
   uint32_t em_iters;
   size_t n_unique_tuples;
 
   uint32_t hh_threshold;
-  std::unordered_set<TUPLE, HASH> HH_candidates;
+  std::unordered_set<TUPLE, TupleHash> HH_candidates;
 
 public:
   WaterfallFCM(uint32_t n_roots, uint32_t n_stages, uint32_t k,
                uint32_t hh_threshold, uint32_t em_iters, uint32_t n_tables,
                uint32_t length, string trace, uint32_t n_stage,
                uint32_t n_struct)
-      : PDS<TUPLE, HASH>(trace, n_stage, n_struct),
-        fcm(n_roots, n_stages, k, hh_threshold, em_iters, trace, n_stage,
-            n_struct),
-        cuckoo(n_tables, length, trace, n_struct, n_stage), n_stages(n_stages),
-        em_iters(em_iters), hh_threshold(hh_threshold) {
+      : PDS(trace, n_stage, n_struct), fcm(n_roots, n_stages, k, hh_threshold,
+                                           em_iters, trace, n_stage, n_struct),
+        waterfall(n_tables, length, trace, n_struct, n_stage),
+        n_stages(n_stages), em_iters(em_iters), hh_threshold(hh_threshold) {
 
     this->fcm.estimate_fsd = false;
     // Setup logging
@@ -46,7 +44,7 @@ public:
     this->name = "WaterfallFCM";
     this->trace_name = trace;
     this->rows = n_stages;
-    this->mem_sz = this->fcm.mem_sz + this->cuckoo.mem_sz;
+    this->mem_sz = this->fcm.mem_sz + this->waterfall.mem_sz;
     std::cout << "Total memory used: " << this->mem_sz << std::endl;
     this->setupLogging();
   }

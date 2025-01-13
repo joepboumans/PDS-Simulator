@@ -9,9 +9,9 @@
 
 #define BUF_SZ 1024 * 1024
 
-template <typename TUPLE, typename HASH> class PDS {
+class PDS {
 public:
-  std::unordered_map<TUPLE, uint32_t, HASH> true_data;
+  std::unordered_map<TUPLE, uint32_t, TupleHash> true_data;
   string name = "NOT SET";
   string trace_name = "NOT SET";
   uint32_t mem_sz;
@@ -64,55 +64,30 @@ public:
 
   void setName(string in) { this->name = in; }
   virtual void setName() { this->name = "NOT SET"; }
-  void setupLogging();
+
+  void setupLogging() {
+    string name_dir = "results/flow_tuple" + this->name;
+    if (!std::filesystem::is_directory(name_dir)) {
+      std::filesystem::create_directory(name_dir);
+    }
+    if (this->rows == 0) {
+      sprintf(this->filename_csv, "results/%s/%s_%i_%i_%i.csv",
+              this->name.c_str(), this->trace_name.c_str(), this->n_stage,
+              this->n_struct, this->mem_sz);
+    } else {
+      sprintf(this->filename_csv, "results/%s/%s_%i_%i_%i_%i_%i.csv",
+              this->name.c_str(), this->trace_name.c_str(), this->n_stage,
+              this->n_struct, this->rows, this->columns, this->mem_sz);
+    }
+    // Remove previous csv file
+    std::remove(filename_csv);
+
+    // Setup csv file with buffer
+    this->fcsv.open(this->filename_csv, std::ios::out);
+    this->fcsv.rdbuf()->pubsetbuf(this->csv_buf, BUF_SZ);
+
+    this->fcsv << this->csv_header << std::endl;
+  }
 };
-
-template <> inline void PDS<FIVE_TUPLE, fiveTupleHash>::setupLogging() {
-  string name_dir = "results/five_tuple" + this->name;
-  if (!std::filesystem::is_directory(name_dir)) {
-    std::filesystem::create_directory(name_dir);
-  }
-  if (this->rows == 0) {
-    sprintf(this->filename_csv, "results/%s/%s_%i_%i_%i.csv",
-            this->name.c_str(), this->trace_name.c_str(), this->n_stage,
-            this->n_struct, this->mem_sz);
-  } else {
-    sprintf(this->filename_csv, "results/%s/%s_%i_%i_%i_%i_%i.csv",
-            this->name.c_str(), this->trace_name.c_str(), this->n_stage,
-            this->n_struct, this->rows, this->columns, this->mem_sz);
-  }
-  // Remove previous csv file
-  std::remove(filename_csv);
-
-  // Setup csv file with buffer
-  this->fcsv.open(this->filename_csv, std::ios::out);
-  this->fcsv.rdbuf()->pubsetbuf(this->csv_buf, BUF_SZ);
-
-  this->fcsv << this->csv_header << std::endl;
-}
-
-template <> inline void PDS<FLOW_TUPLE, flowTupleHash>::setupLogging() {
-  string name_dir = "results/flow_tuple" + this->name;
-  if (!std::filesystem::is_directory(name_dir)) {
-    std::filesystem::create_directory(name_dir);
-  }
-  if (this->rows == 0) {
-    sprintf(this->filename_csv, "results/%s/%s_%i_%i_%i.csv",
-            this->name.c_str(), this->trace_name.c_str(), this->n_stage,
-            this->n_struct, this->mem_sz);
-  } else {
-    sprintf(this->filename_csv, "results/%s/%s_%i_%i_%i_%i_%i.csv",
-            this->name.c_str(), this->trace_name.c_str(), this->n_stage,
-            this->n_struct, this->rows, this->columns, this->mem_sz);
-  }
-  // Remove previous csv file
-  std::remove(filename_csv);
-
-  // Setup csv file with buffer
-  this->fcsv.open(this->filename_csv, std::ios::out);
-  this->fcsv.rdbuf()->pubsetbuf(this->csv_buf, BUF_SZ);
-
-  this->fcsv << this->csv_header << std::endl;
-}
 
 #endif // !_PDS_H

@@ -14,8 +14,7 @@
 #include <ostream>
 #include <vector>
 
-template <typename TUPLE, typename HASH>
-class FCM_Sketch : public PDS<TUPLE, HASH> {
+class FCM_Sketch : public PDS {
 public:
   vector<vector<Counter>> stages;
   vector<uint32_t> stages_sz;
@@ -25,13 +24,13 @@ public:
   BOBHash32 hash;
 
   uint32_t hh_threshold;
-  std::unordered_set<TUPLE, HASH> HH_candidates;
+  std::unordered_set<TUPLE, TupleHash> HH_candidates;
   FCM_Sketch(uint32_t n_roots, uint32_t n_stages, uint32_t k,
              uint32_t hh_threshold, uint32_t em_iters, string trace,
              uint32_t n_stage, uint32_t n_struct)
-      : PDS<TUPLE, HASH>(trace, n_stage, n_struct), stages(n_stages),
-        stages_sz(n_stages), stage_overflows(n_stages), n_stages(n_stages),
-        k(k), hh_threshold(hh_threshold), em_iters(em_iters) {
+      : PDS(trace, n_stage, n_struct), stages(n_stages), stages_sz(n_stages),
+        stage_overflows(n_stages), n_stages(n_stages), k(k),
+        hh_threshold(hh_threshold), em_iters(em_iters) {
 
     // Defaults and hash
     this->hash.initialize(750 + n_struct);

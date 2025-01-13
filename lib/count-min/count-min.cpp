@@ -12,11 +12,7 @@
 #include <math.h>
 #include <sys/types.h>
 
-template class CountMin<FIVE_TUPLE, fiveTupleHash>;
-template class CountMin<FLOW_TUPLE, flowTupleHash>;
-
-template <typename TUPLE, typename HASH>
-uint32_t CountMin<TUPLE, HASH>::insert(TUPLE tuple) {
+uint32_t CountMin::insert(TUPLE tuple) {
   this->true_data[tuple]++;
   bool hh_overflow = true;
 
@@ -33,14 +29,12 @@ uint32_t CountMin<TUPLE, HASH>::insert(TUPLE tuple) {
   return 1;
 }
 
-template <typename TUPLE, typename HASH>
-uint32_t CountMin<TUPLE, HASH>::hashing(TUPLE key, uint32_t k) {
+uint32_t CountMin::hashing(TUPLE key, uint32_t k) {
   return this->hash[k].run((const char *)key.num_array, sizeof(TUPLE)) %
          this->columns;
 }
 
-template <typename TUPLE, typename HASH>
-uint32_t CountMin<TUPLE, HASH>::lookup(TUPLE tuple) {
+uint32_t CountMin::lookup(TUPLE tuple) {
   uint32_t min = std::numeric_limits<uint32_t>::max();
   for (size_t i = 0; i < this->n_hash; i++) {
     int hash_idx = this->hashing(tuple, i);
@@ -49,8 +43,7 @@ uint32_t CountMin<TUPLE, HASH>::lookup(TUPLE tuple) {
   return min;
 }
 
-template <typename TUPLE, typename HASH>
-void CountMin<TUPLE, HASH>::analyze(int epoch) {
+void CountMin::analyze(int epoch) {
   // Use lookup to find tuples
   this->average_absolute_error = 0;
   this->average_relative_error = 0;
@@ -157,7 +150,7 @@ void CountMin<TUPLE, HASH>::analyze(int epoch) {
   this->fcsv << csv << std::endl;
 }
 
-template <typename TUPLE, typename HASH> void CountMin<TUPLE, HASH>::reset() {
+void CountMin::reset() {
   this->true_data.clear();
   for (auto &r : this->counters) {
     for (auto &c : r) {
@@ -167,8 +160,7 @@ template <typename TUPLE, typename HASH> void CountMin<TUPLE, HASH>::reset() {
   }
 }
 
-template <typename TUPLE, typename HASH>
-void CountMin<TUPLE, HASH>::print_sketch() {
+void CountMin::print_sketch() {
   char msg[100];
   sprintf(msg, "Printing CM sketch of %ix%i with mem sz %i", this->n_hash,
           this->columns, this->mem_sz);

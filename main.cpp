@@ -36,11 +36,11 @@ int main() {
     std::cout << "[DataParser] Start parsing " << f << "..." << std::endl;
 
     dataParser data_parser;
-    TRACE trace = data_parser.get_trace(f.data(), TupleSize::SrcTuple);
+    TRACE trace = data_parser.get_trace(f.data(), TupleSize::FiveTuple);
     std::cout << "[DataParser] Finished parsing data" << std::endl;
 
     vector<PDS *> stages;
-    qWaterfall_Fcm qwaterfall_fcm(4, 5, f, 0, 0);
+    qWaterfall_Fcm qwaterfall_fcm(4, 10, f, 0, 0);
     stages.push_back(&qwaterfall_fcm);
 
     std::cout << "[PDS] Added " << stages.size() << " stages" << std::endl;

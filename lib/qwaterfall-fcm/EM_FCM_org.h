@@ -26,10 +26,10 @@ public:
   vector<double> ns;
   vector<double> dist_old, dist_new;
   int iter = 0;
+  double n_new = 0; // new cardinality
 
 private:
   double n_old = 0; // old cardinality
-  double n_new = 0; // new cardinality
 
   struct BetaGenerator // for a single degree (same as MRAC's EM)
   {

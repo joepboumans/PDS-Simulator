@@ -1009,17 +1009,16 @@ double qWaterfall_Fcm::calculate_fsd_org(set<TUPLE> &tuples,
     }
   }
 
-  EM_FCM_org<DEPTH, W1, OVERFLOW_LEVEL1, OVERFLOW_LEVEL2> *em_fsd_algo =
-      new EM_FCM_org<DEPTH, W1, OVERFLOW_LEVEL1, OVERFLOW_LEVEL2>(); // new
+  EM_FCM_org<DEPTH, W1, OVERFLOW_LEVEL1, OVERFLOW_LEVEL2> em_fsd_algo; // new
 
   /* now, make the distribution of each degree */
-  em_fsd_algo->set_counters(newsk, newsk_thres); // new
+  em_fsd_algo.set_counters(newsk, newsk_thres); // new
 
   std::cout << "Initialized EM_FSD, starting estimation..." << std::endl;
   double d_wmre = 0.0;
   for (size_t i = 0; i < this->em_iters; i++) {
-    em_fsd_algo->next_epoch();
-    vector<double> ns = em_fsd_algo->ns;
+    em_fsd_algo.next_epoch();
+    vector<double> ns = em_fsd_algo.ns;
 
     uint32_t max_len = std::max(true_fsd.size(), ns.size());
     true_fsd.resize(max_len);
@@ -1037,19 +1036,41 @@ double qWaterfall_Fcm::calculate_fsd_org(set<TUPLE> &tuples,
     d_wmre = wmre;
   }
 
-  // if (0){ // For debugging, 1 if printing final distribution
-  //  for(int i = 0, j = 0; i < (int)dist.size(); ++i){
-  //      if(ROUND_2_INT(dist[i]) > 0)
-  //      {
-  //          printf("<%4d, %4d>", i, ROUND_2_INT(dist[i]));
-  //          if(++j % 10 == 0)
-  //              printf("\n");
-  //          else printf("\t");
-  //      }
-  //  }
-  //  printf("\n\n\n");
-  // }
-  delete em_fsd_algo;
+  uint32_t card_waterfall = tuples.size();
+  uint32_t card_em = em_fsd_algo.n_new;
+  if (card_em < card_waterfall) {
+    uint32_t d_card = card_waterfall - card_em;
+    std::cout << "[qWaterfall_Fcm - Card Padding] Still missing " << d_card
+              << " number of flows as EM " << card_em << " with qWaterfall has "
+              << card_waterfall << std::endl;
+
+    vector<double> ns = em_fsd_algo.ns;
+    // TODO: Use zipf distribution for calculation diff
+    // These values are from FlowLiDAR as flows are split up like this. With
+    // remaining flows being >3
+    for (size_t i = 0; i < 5; i++) {
+      double val = (double)(ns[i] / card_em) * d_card;
+      ns[i] += val;
+      card_em += val;
+      d_card = card_waterfall - card_em;
+    }
+
+    uint32_t max_len = std::max(true_fsd.size(), ns.size());
+    true_fsd.resize(max_len);
+    ns.resize(max_len);
+
+    double wmre_nom = 0.0;
+    double wmre_denom = 0.0;
+    for (size_t i = 0; i < max_len; i++) {
+      wmre_nom += std::abs(double(true_fsd[i]) - ns[i]);
+      wmre_denom += double((double(true_fsd[i]) + ns[i]) / 2);
+    }
+    wmre = wmre_nom / wmre_denom;
+    std::cout << "[qWaterfall_Fcm - Card Padding] wmre " << wmre
+              << " delta: " << wmre - d_wmre << std::endl;
+    d_wmre = wmre;
+  }
+
   return wmre;
 }
 #endif // !_Q_WATERFALL_CPP

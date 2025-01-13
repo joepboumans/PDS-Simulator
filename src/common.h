@@ -233,4 +233,103 @@ struct flowTupleHash {
   }
 };
 typedef vector<FLOW_TUPLE> TRACE_FLOW;
+
+#define SRC_TUPLE_SZ 8
+struct SRC_TUPLE {
+  uint8_t num_array[SRC_TUPLE_SZ] = {0, 0, 0, 0};
+
+  friend std::ostream &operator<<(std::ostream &os, SRC_TUPLE const &tuple) {
+    char srcIp[16];
+    sprintf(srcIp, "%i.%i.%i.%i", tuple.num_array[0], tuple.num_array[1],
+            tuple.num_array[2], tuple.num_array[3]);
+    return os << srcIp;
+  }
+
+  operator string() {
+    char ftuple[sizeof(SRC_TUPLE)];
+    memcpy(ftuple, this, sizeof(SRC_TUPLE));
+    return ftuple;
+  }
+  operator uint8_t *() { return this->num_array; }
+
+  SRC_TUPLE() {}
+  SRC_TUPLE(string s_tuple) {
+    for (size_t i = 0; i < s_tuple.size(); i++) {
+      this->num_array[i] = reinterpret_cast<char>(s_tuple[i]);
+    }
+  }
+  SRC_TUPLE(uint8_t *array_tuple) {
+    for (size_t i = 0; i < sizeof(SRC_TUPLE); i++) {
+      this->num_array[i] = array_tuple[i];
+    }
+  }
+  SRC_TUPLE(FIVE_TUPLE five_tuple) {
+    for (size_t i = 0; i < sizeof(SRC_TUPLE); i++) {
+      this->num_array[i] = five_tuple.num_array[i];
+    }
+  }
+
+  SRC_TUPLE &operator++() {
+    for (size_t i = 0; i < sizeof(SRC_TUPLE); i++) {
+      if (this->num_array[i] >= std::numeric_limits<unsigned char>::max()) {
+        this->num_array[i]++;
+        continue;
+      }
+      this->num_array[i]++;
+      return *this;
+    }
+    return *this;
+  }
+
+  SRC_TUPLE operator++(int) {
+    SRC_TUPLE old = *this;
+    operator++();
+    return old;
+  }
+
+  SRC_TUPLE operator+(int z) {
+    for (size_t i = 0; i < sizeof(SRC_TUPLE); i++) {
+      if (this->num_array[i] + z >= std::numeric_limits<unsigned char>::max()) {
+        this->num_array[i] += z;
+        continue;
+      }
+      this->num_array[i] += z;
+      return *this;
+    }
+    return *this;
+  }
+  SRC_TUPLE operator+=(int z) { return *this + z; }
+
+  SRC_TUPLE operator^=(SRC_TUPLE tup) {
+    *this = *this ^ tup;
+    return *this;
+  }
+
+  SRC_TUPLE operator^(SRC_TUPLE tup) {
+    for (size_t i = 0; i < sizeof(SRC_TUPLE); i++) {
+      this->num_array[i] ^= tup.num_array[i];
+    }
+    return *this;
+  }
+
+  auto operator<=>(const SRC_TUPLE &) const = default;
+  bool operator==(const SRC_TUPLE &rhs) const {
+    for (size_t i = 0; i < sizeof(SRC_TUPLE); i++) {
+      if (this->num_array[i] != rhs.num_array[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+};
+
+struct srcTupleHash {
+  std::size_t operator()(const SRC_TUPLE &k) const {
+    static BOBHash32 hasher(1);
+    return hasher.run((const char *)k.num_array, sizeof(SRC_TUPLE));
+    /*return XXH32(k.num_array, sizeof(SRC_TUPLE), 0);*/
+  }
+};
+typedef vector<SRC_TUPLE> SRC_FLOW;
+
 #endif

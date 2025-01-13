@@ -37,8 +37,8 @@ public:
   EMFSD(vector<uint32_t> szes, vector<vector<vector<vector<uint32_t>>>> thresh,
         uint32_t in_max_value, uint32_t max_degree, uint32_t card,
         vector<vector<uint32_t>> counters)
-      : stage_sz(szes), max_degree(max_degree), max_counter_value(in_max_value),
-        counters(counters) {
+      : counters(counters), stage_sz(szes), max_counter_value(in_max_value),
+        max_degree(max_degree) {
 
     // Setup distribution and the thresholds for it
     this->counter_dist = vector<vector<uint32_t>>(

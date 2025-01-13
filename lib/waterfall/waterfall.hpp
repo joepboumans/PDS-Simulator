@@ -1,9 +1,9 @@
-#ifndef _CUCKOO_HASH_H
-#define _CUCKOO_HASH_H
+#ifndef _WATERFALL_H
+#define _WATERFALL_H
 
-#include "../../src/BOBHash32.h"
-#include "../../src/common.h"
-#include "../../src/pds.h"
+#include "BOBHash32.h"
+#include "common.h"
+#include "pds.h"
 #include <cstdint>
 #include <sys/types.h>
 
@@ -17,9 +17,10 @@ public:
   uint32_t insertions = 0;
   string trace_name;
 
-  Waterfall(uint32_t n_tables, uint32_t length, string trace, uint32_t n_stage,
-            uint32_t n_struct)
-      : PDS{trace, n_stage, n_struct}, tables(n_tables, vector<TUPLE>(length)) {
+  Waterfall(uint32_t n_tables, uint32_t length, string trace, uint8_t tuple_sz,
+            uint32_t n_stage, uint32_t n_struct)
+      : PDS(trace, n_stage, n_struct, tuple_sz),
+        tables(n_tables, vector<TUPLE>(length)) {
     // Assign defaults
     this->n_tables = n_tables;
     this->length = length;
@@ -55,4 +56,4 @@ public:
   void print_sketch();
 };
 
-#endif // !_CUCKOO_HASH_H
+#endif // !_WATERFALL_H

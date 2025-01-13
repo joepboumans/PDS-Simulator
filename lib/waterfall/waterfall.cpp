@@ -1,5 +1,5 @@
-#ifndef _CUCKOO_HASH_CPP
-#define _CUCKOO_HASH_CPP
+#ifndef _WATERFALL_CPP
+#define _WATERFALL_CPP
 
 #include "waterfall.hpp"
 #include <cmath>
@@ -123,4 +123,4 @@ void Waterfall::print_sketch() {
     std::cout << std::endl;
   }
 }
-#endif // !_CUCKOO_HASH_CPP
+#endif // !_WATERFALL_CPP

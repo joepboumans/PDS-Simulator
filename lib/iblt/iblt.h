@@ -21,9 +21,9 @@ public:
   string trace_name;
   vector<IBLT_entry> table;
 
-  IBLT(uint32_t length, string trace, uint32_t k, uint32_t n_stage,
-       uint32_t n_struct)
-      : PDS{trace, n_stage, n_struct}, table(length) {
+  IBLT(uint32_t length, string trace, uint8_t tuple_sz, uint32_t k,
+       uint32_t n_stage, uint32_t n_struct)
+      : PDS(trace, n_stage, n_struct, tuple_sz), table(length) {
     // Assign defaults
     this->n_hash = k;
     this->length = length;

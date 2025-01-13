@@ -31,16 +31,17 @@ int main() {
   uint32_t iter = 1;
 
   uint32_t curr_file = 0;
+  TupleSize tuple_sz = FiveTuple;
 
   for (string &f : filenames) {
     std::cout << "[DataParser] Start parsing " << f << "..." << std::endl;
 
     dataParser data_parser;
-    TRACE trace = data_parser.get_trace(f.data(), TupleSize::FiveTuple);
+    TRACE trace = data_parser.get_trace(f.data(), tuple_sz);
     std::cout << "[DataParser] Finished parsing data" << std::endl;
 
     vector<PDS *> stages;
-    qWaterfall_Fcm qwaterfall_fcm(4, 10, f, 0, 0);
+    qWaterfall_Fcm qwaterfall_fcm(4, 25, f, tuple_sz, 0, 0);
     stages.push_back(&qwaterfall_fcm);
 
     std::cout << "[PDS] Added " << stages.size() << " stages" << std::endl;

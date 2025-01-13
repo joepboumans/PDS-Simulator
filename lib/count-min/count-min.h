@@ -20,8 +20,8 @@ public:
   std::unordered_set<TUPLE, TupleHash> HH_candidates;
 
   CountMin(uint32_t rows, uint32_t columns, uint32_t hh_threshold, string trace,
-           uint32_t n_stage, uint32_t n_struct)
-      : PDS{trace, n_stage, n_struct},
+           uint8_t tuple_sz, uint32_t n_stage, uint32_t n_struct)
+      : PDS(trace, n_stage, n_struct, tuple_sz),
         counters(rows,
                  vector<Counter>(
                      columns, Counter(std::numeric_limits<uint32_t>::max()))) {

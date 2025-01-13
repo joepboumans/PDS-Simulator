@@ -27,8 +27,8 @@ public:
   std::unordered_set<TUPLE, TupleHash> HH_candidates;
   FCM_Sketches(uint32_t n_roots, uint32_t n_stages, uint32_t k, uint32_t depth,
                uint32_t hh_threshold, uint32_t em_iters, string trace,
-               uint32_t n_stage, uint32_t n_struct)
-      : PDS(trace, n_stage, n_struct),
+               uint8_t tuple_sz, uint32_t n_stage, uint32_t n_struct)
+      : PDS(trace, n_stage, n_struct, tuple_sz),
         stages(DEPTH, vector<vector<Counter>>(NUM_STAGES)), stages_sz(n_stages),
         stage_overflows(n_stages), n_stages(n_stages), k(k), depth(depth),
         hash(depth), hh_threshold(hh_threshold), em_iters(em_iters) {

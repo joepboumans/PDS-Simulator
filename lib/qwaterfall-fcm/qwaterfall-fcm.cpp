@@ -655,12 +655,6 @@ double qWaterfall_Fcm::calculate_fsd_peeling(set<TUPLE> &tuples,
             printf("d:%zu, s:%zu, i:%zu, count:%i, degree:%i\n", d, stage, i,
                    count, degree);
           }
-          if (count >= 18000000) {
-            std::cout << "Found large number at ";
-            printf("d:%zu, s:%zu, i:%zu, count:%i, degree:%i\n", d, stage, i,
-                   count, degree);
-            exit(1);
-          }
 
           if (degree >= thresholds[d].size()) {
             thresholds[d].resize(degree + 1);

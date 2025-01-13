@@ -28,10 +28,12 @@ private:
 
 public:
   qWaterfall_Fcm(uint32_t n_tables, uint32_t em_iters, string trace,
-                 uint32_t n_stage, uint32_t n_struct)
-      : PDS(trace, n_stage, n_struct), n_tables(n_tables),
-        fcm_sketches(W3, 3, 8, DEPTH, 100000, 1, trace, n_stage, n_struct),
-        qwaterfall(n_tables, trace, n_stage, n_struct), em_iters(em_iters) {
+                 uint8_t tuple_sz, uint32_t n_stage, uint32_t n_struct)
+      : PDS(trace, n_stage, n_struct, tuple_sz), n_tables(n_tables),
+        fcm_sketches(W3, 3, 8, DEPTH, 100000, 1, trace, tuple_sz, n_stage,
+                     n_struct),
+        qwaterfall(n_tables, trace, tuple_sz, n_stage, n_struct),
+        em_iters(em_iters) {
 
     this->fcm_sketches.estimate_fsd = false;
     // Setup logging

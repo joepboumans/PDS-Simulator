@@ -28,11 +28,12 @@ private:
 public:
   WaterfallFCM(uint32_t n_roots, uint32_t n_stages, uint32_t k,
                uint32_t hh_threshold, uint32_t em_iters, uint32_t n_tables,
-               uint32_t length, string trace, uint32_t n_stage,
-               uint32_t n_struct)
-      : PDS(trace, n_stage, n_struct), fcm(n_roots, n_stages, k, hh_threshold,
-                                           em_iters, trace, n_stage, n_struct),
-        waterfall(n_tables, length, trace, n_struct, n_stage),
+               uint32_t length, string trace, uint8_t tuple_sz,
+               uint32_t n_stage, uint32_t n_struct)
+      : PDS(trace, n_stage, n_struct, tuple_sz),
+        fcm(n_roots, n_stages, k, hh_threshold, em_iters, trace, tuple_sz,
+            n_stage, n_struct),
+        waterfall(n_tables, length, trace, tuple_sz, n_struct, n_stage),
         n_stages(n_stages), em_iters(em_iters), hh_threshold(hh_threshold) {
 
     this->fcm.estimate_fsd = false;
@@ -68,5 +69,4 @@ public:
   vector<double> get_distribution(set<TUPLE> tuples);
   void set_estimate_fsd(bool onoff);
 };
-
 #endif // !_WATERFALL_FCM_HPP

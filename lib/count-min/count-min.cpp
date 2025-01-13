@@ -30,8 +30,7 @@ uint32_t CountMin::insert(TUPLE tuple) {
 }
 
 uint32_t CountMin::hashing(TUPLE key, uint32_t k) {
-  return this->hash[k].run((const char *)key.num_array, sizeof(TUPLE)) %
-         this->columns;
+  return this->hash[k].run((const char *)key.num_array, key.sz) % this->columns;
 }
 
 uint32_t CountMin::lookup(TUPLE tuple) {

@@ -9,7 +9,7 @@
 #include <sys/types.h>
 
 uint32_t qWaterfall::hashing(TUPLE key, uint32_t k) {
-  return hash[k].run((const char *)key.num_array, sizeof(TUPLE));
+  return hash[k].run((const char *)key.num_array, key.sz);
 }
 
 uint32_t qWaterfall::rehashing(uint32_t hashed_val, uint32_t k) {

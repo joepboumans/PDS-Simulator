@@ -18,7 +18,7 @@ public:
     this->count += c;
     if (this->count > this->max_count) {
       this->overflow = true;
-      this->count = this->max_count;
+      this->count = this->max_reg;
       return 1;
     }
     return 0;

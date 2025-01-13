@@ -17,10 +17,6 @@ template class qWaterfall_Fcm<FLOW_TUPLE, flowTupleHash>;
 
 template <typename TUPLE, typename HASH>
 uint32_t qWaterfall_Fcm<TUPLE, HASH>::insert(TUPLE tuple) {
-  TUPLE empty;
-  if (tuple == empty) {
-    return 1;
-  }
   this->qwaterfall.insert(tuple);
   this->fcm_sketches.insert(tuple);
   return 0;
@@ -838,11 +834,10 @@ qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd_org(set<TUPLE> &tuples,
         if (i == 0) {              // stage 1
           summary[d][i][w][2] = 1; // default
           summary[d][i][w][3] =
-              this->fcm_sketches.stages[d][0][w].count;       // depth 0
+              std::min(this->fcm_sketches.stages[d][0][w].count,
+                       (uint32_t)OVERFLOW_LEVEL1);            // depth 0
           if (!this->fcm_sketches.stages[d][0][w].overflow) { // not overflow
-            {
-              summary[d][i][w][0] = 1;
-            }
+            summary[d][i][w][0] = 1;
           } else { // if counter is overflow
             track_thres[d][i][w].push_back(
                 vector<uint32_t>{0, 1, summary[d][i][w][3]});
@@ -852,7 +847,9 @@ qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd_org(set<TUPLE> &tuples,
           for (int t = 0; t < K; ++t)
             summary[d][i][w][1] += summary[d][i - 1][K * w + t][0] +
                                    summary[d][i - 1][K * w + t][1];
-          summary[d][i][w][3] = this->fcm_sketches.stages[d][1][w].count;
+          summary[d][i][w][3] =
+              std::min(this->fcm_sketches.stages[d][1][w].count,
+                       (uint32_t)OVERFLOW_LEVEL2);
 
           // if child is overflow, then accumulate both "value" and "threshold"
           for (int ch = 0; ch < K; ++ch)
@@ -927,15 +924,13 @@ qWaterfall_Fcm<TUPLE, HASH>::calculate_fsd_org(set<TUPLE> &tuples,
                           1); // maximum degree : k^(L-1) + 1 (except 0 index)
     for (int i = 0; i < NUM_STAGES; ++i) {
       for (int w = 0; w < get_width[i]; ++w) {
-        if (i == 0) // lowest level, degree 1
-        {
+        if (i == 0) { // lowest level, degree 1
           if (summary[d][i][w][0] > 0 and
               summary[d][i][w][3] > 0) { // not full and nonzero
             newsk[d][summary[d][i][w][0]].push_back(summary[d][i][w][3]);
             newsk_thres[d][summary[d][i][w][0]].push_back(track_thres[d][i][w]);
           }
-        } else // upper level
-        {
+        } else { // upper level
           if (summary[d][i][w][0] >
               0) { // the highest node that paths could reach
             newsk[d][summary[d][i][w][0]].push_back(summary[d][i][w][3]);

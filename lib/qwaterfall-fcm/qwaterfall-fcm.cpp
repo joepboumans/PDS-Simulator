@@ -792,6 +792,28 @@ double qWaterfall_Fcm::calculate_fsd_peeling(set<TUPLE> &tuples,
 
 double qWaterfall_Fcm::calculate_fsd_org(set<TUPLE> &tuples,
                                          vector<uint32_t> &true_fsd) {
+
+  // Setup initial degrees for each input counter (stage 0)
+  std::cout << "[qWaterfall_Fcm] Calculate initial degrees from qWaterfall..."
+            << std::endl;
+  vector<vector<uint32_t>> init_degree(DEPTH, vector<uint32_t>(W1));
+  uint32_t cht_max_degree = 0;
+  for (size_t d = 0; d < DEPTH; d++) {
+    for (auto &tuple : tuples) {
+      uint32_t hash_idx = this->fcm_sketches.hashing(tuple, d);
+      init_degree[d][hash_idx]++;
+      cht_max_degree = std::max(init_degree[d][hash_idx], cht_max_degree);
+    }
+  }
+  std::cout << "[qWaterfall_Fcm] ...done!" << std::endl;
+  for (size_t d = 0; d < DEPTH; d++) {
+    std::cout << "Depth " << d << std::endl;
+    for (size_t i = 0; i < init_degree.size(); i++) {
+      std::cout << i << ":" << init_degree[d][i] << " ";
+    }
+    std::cout << std::endl;
+  }
+
   /* Making summary note for conversion algorithm (4-tuple summary)
                  Each dimension is for (tree, layer, width, tuple)
                  */
@@ -809,82 +831,97 @@ double qWaterfall_Fcm::calculate_fsd_org(set<TUPLE> &tuples,
      (e.g., 254, 65534+254, 65534+254+254, etc)
           */
 
+  uint32_t max_degree = 0;
+  std::cout << "[qWaterfall_Fcm] Start setting up summary and thresholds"
+            << std::endl;
   for (int d = 0; d < DEPTH; ++d) {
     summary[d].resize(NUM_STAGES);
     track_thres[d].resize(NUM_STAGES);
     for (uint32_t i = 0; i < NUM_STAGES; ++i) {
-      summary[d][i].resize(get_width[i], vector<uint32_t>(4, 0)); // initialize
-      track_thres[d][i].resize(get_width[i]);                     // initialize
+      summary[d][i].resize(
+          get_width[i],
+          vector<uint32_t>(4, 0)); // { Total Degree, Previous Degrees, Local
+                                   // Degree , count}
+      track_thres[d][i].resize(get_width[i]); // initialize
       for (int w = 0; w < get_width[i]; ++w) {
-        if (i == 0) {              // stage 1
-          summary[d][i][w][2] = 1; // default
+        if (i == 0) { // stage 1
+          summary[d][i][w][2] = 1;
+          /*summary[d][i][w][2] =*/
+          /*    std::max(init_degree[d][w], (uint32_t)1); // default*/
           summary[d][i][w][3] =
               std::min(this->fcm_sketches.stages[d][0][w].count,
-                       (uint32_t)OVERFLOW_LEVEL1);            // depth 0
+                       (uint32_t)OVERFLOW_LEVEL1); // depth 0
+
           if (!this->fcm_sketches.stages[d][0][w].overflow) { // not overflow
-            summary[d][i][w][0] = 1;
+            summary[d][i][w][0] = summary[d][i][w][2];
+
           } else { // if counter is overflow
             track_thres[d][i][w].push_back(
-                vector<uint32_t>{0, 1, summary[d][i][w][3]});
+                vector<uint32_t>{0, summary[d][i][w][2], summary[d][i][w][3]});
           }
         } else if (i == 1) { // stage 2
-          summary[d][i][w][2] = std::pow(K, i);
-          for (int t = 0; t < K; ++t)
-            summary[d][i][w][1] += summary[d][i - 1][K * w + t][0] +
-                                   summary[d][i - 1][K * w + t][1];
           summary[d][i][w][3] =
               std::min(this->fcm_sketches.stages[d][1][w].count,
                        (uint32_t)OVERFLOW_LEVEL2);
 
-          // if child is overflow, then accumulate both "value" and "threshold"
-          for (int ch = 0; ch < K; ++ch)
-            if (this->fcm_sketches.stages[d][0][K * w + ch]
-                    .overflow) { // if child is overflow
-              summary[d][i][w][3] += summary[d][i - 1][K * w + ch][3];
-              track_thres[d][i][w].insert(
-                  track_thres[d][i][w].end(),
-                  track_thres[d][i - 1][K * w + ch].begin(),
-                  track_thres[d][i - 1][K * w + ch].end());
+          summary[d][i][w][2] = 0;
+          for (int t = 0; t < K; ++t) {
+            // if child is overflow, then accumulate both "value" and
+            // "threshold"
+            if (!this->fcm_sketches.stages[d][i - 1][K * w + t]
+                     .overflow) { // if child is overflow
+              continue;
             }
+            summary[d][i][w][3] += summary[d][i - 1][K * w + t][3];
+            track_thres[d][i][w].insert(
+                track_thres[d][i][w].end(),
+                track_thres[d][i - 1][K * w + t].begin(),
+                track_thres[d][i - 1][K * w + t].end());
+
+            summary[d][i][w][1] += summary[d][i - 1][K * w + t][0];
+            summary[d][i][w][2] += 1;
+          }
 
           if (!this->fcm_sketches.stages[d][1][w]
                    .overflow) // non-overflow, end of path
           {
-            summary[d][i][w][0] = summary[d][i][w][2] - summary[d][i][w][1];
+            summary[d][i][w][0] = summary[d][i][w][2];
           } else {
             // if overflow, then push new threshold <layer, #path, value>
             track_thres[d][i][w].push_back(
-                vector<uint32_t>{i, summary[d][i][w][2] - summary[d][i][w][1],
-                                 summary[d][i][w][3]});
+                vector<uint32_t>{i, summary[d][i][w][2], summary[d][i][w][3]});
           }
         } else if (i == 2) { // stage 3
-          summary[d][i][w][2] = std::pow(K, i);
-          for (int t = 0; t < K; ++t)
-            summary[d][i][w][1] += summary[d][i - 1][K * w + t][0] +
-                                   summary[d][i - 1][K * w + t][1];
           summary[d][i][w][3] = this->fcm_sketches.stages[d][2][w].count;
+          summary[d][i][w][2] = 0;
 
-          // if child is overflow, then accumulate both "value" and "threshold"
-          for (int ch = 0; ch < K; ++ch)
-            if (this->fcm_sketches.stages[d][1][K * w + ch]
-                    .overflow) { // if child is overflow
-              summary[d][i][w][3] += summary[d][i - 1][K * w + ch][3];
-              track_thres[d][i][w].insert(
-                  track_thres[d][i][w].end(),
-                  track_thres[d][i - 1][K * w + ch].begin(),
-                  track_thres[d][i - 1][K * w + ch].end());
+          for (int t = 0; t < K; ++t) {
+            // if child is overflow, then accumulate both "value" and
+            // "threshold"
+            if (!this->fcm_sketches.stages[d][i - 1][K * w + t]
+                     .overflow) { // if child is overflow
+              continue;
             }
+            summary[d][i][w][3] += summary[d][i - 1][K * w + t][3];
+            track_thres[d][i][w].insert(
+                track_thres[d][i][w].end(),
+                track_thres[d][i - 1][K * w + t].begin(),
+                track_thres[d][i - 1][K * w + t].end());
 
-          if (!this->fcm_sketches.stages[d][2][w]
+            summary[d][i][w][1] += summary[d][i - 1][K * w + t][0];
+            summary[d][i][w][2] += 1;
+          }
+
+          if (!this->fcm_sketches.stages[d][i][w]
                    .overflow) // non-overflow, end of path
           {
-            summary[d][i][w][0] = summary[d][i][w][2] - summary[d][i][w][1];
+            summary[d][i][w][0] = summary[d][i][w][1];
           } else {
             // if overflow, then push new threshold <layer, #path, value>
             track_thres[d][i][w].push_back(
-                vector<uint32_t>{i, summary[d][i][w][2] - summary[d][i][w][1],
-                                 summary[d][i][w][3]});
+                vector<uint32_t>{i, summary[d][i][w][2], summary[d][i][w][3]});
           }
+
         } else {
           printf("[ERROR] DEPTH(%d) is not mathcing with allocated counter "
                  "arrays...\n",
@@ -901,23 +938,38 @@ double qWaterfall_Fcm::calculate_fsd_org(set<TUPLE> &tuples,
   // (depth, degree, vector(layer)<vector(#.paths)<threshold>>>)
   vector<vector<vector<vector<vector<uint32_t>>>>> newsk_thres(DEPTH);
 
+  std::cout << "[qWaterfall_Fcm] Transform summary and thresh into newsk and "
+               "newsk_thresh"
+            << std::endl;
+
   for (int d = 0; d < DEPTH; ++d) {
     // size = all possible degree
-    newsk[d].resize(std::pow(K, NUM_STAGES - 1) +
+    newsk[d].resize(std::pow(K, NUM_STAGES - 1) * 3 +
                     1); // maximum degree : k^(L-1) + 1 (except 0 index)
-    newsk_thres[d].resize(std::pow(K, NUM_STAGES - 1) +
+    newsk_thres[d].resize(std::pow(K, NUM_STAGES - 1) * 3 +
                           1); // maximum degree : k^(L-1) + 1 (except 0 index)
     for (int i = 0; i < NUM_STAGES; ++i) {
       for (int w = 0; w < get_width[i]; ++w) {
         if (i == 0) { // lowest level, degree 1
           if (summary[d][i][w][0] > 0 and
               summary[d][i][w][3] > 0) { // not full and nonzero
+
+            if (summary[d][i][w][0] >= newsk[d].size()) {
+              newsk[d].resize(summary[d][i][w][0] + 1);
+              newsk_thres[d].resize(summary[d][i][w][0] + 1);
+            }
+
             newsk[d][summary[d][i][w][0]].push_back(summary[d][i][w][3]);
             newsk_thres[d][summary[d][i][w][0]].push_back(track_thres[d][i][w]);
           }
         } else { // upper level
           if (summary[d][i][w][0] >
               0) { // the highest node that paths could reach
+
+            if (summary[d][i][w][0] >= newsk[d].size()) {
+              newsk[d].resize(summary[d][i][w][0] + 1);
+              newsk_thres[d].resize(summary[d][i][w][0] + 1);
+            }
             newsk[d][summary[d][i][w][0]].push_back(summary[d][i][w][3]);
             newsk_thres[d][summary[d][i][w][0]].push_back(track_thres[d][i][w]);
           }
@@ -926,6 +978,9 @@ double qWaterfall_Fcm::calculate_fsd_org(set<TUPLE> &tuples,
     }
   }
 
+  std::cout << "[qWaterfall_Fcm] Finished setting up newsk and "
+               "newsk_thresh"
+            << std::endl;
   // just for debugging, 1 for print, 0 for not print.
   if (0) {
     int maximum_val = 0;

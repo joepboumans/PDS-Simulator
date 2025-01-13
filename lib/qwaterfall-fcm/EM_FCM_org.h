@@ -266,6 +266,7 @@ private:
           int thres_l2_1 = thres[beta_degree][2];
           int thres_l2_2 = thres[beta_degree + 1][2];
           if (beta_degree == 2) // degree 2
+          {
             if (now_result[0] <= thres_l2_1 or now_result[1] <= thres_l2_2) {
               return false;
             } else { // degree 3
@@ -280,6 +281,7 @@ private:
               if (val_1 <= thres_l2_1 or val_2 <= thres_l2_2)
                 return false;
             }
+          }
         } else { // only when degree 3
           if (now_result[0] <= thres[beta_degree][2] or
               now_result[1] <= thres[beta_degree + 1][2] or

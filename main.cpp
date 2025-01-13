@@ -39,9 +39,11 @@ int main() {
     dataParser data_parser;
     TRACE trace = data_parser.get_trace(f.data(), tuple_sz);
     std::cout << "[DataParser] Finished parsing data" << std::endl;
+    string file = f.erase(f.find("data/"), sizeof("data/") - 1);
+    file = file.erase(file.find(".dat"), sizeof(".dat") - 1);
 
     vector<PDS *> stages;
-    qWaterfall_Fcm qwaterfall_fcm(4, 25, f, tuple_sz, 0, 0);
+    qWaterfall_Fcm qwaterfall_fcm(4, 5, file, tuple_sz, 0, 0);
     stages.push_back(&qwaterfall_fcm);
 
     std::cout << "[PDS] Added " << stages.size() << " stages" << std::endl;

@@ -120,13 +120,12 @@ def main():
    setup_dataset_bursty("equinix-chicago.20160121-130000.UTC.pcap", "l2_test", 1, 300)
    setup_dataset_bursty("equinix-chicago.20160121-130000.UTC.pcap", "l3_test", 1, 70000)
     
-    
    path = os.getcwd()
    print(f"Checking {path} for pcap files: ")
    files = glob("*UTC.pcap")
    print(files)
    for file in files:
-       setup_dataset(file, file.replace("pcap", ""))
+       setup_dataset(file, file.replace(".pcap", ""))
 
 if __name__ == "__main__":
     main()

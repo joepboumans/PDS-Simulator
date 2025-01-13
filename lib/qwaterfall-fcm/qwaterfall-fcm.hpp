@@ -37,6 +37,9 @@ public:
 
     this->fcm_sketches.estimate_fsd = false;
     // Setup logging
+    this->csv_header_em =
+        "Epoch,Epoch Time,Total Time, Weighted Mean Relative Error, "
+        "Cardinality";
     this->csv_header = "Epoch,Average Relative Error,Average Absolute "
                        "Error,Weighted Mean Relative "
                        "Error,F1 Heavy Hitter,Estimation "

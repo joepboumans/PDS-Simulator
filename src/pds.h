@@ -7,14 +7,12 @@
 #include <fstream>
 #include <unordered_map>
 
-#define BUF_SZ 1024 * 1024
-
 class PDS {
 public:
   std::unordered_map<TUPLE, uint32_t, TupleHash> true_data;
-  string name = "NOT SET";
-  string trace_name = "NOT SET";
-  string tuple_name = "NOT SET";
+  string name;
+  string trace_name;
+  string tuple_name;
   uint32_t mem_sz;
   uint32_t rows;
   uint32_t columns;
@@ -23,11 +21,11 @@ public:
 
   // Logging members
   char filename_csv[400];
-  std::ofstream fdata;
+  char filename_csv_em[400];
   std::ofstream fcsv;
-  char data_buf[BUF_SZ];
-  char csv_buf[BUF_SZ];
-  string csv_header = "CSV HEADER IS NOT SET";
+  std::ofstream fcsv_em;
+  string csv_header;
+  string csv_header_em;
 
   PDS(string trace, uint32_t stage, uint32_t n, uint8_t tuple_sz) {
     this->trace_name = trace;
@@ -93,31 +91,52 @@ public:
   virtual void print_sketch() { std::cout << "Not implemented!" << std::endl; }
 
   void setName(string in) { this->name = in; }
-  virtual void setName() { this->name = "NOT SET"; }
+  virtual void setName() { this->name = ""; }
 
   void setupLogging() {
+    if (this->tuple_name.empty() or this->name.empty() or
+        this->trace_name.empty()) {
+      std::cerr << "[ERROR] Name or tuple name is empty of PDS: " << std::endl;
+      std::cerr << "Tuple name : " << this->tuple_name << std::endl;
+      std::cerr << "Name : " << this->name << std::endl;
+      exit(1);
+    }
+
     string name_dir = "results/" + this->tuple_name + "/" + this->name;
     if (!std::filesystem::is_directory(name_dir)) {
       std::filesystem::create_directories(name_dir);
     }
+
     if (this->rows == 0) {
-      sprintf(this->filename_csv, "results/%s/%s_%i_%i_%i.csv",
-              name_dir.c_str(), this->trace_name.c_str(), this->n_stage,
-              this->n_struct, this->mem_sz);
+      sprintf(this->filename_csv, "%s/%s_%i_%i_%i.csv", name_dir.c_str(),
+              this->trace_name.c_str(), this->n_stage, this->n_struct,
+              this->mem_sz);
     } else {
-      sprintf(this->filename_csv, "results/%s/%s_%i_%i_%i_%i_%i.csv",
-              name_dir.c_str(), this->trace_name.c_str(), this->n_stage,
-              this->n_struct, this->rows, this->columns, this->mem_sz);
+      sprintf(this->filename_csv, "%s/%s_%i_%i_%i_%i_%i.csv", name_dir.c_str(),
+              this->trace_name.c_str(), this->n_stage, this->n_struct,
+              this->rows, this->columns, this->mem_sz);
     }
 
-    // Remove previous csv file
-    std::remove(filename_csv);
-
-    // Setup csv file with buffer
+    // Remove previous csv file and setup csv file
+    std::remove(this->filename_csv);
     this->fcsv.open(this->filename_csv, std::ios::out);
-    /*this->fcsv.rdbuf()->pubsetbuf(this->csv_buf, BUF_SZ);*/
-
     this->fcsv << this->csv_header << std::endl;
+
+    if (this->csv_header_em.empty()) {
+      std::cout << "Empty CSV header, not printing any EM stats for "
+                << this->name << std::endl;
+      return;
+    }
+
+    std::cout << "Found header for EM, printing stat for " << this->name
+              << std::endl;
+    sprintf(this->filename_csv_em, "%s/em_%s_%i_%i_%i_%i_%i.csv",
+            name_dir.c_str(), this->trace_name.c_str(), this->n_stage,
+            this->n_struct, this->rows, this->columns, this->mem_sz);
+
+    std::remove(this->filename_csv_em);
+    this->fcsv_em.open(this->filename_csv_em, std::ios::out);
+    this->fcsv_em << this->csv_header_em << std::endl;
   }
 };
 

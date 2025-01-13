@@ -6,6 +6,7 @@
 #include "EM_FSD_QWATER.hpp"
 #include "common.h"
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
@@ -90,7 +91,7 @@ void qWaterfall_Fcm::analyze(int epoch) {
   } else {
     this->wmre = this->fcm_sketches.wmre;
   }
-  // Save data into c  // Save data into csv
+  // Save data into csv
   char csv[300];
   this->insertions = this->qwaterfall.insertions;
   this->f1_member = this->qwaterfall.f1;
@@ -101,6 +102,7 @@ void qWaterfall_Fcm::analyze(int epoch) {
           this->average_relative_error, this->average_absolute_error,
           this->wmre, this->f1_hh, em_time, this->em_iters,
           this->qwaterfall.insertions, this->qwaterfall.f1);
+  std::cout << csv << std::endl;
   this->fcsv << csv << std::endl;
   return;
 }
@@ -1008,12 +1010,18 @@ double qWaterfall_Fcm::calculate_fsd_org(set<TUPLE> &tuples,
   /* now, make the distribution of each degree */
   em_fsd_algo.set_counters(newsk, newsk_thres); // new
 
+  auto total_start = std::chrono::high_resolution_clock::now();
   std::cout << "Initialized EM_FSD, starting estimation..." << std::endl;
   double d_wmre = 0.0;
   for (size_t i = 0; i < this->em_iters; i++) {
+    auto start = std::chrono::high_resolution_clock::now();
     em_fsd_algo.next_epoch();
-    vector<double> ns = em_fsd_algo.ns;
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto time = chrono::duration_cast<chrono::milliseconds>(stop - start);
+    auto total_time =
+        chrono::duration_cast<chrono::milliseconds>(stop - total_start);
 
+    vector<double> ns = em_fsd_algo.ns;
     uint32_t max_len = std::max(true_fsd.size(), ns.size());
     true_fsd.resize(max_len);
     ns.resize(max_len);
@@ -1028,18 +1036,25 @@ double qWaterfall_Fcm::calculate_fsd_org(set<TUPLE> &tuples,
     std::cout << "[qWaterfall_Fcm - EM FSD iter " << i << "] intermediary wmre "
               << wmre << " delta: " << wmre - d_wmre << std::endl;
     d_wmre = wmre;
+    // Save data into csv
+    char csv[300];
+    sprintf(csv, "%zu,%.3ld,%.3ld,%.3f,%.3f", i, time.count(),
+            total_time.count(), wmre, em_fsd_algo.n_new);
+    std::cout << csv << std::endl;
+    this->fcsv_em << csv << std::endl;
   }
 
   uint32_t card_waterfall = tuples.size();
   uint32_t card_em = em_fsd_algo.n_new;
   if (card_em < card_waterfall) {
+    auto start = std::chrono::high_resolution_clock::now();
+    em_fsd_algo.next_epoch();
     uint32_t d_card = card_waterfall - card_em;
     std::cout << "[qWaterfall_Fcm - Card Padding] Still missing " << d_card
               << " number of flows as EM " << card_em << " with qWaterfall has "
               << card_waterfall << std::endl;
 
     vector<double> ns = em_fsd_algo.ns;
-    // TODO: Use zipf distribution for calculation diff
     // These values are from FlowLiDAR as flows are split up like this. With
     // remaining flows being >3
     for (size_t i = 0; i < 5; i++) {
@@ -1048,7 +1063,10 @@ double qWaterfall_Fcm::calculate_fsd_org(set<TUPLE> &tuples,
       card_em += val;
       d_card = card_waterfall - card_em;
     }
-
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto time = std::chrono::duration_cast<chrono::milliseconds>(stop - start);
+    auto total_time =
+        std::chrono::duration_cast<chrono::milliseconds>(stop - total_start);
     uint32_t max_len = std::max(true_fsd.size(), ns.size());
     true_fsd.resize(max_len);
     ns.resize(max_len);
@@ -1063,6 +1081,11 @@ double qWaterfall_Fcm::calculate_fsd_org(set<TUPLE> &tuples,
     std::cout << "[qWaterfall_Fcm - Card Padding] wmre " << wmre
               << " delta: " << wmre - d_wmre << std::endl;
     d_wmre = wmre;
+    char csv[300];
+    sprintf(csv, "%u,%.3ld,%.3ld,%.3f,%.3f", this->em_iters, time.count(),
+            total_time.count(), wmre, em_fsd_algo.n_new);
+    std::cout << csv << std::endl;
+    this->fcsv_em << csv << std::endl;
   }
 
   return wmre;

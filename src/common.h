@@ -30,7 +30,7 @@ using std::string;
 using std::vector;
 
 #define MAX_TUPLE_SZ 13
-enum TupleType { FiveTuple = 13, FlowTuple = 8, SrcTuple = 4 };
+enum TupleSize : uint8_t { FiveTuple = 13, FlowTuple = 8, SrcTuple = 4 };
 
 struct TUPLE {
   uint8_t num_array[MAX_TUPLE_SZ] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -49,31 +49,33 @@ struct TUPLE {
             tuple.num_array[6], tuple.num_array[7]);
 
     if (tuple.sz == 4) {
-      return os << srcIp;
+      return os << srcIp << "\tsz " << tuple.sz;
     } else if (tuple.sz == 8) {
-      return os << srcIp << "|" << dstIp;
+      return os << srcIp << "|" << dstIp << "\tsz " << tuple.sz;
     }
     return os << srcIp << ":" << srcPort << "|" << dstIp << ":" << dstPort
-              << "|" << protocol;
+              << "|" << protocol << "\tsz " << tuple.sz;
   }
 
   operator string() {
-    char ftuple[sizeof(TUPLE)];
-    memcpy(ftuple, this, sizeof(TUPLE));
+    char ftuple[this->sz];
+    memcpy(ftuple, this, this->sz);
     return ftuple;
   }
   operator uint8_t *() { return this->num_array; }
 
   TUPLE() {}
-  TUPLE(string s_tuple) {
-    for (size_t i = 0; i < s_tuple.size(); i++) {
+  TUPLE(string s_tuple, uint8_t sz) {
+    for (size_t i = 0; i < MAX_TUPLE_SZ; i++) {
       this->num_array[i] = reinterpret_cast<char>(s_tuple[i]);
     }
+    this->sz = sz;
   }
-  TUPLE(uint8_t *array_tuple) {
-    for (size_t i = 0; i < sizeof(TUPLE); i++) {
+  TUPLE(uint8_t *array_tuple, uint8_t sz) {
+    for (size_t i = 0; i < MAX_TUPLE_SZ; i++) {
       this->num_array[i] = array_tuple[i];
     }
+    this->sz = sz;
   }
 
   TUPLE &operator++() {

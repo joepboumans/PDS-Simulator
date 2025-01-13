@@ -31,10 +31,12 @@ int main() {
   uint32_t iter = 1;
 
   uint32_t curr_file = 0;
+
   for (string &f : filenames) {
     std::cout << "[DataParser] Start parsing " << f << "..." << std::endl;
-    dataParser<TupleType::FlowTuple> data_parser;
-    TRACE trace = data_parser.get_trace(f.data());
+
+    dataParser data_parser;
+    TRACE trace = data_parser.get_trace(f.data(), 8);
     std::cout << "[DataParser] Finished parsing data" << std::endl;
 
     // PDS
@@ -122,8 +124,8 @@ int main() {
 
     // Run simulations on 5-tuple
     std::cout << "[DataParser] Start parsing " << f << "..." << std::endl;
-    dataParser<TupleType::FlowTuple> data_parser_5t;
-    TRACE trace_5t = data_parser_5t.get_trace(f.data());
+    dataParser data_parser_5t;
+    TRACE trace_5t = data_parser_5t.get_trace(f.data(), 4);
     std::cout << "[DataParser] Finished parsing data" << std::endl;
 
     vector<PDS *> stages_5t;

@@ -24,7 +24,7 @@ uint32_t CountMin::insert(TUPLE tuple) {
     }
   }
   if (hh_overflow) {
-    this->HH_candidates.insert((string)tuple);
+    this->HH_candidates.insert(tuple);
   }
   return 1;
 }

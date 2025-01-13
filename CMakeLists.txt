@@ -21,7 +21,7 @@ add_subdirectory(lib/count-min)
 add_subdirectory(lib/fcm-sketch)
 add_subdirectory(lib/simulator)
 add_subdirectory(lib/iblt)
-add_subdirectory(lib/cuckoo-hash)
+add_subdirectory(lib/waterfall)
 add_subdirectory(lib/waterfall-fcm)
 add_subdirectory(lib/qwaterfall)
 add_subdirectory(lib/qwaterfall-fcm)
@@ -37,7 +37,7 @@ target_link_libraries(
          lib-fcm-sketch
          lib-simulator
          lib-iblt
-         lib-cuckoo-hash
+         lib-waterfall
          lib-waterfall-fcm
         lib-qwaterfall
         lib-qwaterfall-fcm

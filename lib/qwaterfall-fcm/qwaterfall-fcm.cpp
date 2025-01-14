@@ -119,7 +119,6 @@ void qWaterfall_Fcm::analyze(int epoch) {
           this->average_relative_error, this->average_absolute_error,
           this->wmre, this->f1_hh, em_time, this->em_iters,
           this->qwaterfall.insertions, this->qwaterfall.f1);
-  std::cout << csv << std::endl;
   this->fcsv << csv << std::endl;
   return;
 }
@@ -844,7 +843,6 @@ double qWaterfall_Fcm::calculate_fsd_org(set<TUPLE> &tuples,
      (e.g., 254, 65534+254, 65534+254+254, etc)
           */
 
-  uint32_t max_degree = 0;
   std::cout << "[qWaterfall_Fcm] Start setting up summary and thresholds"
             << std::endl;
   for (int d = 0; d < DEPTH; ++d) {

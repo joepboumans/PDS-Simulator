@@ -31,7 +31,7 @@ int main() {
   uint32_t iter = 1;
 
   uint32_t curr_file = 0;
-  TupleSize tuple_sz = FiveTuple;
+  TupleSize tuple_sz = FlowTuple;
 
   for (string &f : filenames) {
     std::cout << "[DataParser] Start parsing " << f << "..." << std::endl;

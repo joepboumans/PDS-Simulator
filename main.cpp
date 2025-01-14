@@ -54,9 +54,6 @@ int main() {
     std::cout << std::endl << std::endl;
 
     curr_file++;
-    if (curr_file > 0) {
-      break;
-    }
   }
 
   std::cout << "------" << std::endl;

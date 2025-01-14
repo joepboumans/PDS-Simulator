@@ -5,6 +5,7 @@
 #include "EM_FCM_org.h"
 #include "EM_FSD_QWATER.hpp"
 #include "common.h"
+#include "pds.h"
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -67,6 +68,22 @@ void qWaterfall_Fcm::analyze(int epoch) {
 
     uint32_t true_max = *std::max_element(true_fsd.begin(), true_fsd.end());
     std::cout << "[qWaterfall_Fcm] True maximum counter values: " << true_max
+              << std::endl;
+
+    std::cout << "[qWaterfall_Fcm] Writing true fsd to dat with size "
+              << true_fsd.size() << std::endl;
+    // Write True FSD size and then the FSD
+    uint32_t true_fsd_sz = true_fsd.size();
+    this->fcsv_ns.write((char *)&true_fsd_sz, sizeof(true_fsd_sz));
+    std::cout << "[qWaterfall_Fcm] Finished writing  true fsd sz to dat"
+              << std::endl;
+    for (uint32_t i = 0; i < true_fsd.size(); i++) {
+      if (true_fsd[i] != 0) {
+        this->fcsv_ns.write((char *)&i, sizeof(i));
+        this->fcsv_ns.write((char *)&true_fsd[i], sizeof(true_fsd[i]));
+      }
+    }
+    std::cout << "[qWaterfall_Fcm] Finished writing  true fsd to dat"
               << std::endl;
 
     /*auto start = std::chrono::high_resolution_clock::now();*/
@@ -1040,8 +1057,17 @@ double qWaterfall_Fcm::calculate_fsd_org(set<TUPLE> &tuples,
     char csv[300];
     sprintf(csv, "%zu,%.3ld,%.3ld,%.3f,%.3f", i, time.count(),
             total_time.count(), wmre, em_fsd_algo.n_new);
-    std::cout << csv << std::endl;
     this->fcsv_em << csv << std::endl;
+
+    // Write NS FSD size and then the FSD as uint64_t
+    uint32_t ns_size = ns.size();
+    this->fcsv_ns.write((char *)&ns_size, sizeof(ns_size));
+    for (uint32_t i = 0; i < ns.size(); i++) {
+      if (ns[i] != 0) {
+        this->fcsv_ns.write((char *)&i, sizeof(i));
+        this->fcsv_ns.write((char *)&ns[i], sizeof(ns[i]));
+      }
+    }
   }
 
   uint32_t card_waterfall = tuples.size();
@@ -1084,8 +1110,17 @@ double qWaterfall_Fcm::calculate_fsd_org(set<TUPLE> &tuples,
     char csv[300];
     sprintf(csv, "%u,%.3ld,%.3ld,%.3f,%.3f", this->em_iters, time.count(),
             total_time.count(), wmre, em_fsd_algo.n_new);
-    std::cout << csv << std::endl;
     this->fcsv_em << csv << std::endl;
+
+    // Write NS FSD size and then the FSD as uint64_t
+    uint32_t ns_size = ns.size();
+    this->fcsv_ns.write((char *)&ns_size, sizeof(ns_size));
+    for (uint32_t i = 0; i < ns.size(); i++) {
+      if (ns[i] != 0) {
+        this->fcsv_ns.write((char *)&i, sizeof(i));
+        this->fcsv_ns.write((char *)&ns[i], sizeof(ns[i]));
+      }
+    }
   }
 
   return wmre;

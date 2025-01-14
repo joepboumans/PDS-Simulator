@@ -22,10 +22,13 @@ public:
   // Logging members
   char filename_csv[400];
   char filename_csv_em[400];
+  char filename_csv_ns[400];
   std::ofstream fcsv;
   std::ofstream fcsv_em;
+  std::ofstream fcsv_ns;
   string csv_header;
   string csv_header_em;
+  string csv_header_ns;
 
   PDS(string trace, uint32_t stage, uint32_t n, uint8_t tuple_sz) {
     this->trace_name = trace;
@@ -137,6 +140,13 @@ public:
     std::remove(this->filename_csv_em);
     this->fcsv_em.open(this->filename_csv_em, std::ios::out);
     this->fcsv_em << this->csv_header_em << std::endl;
+
+    sprintf(this->filename_csv_ns, "%s/ns_%s_%i_%i_%i_%i_%i.dat",
+            name_dir.c_str(), this->trace_name.c_str(), this->n_stage,
+            this->n_struct, this->rows, this->columns, this->mem_sz);
+
+    std::remove(this->filename_csv_ns);
+    this->fcsv_ns.open(this->filename_csv_ns, std::ios::out | std::ios::binary);
   }
 };
 

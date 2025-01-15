@@ -40,11 +40,10 @@ public:
     this->csv_header_em =
         "Epoch,Epoch Time,Total Time, Weighted Mean Relative Error, "
         "Cardinality";
-    this->csv_header = "Epoch,Average Relative Error,Average Absolute "
-                       "Error,Weighted Mean Relative "
-                       "Error,F1 Heavy Hitter,Estimation "
-                       "Time,Iterations,Insertions,Collisions,F1 Member";
-    this->name = "qWaterfall_Fcm";
+    this->csv_header =
+        "Average Relative Error,Average Absolute "
+        "Error, F1 Heavy Hitter, Iterations, Insertions, Collisions, F1 Member";
+    this->name = "qWaterfall_FCM";
     this->trace_name = trace;
     this->rows = std::numeric_limits<uint16_t>::max();
     this->columns = n_tables;

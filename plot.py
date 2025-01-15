@@ -83,14 +83,14 @@ def parse_total_results(dfs, columns):
     for column in columns:
         score = pd.DataFrame()
         for name, df in dfs.items():
-            reg_name = r"(?P<stage>\d+_\d+)_[\w-]+_(?P<sz>\d+_\d+)_(?P<name>\w+)"
+            reg_name = r"(?P<TupleSize>\w+?)_[\w-]+_(?P<sz>\d+_\d+)_(?P<name>.+)"
             match = re.search(reg_name, name)
             if not match:
                 print(f"[ERROR] Cannot parse name, skipping data {name}")
                 continue;
 
             md = match.groupdict()
-            name = f"{md['stage']}_{md['name']}_{md['sz']}"
+            name = f"{md['TupleSize']}_{md['name']}_{md['sz']}"
             # name = match.group("name")
 
             idf = pd.DataFrame(df[column])
@@ -134,6 +134,14 @@ def plot_total_results(total_df, columns):
         plt.tight_layout()
         plt.savefig(f"{plot_dir}{param}_overview.png", transparent=True)
 
+def df2df_set_rc(df, dfs):
+    dfs[f"{data_info['TupleSize']}_{data_info['name']}_{data_info['row']}_{data_info['col']}_{data_info['tot_sz']}_{data_info['data_name']}"] = df
+    return  df.columns
+
+def df2df_set(df, dfs):
+    dfs[f"{data_info['TupleSize']}_{data_info['name']}_{data_info['sz']}_{data_info['tot_sz']}_{data_info['data_name']}"] = df
+    return df.columns
+
 if __name__ == "__main__":
     # Get results
     csv_results = glob.glob("results/*/*/*.csv")
@@ -161,39 +169,29 @@ if __name__ == "__main__":
             if df.empty:
                 print(f"{result} is empty")
                 continue
-
             
             if data_info['row']:
-                print(data_info)
-                print(df)
                 if "F1 Heavy Hitter" in df.columns or "F1 Member" in df.columns:
                     if "Iterations" in df:
                         df["Average ET"] = df["Estimation Time"] / df["Iterations"]
-                    amq_fc_df[f"{data_info['n_stage']}_{data_info['n_struct']}_{data_info['name']}_{data_info['row']}_{data_info['col']}_{data_info['tot_sz']}_{data_info['data_name']}"] = df
-                    amq_fc_columns = df.columns
+
+                    amq_fc_columns = df2df_set_rc(df, amq_fc_df)
                 elif "Average Relative Error" in df.columns:
                     if "Iterations" in df:
                         df["Average ET"] = df["Estimation Time"] / df["Iterations"]
-                    fc_df[f"{data_info['TupleSize']}_{data_info['n_stage']}_{data_info['n_struct']}_{data_info['name']}_{data_info['row']}_{data_info['col']}_{data_info['tot_sz']}_{data_info['data_name']}"] = df
-                    fc_columns = df.columns
-                    print(fc_df)
+                    fc_columns = df2df_set_rc(df, fc_df)
                 else:
-                    amq_df[f"{data_info['n_stage']}_{data_info['n_struct']}_{data_info['name']}_{data_info['row']}_{data_info['col']}_{data_info['tot_sz']}_{data_info['data_name']}"] = df
-                    amq_columns = df.columns
+                    amq_columns = df2df_set_rc(df, amq_df)
             else:
                 if "F1 Heavy Hitter" in df.columns or "F1 Member" in df.columns:
                     if "Iterations" in df:
                         df["Average ET"] = df["Estimation Time"] / df["Iterations"]
-                    amq_fc_df[f"{data_info['n_stage']}_{data_info['n_struct']}_{data_info['name']}_{data_info['sz']}_{data_info['data_name']}"] = df
-                    amq_fc_columns = df.columns
+                    amq_fc_columns = df2df_set(df, amq_fc_df)
                 elif "Average Relative Error" in df.columns:
-                    fc_df[f"{data_info['n_stage']}_{data_info['n_struct']}_{data_info['name']}_{data_info['sz']}_{data_info['data_name']}"] = df
-                    fc_columns = df.columns
+                    fc_columns = df2df_set(df, fc_df)
                 else:
-                    amq_df[f"{data_info['n_stage']}_{data_info['n_struct']}_{data_info['name']}_{data_info['sz']}_{data_info['data_name']}"] = df
-                    amq_columns = df.columns
+                    amq_columns = df2df_set_rc(df, amq_df)
             # plot_pds_stats(df, data_info['data_name'], data_info['n_stage'], data_info['n_struct'], data_info['sz'], data_info['name'])
-            break
 
     if amq_fc_df:
         plot_total_results(amq_fc_df, amq_fc_columns)

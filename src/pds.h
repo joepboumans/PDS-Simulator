@@ -111,13 +111,12 @@ public:
     }
 
     if (this->rows == 0) {
-      sprintf(this->filename_csv, "%s/%s_%i_%i_%i.csv", name_dir.c_str(),
-              this->trace_name.c_str(), this->n_stage, this->n_struct,
-              this->mem_sz);
+      sprintf(this->filename_csv, "%s/%s__%i.csv", name_dir.c_str(),
+              this->trace_name.c_str(), this->mem_sz);
     } else {
-      sprintf(this->filename_csv, "%s/%s_%i_%i_%i_%i_%i.csv", name_dir.c_str(),
-              this->trace_name.c_str(), this->n_stage, this->n_struct,
-              this->rows, this->columns, this->mem_sz);
+      sprintf(this->filename_csv, "%s/%s_%i_%i_%i.csv", name_dir.c_str(),
+              this->trace_name.c_str(), this->rows, this->columns,
+              this->mem_sz);
     }
 
     // Remove previous csv file and setup csv file
@@ -133,17 +132,15 @@ public:
 
     std::cout << "Found header for EM, printing stat for " << this->name
               << std::endl;
-    sprintf(this->filename_csv_em, "%s/em_%s_%i_%i_%i_%i_%i.csv",
-            name_dir.c_str(), this->trace_name.c_str(), this->n_stage,
-            this->n_struct, this->rows, this->columns, this->mem_sz);
+    sprintf(this->filename_csv_em, "%s/em_%s_%i_%i_%i.csv", name_dir.c_str(),
+            this->trace_name.c_str(), this->rows, this->columns, this->mem_sz);
 
     std::remove(this->filename_csv_em);
     this->fcsv_em.open(this->filename_csv_em, std::ios::out);
     this->fcsv_em << this->csv_header_em << std::endl;
 
-    sprintf(this->filename_csv_ns, "%s/ns_%s_%i_%i_%i_%i_%i.dat",
-            name_dir.c_str(), this->trace_name.c_str(), this->n_stage,
-            this->n_struct, this->rows, this->columns, this->mem_sz);
+    sprintf(this->filename_csv_ns, "%s/ns_%s_%i_%i_%i.dat", name_dir.c_str(),
+            this->trace_name.c_str(), this->rows, this->columns, this->mem_sz);
 
     std::remove(this->filename_csv_ns);
     this->fcsv_ns.open(this->filename_csv_ns, std::ios::out | std::ios::binary);

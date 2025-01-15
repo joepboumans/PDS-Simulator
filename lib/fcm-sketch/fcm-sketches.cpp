@@ -333,10 +333,9 @@ void FCM_Sketches::analyze(int epoch) {
   }
   // Save data into csv
   char csv[300];
-  sprintf(csv, "%i,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%li,%i", epoch,
-          this->average_relative_error, this->average_absolute_error,
-          this->wmre, this->recall, this->precision, this->f1, em_time,
-          this->em_iters);
+  sprintf(csv, "%.3f,%.3f,%.3f,%.3f,%.3f", this->average_relative_error,
+          this->average_absolute_error, this->recall, this->precision,
+          this->f1);
   this->fcsv << csv << std::endl;
 }
 

@@ -111,7 +111,7 @@ public:
     }
 
     if (this->rows == 0) {
-      sprintf(this->filename_csv, "%s/%s__%i.csv", name_dir.c_str(),
+      sprintf(this->filename_csv, "%s/%s_%i.csv", name_dir.c_str(),
               this->trace_name.c_str(), this->mem_sz);
     } else {
       sprintf(this->filename_csv, "%s/%s_%i_%i_%i.csv", name_dir.c_str(),

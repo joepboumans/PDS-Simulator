@@ -60,9 +60,11 @@ public:
     }
 
     // Setup logging
-    this->csv_header = "Epoch,Average Relative Error,Average Absolute "
-                       "Error,Weighted Mean Relative "
-                       "Error,Recall,Precision,F1,Estimation Time,Iterations";
+    this->csv_header = "Average Relative Error,Average Absolute "
+                       "Error,Recall,Precision,F1";
+    this->csv_header_em =
+        "Epoch,Epoch Time,Total Time, Weighted Mean Relative Error, "
+        "Cardinality";
     this->name = "FCM-Sketch";
     this->trace_name = trace;
     this->rows = n_stages;

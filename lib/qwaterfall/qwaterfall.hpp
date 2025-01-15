@@ -42,7 +42,7 @@ public:
     }
 
     // Setup logging
-    this->csv_header = "Epoch,Insertions,Collisions,Recall,Precision,F1";
+    this->csv_header = "Insertions, Collisions, Recall, Precision, F1";
     this->name = "qWaterfall";
     this->trace_name = trace;
     this->rows = this->table_length;

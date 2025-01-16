@@ -155,7 +155,7 @@ if __name__ == "__main__":
     fc_columns = []
     # Parse results
     # results/FlowTuple/qWaterfall/equinix-chicago.20160218-133000.UTC_0_0_65535_4_262140.csv
-    reg_string = r"\/(?P<TupleSize>\w+?)\/(?P<name>[\w-]+?)\/(?P<data_name>.+?)_(?P<n_stage>\d+)_(?P<n_struct>\d+)_(?P<sz>(?P<row>\d+)_(?P<col>\d+)_(?P<tot_sz>\d+)|\d+)"
+    reg_string = r"\/(?P<TupleSize>\w+?)\/(?P<name>[\w-]+?)\/(?P<data_name>.+?)_(?P<sz>(?P<row>\d+)_(?P<col>\d+)_(?P<tot_sz>\d+)|\d+)"
     for result in csv_results:
         match = re.search(reg_string, result)
         if not match:

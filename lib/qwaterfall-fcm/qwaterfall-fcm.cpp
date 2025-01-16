@@ -60,7 +60,6 @@ void qWaterfall_Fcm::analyze(int epoch) {
                          });
 
     vector<uint32_t> true_fsd(max_count->second + 1);
-    double wmre = 0.0;
 
     for (const auto &[tuple, count] : this->fcm_sketches.true_data) {
       true_fsd[count]++;
@@ -115,9 +114,10 @@ void qWaterfall_Fcm::analyze(int epoch) {
   this->average_absolute_error = this->fcm_sketches.average_absolute_error;
   this->average_relative_error = this->fcm_sketches.average_relative_error;
   this->f1_hh = this->fcm_sketches.f1;
-  sprintf(csv, "%.3f,%.3f,%.3f,%i,%.3f", this->average_relative_error,
+  sprintf(csv, "%.3f,%.3f,%.5f,%i,%i,%.5f", this->average_relative_error,
           this->average_absolute_error, this->f1_hh,
-          this->qwaterfall.insertions, this->f1_member);
+          this->qwaterfall.insertions, this->qwaterfall.collisions,
+          this->f1_member);
   this->fcsv << csv << std::endl;
   return;
 }

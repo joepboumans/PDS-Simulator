@@ -20,7 +20,7 @@ class EM_FCM_org {
   vector<vector<vector<vector<vector<uint32_t>>>>> newsk_thres;
   vector<vector<int>> m;
   vector<vector<vector<uint32_t>>> counter_dist;
-  int max_val;
+  int max_val = 0;
 
 public:
   vector<double> ns;

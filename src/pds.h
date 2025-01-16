@@ -20,6 +20,7 @@ public:
   uint32_t n_struct;
 
   // Logging members
+  bool store_results = true;
   char filename_csv[400];
   char filename_csv_em[400];
   char filename_csv_ns[400];
@@ -97,6 +98,11 @@ public:
   virtual void setName() { this->name = ""; }
 
   void setupLogging() {
+    // Do not setup file writers if setting up logging
+    if (!this->store_results) {
+      return;
+    }
+
     if (this->tuple_name.empty() or this->name.empty() or
         this->trace_name.empty()) {
       std::cerr << "[ERROR] Name or tuple name is empty of PDS: " << std::endl;

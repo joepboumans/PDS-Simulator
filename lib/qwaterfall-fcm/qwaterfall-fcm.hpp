@@ -36,14 +36,15 @@ public:
         em_iters(em_iters) {
 
     this->fcm_sketches.estimate_fsd = false;
+    this->fcm_sketches.store_results = false;
+    this->qwaterfall.store_results = false;
     // Setup logging
     this->csv_header_em =
-        "Epoch,Epoch Time,Total Time, Weighted Mean Relative Error, "
+        "Epoch,Estimation Time,Total Time,Weighted Mean Relative Error,"
         "Cardinality";
-    this->csv_header =
-        "Average Relative Error,Average Absolute "
-        "Error, F1 Heavy Hitter, Iterations, Insertions, Collisions, F1 Member";
-    this->name = "qWaterfall_FCM";
+    this->csv_header = "Average Relative Error,Average Absolute "
+                       "Error,F1 Heavy Hitter,Insertions,Collisions,F1 Member";
+    this->name = "FC_AMQ/qWaterfall_FCM";
     this->trace_name = trace;
     this->rows = std::numeric_limits<uint16_t>::max();
     this->columns = n_tables;

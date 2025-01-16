@@ -63,12 +63,13 @@ public:
     this->csv_header = "Average Relative Error,Average Absolute "
                        "Error,Recall,Precision,F1";
     this->csv_header_em =
-        "Epoch,Epoch Time,Total Time, Weighted Mean Relative Error, "
+        "Epoch,Estimation Time,Total Time,Weighted Mean Relative Error,"
         "Cardinality";
-    this->name = "FCM-Sketch";
+    this->name = "FC/FCM-Sketches";
     this->trace_name = trace;
     this->rows = n_stages;
     this->mem_sz = depth * mem / 8;
+    this->store_results = false;
     // std::cout << "Total memory used: " << this->mem_sz << std::endl;
     this->setupLogging();
 
@@ -106,7 +107,7 @@ public:
   double wmre = 0.0;
   uint32_t em_iters;
   bool estimate_fsd = true;
-  vector<double> get_distribution();
+  double get_distribution(vector<uint32_t> &true_fsd);
 
   void store_data();
   void print_sketch();

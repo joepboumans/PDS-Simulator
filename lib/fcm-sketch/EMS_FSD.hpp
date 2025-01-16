@@ -127,9 +127,9 @@ public:
     printf("[EM_FCM] Max degree : %d\n", this->max_degree);
   };
 
+  double n_new; // cardinality
 private:
-  double n_old,
-      n_new; // cardinality
+  double n_old;
   uint32_t max_counter_value, max_degree;
   struct BetaGenerator {
     int sum;

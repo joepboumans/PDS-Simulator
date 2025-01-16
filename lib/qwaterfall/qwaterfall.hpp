@@ -42,13 +42,14 @@ public:
     }
 
     // Setup logging
-    this->csv_header = "Insertions, Collisions, Recall, Precision, F1";
-    this->name = "qWaterfall";
+    this->csv_header = "Insertions,Collisions,Recall,Precision,F1";
+    this->name = "AMQ/qWaterfall";
     this->trace_name = trace;
     this->rows = this->table_length;
     this->columns = this->n_tables;
     this->mem_sz = this->n_tables * this->table_length;
     std::cout << "Total memory used: " << this->mem_sz << std::endl;
+    this->store_results = false;
     this->setupLogging();
   }
 

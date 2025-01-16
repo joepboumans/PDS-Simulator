@@ -3,6 +3,7 @@
 
 #include "fcm-sketches.hpp"
 #include "EMS_FSD.hpp"
+#include "common.h"
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -311,25 +312,12 @@ void FCM_Sketches::analyze(int epoch) {
          err_cardinality, em_cardinality, (int)this->true_data.size());
 
   // Flow Size Distribution (Weighted Mean Relative Error)
-  long em_time = 0;
   if (this->estimate_fsd) {
-    auto start = std::chrono::high_resolution_clock::now();
-    vector<double> em_fsd = this->get_distribution();
-
-    uint32_t max_len = std::max(true_fsd.size(), em_fsd.size());
-    true_fsd.resize(max_len);
-    em_fsd.resize(max_len);
-
-    for (size_t i = 0; i < max_len; i++) {
-      wmre_nom += std::abs(double(true_fsd[i]) - em_fsd[i]);
-      wmre_denom += (double(true_fsd[i]) + em_fsd[i]) / 2;
-    }
-    this->wmre = wmre_nom / wmre_denom;
-    auto stop = std::chrono::high_resolution_clock::now();
-    auto time = duration_cast<std::chrono::milliseconds>(stop - start);
-    em_time = time.count();
-    printf("[EM_FSD] WMRE : %f\n", this->wmre);
-    printf("[EM_FSD] Total time %li ms\n", em_time);
+    double wmre = this->get_distribution(true_fsd);
+    std::cout << "[FCM Sketches] WMRE : " << wmre << std::endl;
+  }
+  if (!this->store_results) {
+    return;
   }
   // Save data into csv
   char csv[300];
@@ -339,7 +327,7 @@ void FCM_Sketches::analyze(int epoch) {
   this->fcsv << csv << std::endl;
 }
 
-vector<double> FCM_Sketches::get_distribution() {
+double FCM_Sketches::get_distribution(vector<uint32_t> &true_fsd) {
   uint32_t max_counter_value = 0;
   uint32_t max_degree = 0;
   // Summarize sketch and find collisions
@@ -493,10 +481,36 @@ vector<double> FCM_Sketches::get_distribution() {
   EMSFSD EM(this->stages_sz, thresholds, max_counter_value, max_degree,
             this->depth, virtual_counters);
   std::cout << "[EMS_FSD] ...done!" << std::endl;
+  auto total_start = std::chrono::high_resolution_clock::now();
   for (size_t i = 0; i < this->em_iters; i++) {
+    auto start = std::chrono::high_resolution_clock::now();
     EM.next_epoch();
+    vector<double> ns = EM.ns;
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto time = std::chrono::duration_cast<chrono::milliseconds>(stop - start);
+    auto total_time =
+        std::chrono::duration_cast<chrono::milliseconds>(stop - total_start);
+    uint32_t max_len = std::max(true_fsd.size(), ns.size());
+    true_fsd.resize(max_len);
+    ns.resize(max_len);
+
+    double wmre_nom = 0.0;
+    double wmre_denom = 0.0;
+    for (size_t i = 0; i < max_len; i++) {
+      wmre_nom += std::abs(double(true_fsd[i]) - ns[i]);
+      wmre_denom += double((double(true_fsd[i]) + ns[i]) / 2);
+    }
+    wmre = wmre_nom / wmre_denom;
+
+    if (!this->store_results) {
+      continue;
+    }
+
+    char csv[300];
+    sprintf(csv, "%u,%.3ld,%.3ld,%.3f,%.3f", this->em_iters, time.count(),
+            total_time.count(), wmre, EM.n_new);
+    this->fcsv_em << csv << std::endl;
   }
-  vector<double> output = EM.ns;
-  return output;
+  return wmre;
 }
 #endif // !_FCM_SKETCHES_CPP

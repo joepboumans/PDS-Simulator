@@ -151,10 +151,13 @@ void qWaterfall::analyze(int epoch) {
           this->insertions, this->load_factor, this->collisions, this->recall,
           this->precision, this->f1);
   std::cout << msg;
+  if (!this->store_results) {
+    return;
+  }
 
   // Save data into csv
   char csv[300];
-  sprintf(csv, "%i,%i,%.3f,%.3f,%.3f", this->insertions, this->collisions,
+  sprintf(csv, "%i,%i,%.5f,%.5f,%.5f", this->insertions, this->collisions,
           this->recall, this->precision, this->f1);
   this->fcsv << csv << std::endl;
 }

@@ -17,8 +17,6 @@ public:
   uint32_t mem_sz;
   uint32_t rows;
   uint32_t columns;
-  uint32_t n_stage;
-  uint32_t n_struct;
 
   // Logging members
   bool store_results = true;
@@ -32,11 +30,9 @@ public:
   string csv_header_em;
   string csv_header_ns;
 
-  PDS(string trace, uint32_t stage, uint32_t n, uint8_t tuple_sz) {
+  PDS(string trace, uint8_t tuple_sz) {
     this->tuple_sz = tuple_sz;
     this->trace_name = trace;
-    this->n_stage = stage;
-    this->n_struct = n;
     switch (tuple_sz) {
     case TupleSize::FiveTuple:
       this->tuple_name = "FiveTuple";
@@ -53,10 +49,8 @@ public:
     }
   }
 
-  PDS(string trace, uint32_t stage, uint32_t n, uint32_t sz, uint8_t tuple_sz) {
+  PDS(string trace, uint32_t sz, uint8_t tuple_sz) {
     this->trace_name = trace;
-    this->n_stage = stage;
-    this->n_struct = n;
     this->mem_sz = sz;
     switch (tuple_sz) {
     case TupleSize::FiveTuple:

@@ -8,11 +8,6 @@ TEST_CASE("Smoke Test", "[smoke-test]") {
   REQUIRE(false == false);
 }
 
-TEST_CASE("Constructor FCM", "[const-fcm]") {
-  FCM_Sketches fcmsketch(3, NUM_STAGES, K, DEPTH, 1, 1, "test",
-                         TupleSize::FiveTuple);
-  REQUIRE(typeid(fcmsketch) == typeid(FCM_Sketches));
-}
 TEST_CASE("Analysis test", "[analysis]") {
   FCM_Sketches fcm(4, NUM_STAGES, K, DEPTH, 1, 1, "test", TupleSize::FiveTuple);
   REQUIRE(fcm.average_absolute_error == 0);

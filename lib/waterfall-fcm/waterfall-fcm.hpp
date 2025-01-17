@@ -28,13 +28,11 @@ private:
 public:
   WaterfallFCM(uint32_t n_roots, uint32_t n_stages, uint32_t k,
                uint32_t hh_threshold, uint32_t em_iters, uint32_t n_tables,
-               uint32_t length, string trace, uint8_t tuple_sz,
-               uint32_t n_stage, uint32_t n_struct)
-      : PDS(trace, n_stage, n_struct, tuple_sz),
-        fcm_sketches(W3, 3, 8, DEPTH, 100000, 1, trace, tuple_sz, n_stage,
-                     n_struct),
-        waterfall(n_tables, length, trace, tuple_sz, n_struct, n_stage),
-        n_stages(n_stages), em_iters(em_iters), hh_threshold(hh_threshold) {
+               uint32_t length, string trace, uint8_t tuple_sz)
+      : PDS(trace, tuple_sz),
+        fcm_sketches(W3, 3, 8, DEPTH, 100000, 1, trace, tuple_sz),
+        waterfall(n_tables, length, trace, tuple_sz), n_stages(n_stages),
+        em_iters(em_iters), hh_threshold(hh_threshold) {
 
     this->fcm_sketches.estimate_fsd = false;
     // Setup logging

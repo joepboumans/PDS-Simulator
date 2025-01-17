@@ -21,9 +21,8 @@ public:
   string trace_name;
   vector<IBLT_entry> table;
 
-  IBLT(uint32_t length, string trace, uint8_t tuple_sz, uint32_t k,
-       uint32_t n_stage, uint32_t n_struct)
-      : PDS(trace, n_stage, n_struct, tuple_sz), table(length) {
+  IBLT(uint32_t length, string trace, uint8_t tuple_sz, uint32_t k)
+      : PDS(trace, tuple_sz), table(length) {
     // Assign defaults
     this->n_hash = k;
     this->length = length;
@@ -40,7 +39,7 @@ public:
     // Setup Hashing
     this->hash = new BOBHash32[this->n_hash];
     for (size_t i = 0; i < this->n_hash; i++) {
-      this->hash[i].initialize(750 + n_struct * this->n_hash + i);
+      this->hash[i].initialize(750 + i);
     }
   }
 

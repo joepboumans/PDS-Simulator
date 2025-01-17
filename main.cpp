@@ -44,7 +44,7 @@ int main() {
     file = file.erase(file.find(".dat"), sizeof(".dat") - 1);
 
     vector<PDS *> stages;
-    qWaterfall_Fcm qwaterfall_fcm(4, 5, file, tuple_sz, 0, 0);
+    qWaterfall_Fcm qwaterfall_fcm(4, 5, file, tuple_sz);
     stages.push_back(&qwaterfall_fcm);
     /*WaterfallFCM waterfall_fcm(W3, NUM_STAGES, K, 100000, 5, 4, 65535, file,*/
     /*                           tuple_sz, 0, 0);*/

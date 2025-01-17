@@ -20,8 +20,8 @@ public:
   std::unordered_set<TUPLE, TupleHash> HH_candidates;
 
   CountMin(uint32_t rows, uint32_t columns, uint32_t hh_threshold, string trace,
-           uint8_t tuple_sz, uint32_t n_stage, uint32_t n_struct)
-      : PDS(trace, n_stage, n_struct, tuple_sz),
+           uint8_t tuple_sz)
+      : PDS(trace, tuple_sz),
         counters(rows,
                  vector<Counter>(
                      columns, Counter(std::numeric_limits<uint32_t>::max()))) {
@@ -44,7 +44,7 @@ public:
     // Setup Hashing
     this->hash = new BOBHash32[this->n_hash];
     for (size_t i = 0; i < this->n_hash; i++) {
-      this->hash[i].initialize(750 + n_struct * this->n_hash + i);
+      this->hash[i].initialize(750 + i);
     }
   }
 

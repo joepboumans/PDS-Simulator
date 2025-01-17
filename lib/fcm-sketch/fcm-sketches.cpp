@@ -362,7 +362,7 @@ void FCM_Sketches::analyze(int epoch) {
 
 double FCM_Sketches::get_distribution(vector<uint32_t> &true_fsd) {
   uint32_t max_counter_value = 0;
-  uint32_t max_degree = 0;
+  vector<uint32_t> max_degree = {0, 0};
   // Summarize sketch and find collisions
   // depth, stage, idx, (count, degree, min_value)
   vector<vector<vector<vector<uint32_t>>>> summary(this->n_stages);
@@ -460,7 +460,7 @@ double FCM_Sketches::get_distribution(vector<uint32_t> &true_fsd) {
           // Add entry to VC with its degree [1] and count [0]
           virtual_counters[d][degree].push_back(count);
           max_counter_value = std::max(max_counter_value, count);
-          max_degree = std::max(max_degree, degree);
+          max_degree[d] = std::max(max_degree[d], degree);
 
           // Remove zero thresholds
           for (size_t j = overflow_paths[d][stage][i].size() - 1; j > 0; j--) {
@@ -511,8 +511,7 @@ double FCM_Sketches::get_distribution(vector<uint32_t> &true_fsd) {
   // std::endl;
 
   std::cout << "[EMS_FSD] Initializing EMS_FSD..." << std::endl;
-  EMSFSD EM(this->stages_sz, thresholds, max_counter_value, max_degree,
-            this->depth, virtual_counters);
+  EM_FCMS EM(thresholds, max_counter_value, max_degree, virtual_counters);
   std::cout << "[EMS_FSD] ...done!" << std::endl;
   auto total_start = std::chrono::high_resolution_clock::now();
   for (size_t i = 0; i < this->em_iters; i++) {

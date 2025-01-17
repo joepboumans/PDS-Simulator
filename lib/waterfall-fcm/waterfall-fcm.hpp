@@ -38,11 +38,14 @@ public:
 
     this->fcm_sketches.estimate_fsd = false;
     // Setup logging
+    this->csv_header_em =
+        "Epoch,Estimation Time,Total Time,Weighted Mean Relative Error,"
+        "Cardinality";
     this->csv_header = "Epoch,Average Relative Error,Average Absolute "
                        "Error,Weighted Mean Relative "
                        "Error,F1 Heavy Hitter,Estimation "
                        "Time,Iterations,Insertions,F1 Member";
-    this->name = "WaterfallFCM";
+    this->name = "FC_AMQ/WaterfallFCM";
     this->trace_name = trace;
     this->rows = n_stages;
     this->mem_sz = this->fcm_sketches.mem_sz + this->waterfall.mem_sz;

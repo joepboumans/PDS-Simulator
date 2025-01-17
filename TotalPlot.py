@@ -25,6 +25,7 @@ def plot_graph(metric, title):
             axs.plot(d, label=name)
     # axs.set_xticks(range(1, len(metric.keys()) +1))
     # axs.set_xticklabels(list(metric.keys()))
+    axs.legend()
     axs.set_title(title)
     fig.tight_layout()
 
@@ -59,9 +60,9 @@ def plotMetricsByTupleType(tuple_name, csv):
 
     # AMQ
     if results_amq:
-        INSERTS = []
-        COLLISIONS = []
-        F1 = []
+        INSERTS = {}
+        COLLISIONS = {}
+        F1 = {}
 
         for res in results_amq:
             df = pd.read_csv(res)

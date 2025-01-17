@@ -14,7 +14,6 @@ public:
   uint32_t length;
   vector<vector<TUPLE>> tables;
   set<TUPLE> tuples;
-  uint32_t insertions = 0;
   string trace_name;
 
   Waterfall(uint32_t n_tables, uint32_t length, string trace, uint8_t tuple_sz,
@@ -25,11 +24,11 @@ public:
     this->n_tables = n_tables;
     this->length = length;
     this->trace_name = trace;
-    this->mem_sz = length * n_tables * 13;
+    this->mem_sz = length * n_tables * tuple_sz;
 
     // Setup logging
-    this->csv_header = "Epoch,Insertions,Recall,Precision,F1";
-    this->name = "Waterfall";
+    this->csv_header = "Insertions,Collisions,Recall,Precision,F1";
+    this->name = "AMQ/Waterfall";
     this->rows = n_tables;
     this->columns = length;
     this->setupLogging();
@@ -51,6 +50,8 @@ public:
   double recall = 0.0;
   double precision = 0.0;
   double load_factor = 0.0;
+  uint32_t insertions = 0;
+  uint32_t collisions = 0;
 
   void store_data();
   void print_sketch();

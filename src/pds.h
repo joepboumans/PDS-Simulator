@@ -13,6 +13,7 @@ public:
   string name;
   string trace_name;
   string tuple_name;
+  uint32_t tuple_sz;
   uint32_t mem_sz;
   uint32_t rows;
   uint32_t columns;
@@ -32,6 +33,7 @@ public:
   string csv_header_ns;
 
   PDS(string trace, uint32_t stage, uint32_t n, uint8_t tuple_sz) {
+    this->tuple_sz = tuple_sz;
     this->trace_name = trace;
     this->n_stage = stage;
     this->n_struct = n;

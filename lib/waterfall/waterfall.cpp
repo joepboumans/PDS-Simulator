@@ -11,6 +11,7 @@
 #include <sys/types.h>
 
 uint32_t Waterfall::insert(TUPLE tuple) {
+  tuple.sz = this->tuple_sz;
   this->true_data[tuple]++;
   // If it is present CHT do not insert
   if (!this->lookup(tuple)) {
@@ -18,6 +19,7 @@ uint32_t Waterfall::insert(TUPLE tuple) {
     // data plane
     this->tuples.insert(tuple);
     this->insertions++;
+    this->collisions++;
 
     TUPLE prev_tuple = tuple;
     for (size_t i = 0; i < this->n_tables; i++) {
@@ -32,13 +34,15 @@ uint32_t Waterfall::insert(TUPLE tuple) {
         this->tables[i][idx] = prev_tuple;
         prev_tuple = tmp_tuple;
       }
+      this->collisions++;
     }
   }
   return 1;
 }
 
 uint32_t Waterfall::hashing(TUPLE key, uint32_t k) {
-  return hash[k].run((const char *)key.num_array, sizeof(TUPLE)) % this->length;
+  return hash[k].run((const char *)key.num_array, this->tuple_sz) %
+         this->length;
 }
 
 uint32_t Waterfall::lookup(TUPLE tuple) {
@@ -53,8 +57,6 @@ uint32_t Waterfall::lookup(TUPLE tuple) {
 }
 
 void Waterfall::analyze(int epoch) {
-  double n = this->true_data.size();
-
   int true_pos = 0, false_pos = 0, true_neg = 0, false_neg = 0;
 
   for (const auto &[tuple, count] : this->true_data) {
@@ -92,9 +94,11 @@ void Waterfall::analyze(int epoch) {
 
   // Save data into csv
   char csv[300];
-  sprintf(csv, "%i,%i,%.3f,%.3f,%.3f", epoch, this->insertions, this->recall,
-          this->precision, this->f1);
-  this->fcsv << csv << std::endl;
+  sprintf(csv, "%i,%i,%.3f,%.3f,%.3f", this->insertions, this->collisions,
+          this->recall, this->precision, this->f1);
+  if (this->store_results) {
+    this->fcsv << csv << std::endl;
+  }
 }
 
 void Waterfall::reset() {

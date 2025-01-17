@@ -16,7 +16,7 @@
 #include <vector>
 
 uint32_t FCM_Sketches::hashing(TUPLE key, uint32_t d) {
-  return this->hash[d].run((const char *)key.num_array, key.sz) %
+  return this->hash[d].run((const char *)key.num_array, this->tuple_sz) %
          this->stages_sz[0];
 }
 
@@ -32,20 +32,10 @@ uint32_t FCM_Sketches::insert(TUPLE tuple) {
       curr_counter->increment();
       c += curr_counter->count;
       if (curr_counter->overflow) {
-        // Check for complete overflow
-        if (s == n_stages - 1) {
-          return 0;
-        }
         hash_idx = uint32_t(hash_idx / this->k);
         continue;
       }
 
-      if (c > 18000000) {
-        std::cout << "Big number insert by tuples: " << tuple << std::endl;
-      }
-      if (c > 18100000) {
-        exit(1);
-      }
       if (c > this->hh_threshold) {
         this->HH_candidates.insert(tuple);
       }
@@ -116,81 +106,124 @@ uint32_t FCM_Sketches::lookup(TUPLE tuple) {
 
 // Lookup the count of a tuple at depth d
 uint32_t FCM_Sketches::lookup_sketch(TUPLE tuple, uint32_t d) {
-  uint32_t ret = std::numeric_limits<uint32_t>::max();
   uint32_t c = 0;
   uint32_t hash_idx = this->hashing(tuple, d);
 
   for (size_t s = 0; s < n_stages; s++) {
     Counter *curr_counter = &this->stages[d][s][hash_idx];
     if (curr_counter->overflow) {
-      // Check for complete overflow
-      if (s == n_stages - 1) {
-        ret = std::min(ret, c);
-        break;
-      }
       c += curr_counter->count;
       hash_idx = uint32_t(hash_idx / this->k);
       continue;
     }
     c += curr_counter->count;
-    ret = std::min(ret, c);
     break;
   }
-  return ret;
+  return c;
+}
+
+uint32_t FCM_Sketches::lookup_degree_rec(uint32_t hash_idx, uint32_t d,
+                                         uint32_t s) {
+  if (s == 0) {
+    return 1;
+  }
+
+  uint32_t degree = 0;
+  hash_idx = uint32_t(hash_idx / this->k);
+  for (size_t i = hash_idx; i < hash_idx + this->k; i++) {
+    Counter *child_counter = &this->stages[d][s - 1][i];
+    if (child_counter->overflow) {
+      degree += this->lookup_degree_rec(i, d, s - 1);
+    }
+  }
+
+  return degree;
 }
 
 // Lookup the degree of a tuple at depth d
 uint32_t FCM_Sketches::lookup_degree(TUPLE tuple, uint32_t d) {
-  uint32_t degree = 1;
-  uint32_t hash_idx = this->hashing(tuple, d);
+  uint32_t degree = 0;
+  uint32_t init_idx = this->hashing(tuple, d);
+  uint32_t hash_idx = init_idx;
+  uint32_t val = this->lookup_sketch(tuple, d);
 
   for (size_t s = 0; s < this->n_stages; s++) {
     Counter *curr_counter = &this->stages[d][s][hash_idx];
     if (!curr_counter->overflow) {
-
-      if (degree == 1 && s > 0) {
-        std::cout << "Lookup degree at mid with tuple: " << tuple
-                  << " and degree: " << degree << " at stage " << s
-                  << std::endl;
-      }
+      degree = std::max(degree, (uint32_t)1);
+      /*std::cout << "Lookup degree at mid with tuple: " << tuple*/
+      /*          << " degree: " << degree << " and value " << val <<
+       * std::endl;*/
       return degree;
     }
 
-    // Base idx for sibling counters
-    hash_idx = uint32_t(hash_idx / this->k) * this->k;
-    for (size_t i = hash_idx; i < hash_idx + this->k; i++) {
-      Counter *sibling_counter = &this->stages[d][s][i];
+    uint32_t base_idx = uint32_t(hash_idx / this->k) * this->k;
+    for (size_t i = base_idx; i < base_idx + this->k; i++) {
+      Counter *sibling_counter = &this->stages[d][s - 1][i];
       if (sibling_counter->overflow) {
         degree++;
       }
     }
-
-    // Set hash_idx for next layer
-    hash_idx = uint32_t(hash_idx / this->k);
   }
-  std::cout << "Lookup degree at end with tuple: " << tuple << std::endl;
+
+  degree = std::max(degree, (uint32_t)1);
+  std::cout << "Lookup degree at end with tuple: " << tuple
+            << " degree: " << degree << " and value " << val << std::endl;
   return degree;
 }
 
 uint32_t FCM_Sketches::subtract(TUPLE tuple, uint32_t count) {
   for (size_t d = 0; d < this->depth; d++) {
-    for (int s = n_stages - 1; s >= 0; s--) {
-      // Get correct hash_idx for counter
-      uint32_t hash_idx = this->hashing(tuple, d);
-      for (int i = 0; i < s; i++) {
-        hash_idx = uint32_t(hash_idx / this->k);
-      }
+    uint32_t c = count;
+    uint32_t hash_idx = this->hashing(tuple, d);
+    if (hash_idx == 88705 && d == 0) {
+      Counter *curr_counter = &this->stages[d][0][hash_idx];
+      std::cout << "Found 88705 in subtracting " << count
+                << " with tuple: " << tuple << std::endl;
+      std::cout << 0 << " Has a value of " << curr_counter->count << std::endl;
+    }
+    vector<uint32_t> hash_idxes = {hash_idx, 0, 0};
+    hash_idxes[1] = uint32_t(hash_idx / this->k);
+    hash_idxes[2] = uint32_t(hash_idxes[1] / this->k);
 
-      // Subtract count and exit if no remained
-      Counter *curr_counter = &this->stages[d][s][hash_idx];
-      uint32_t remain = curr_counter->decrement(count);
-      if (!remain) {
-        return 0;
+    for (int s = 0; s < this->n_stages; s++) {
+      Counter *curr_counter = &this->stages[d][s][hash_idxes[s]];
+      if (!curr_counter->overflow) {
+        // Subtract count and exit if no remainder
+        if (hash_idxes[s] == uint32_t(88705 / this->k) && d == 0) {
+          std::cout << s << " Has a value of " << curr_counter->count
+                    << std::endl;
+        }
+        uint32_t remain = curr_counter->decrement(c);
+        if (hash_idxes[s] == uint32_t(88705 / this->k) && d == 0) {
+          std::cout << s << " Has a value of " << curr_counter->count
+                    << std::endl;
+        }
+        if (remain == 0 || s == 0) {
+          break;
+        } else {
+          for (int i = s - 1; i >= 0; i--) {
+            c = remain;
+            Counter *counter = &this->stages[d][i][hash_idxes[i]];
+            if (hash_idxes[i] == uint32_t(88705 / this->k) && d == 0) {
+              std::cout << i << " Has a value of " << counter->count
+                        << std::endl;
+            }
+            remain = counter->decrement(c);
+            if (hash_idxes[i] == uint32_t(88705 / this->k) && d == 0) {
+              std::cout << i << " Has a value of " << counter->count
+                        << std::endl;
+            }
+            if (remain == 0) {
+              break;
+            }
+          }
+          break;
+        }
       }
-      count = remain;
     }
   }
-  return 1;
+  return 0;
 }
 
 void FCM_Sketches::print_sketch() {

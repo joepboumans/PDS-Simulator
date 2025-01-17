@@ -96,6 +96,7 @@ public:
   uint32_t lookup(TUPLE tuple);
   uint32_t lookup_sketch(TUPLE tuple, uint32_t d);
   uint32_t lookup_degree(TUPLE tuple, uint32_t d);
+  uint32_t lookup_degree_rec(uint32_t hash_idx, uint32_t d, uint32_t s);
   void reset();
 
   void analyze(int epoch);

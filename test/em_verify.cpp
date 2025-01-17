@@ -13,9 +13,17 @@ TEST_CASE("Analysis test", "[analysis]") {
   REQUIRE(fcm.average_absolute_error == 0);
   REQUIRE(fcm.average_relative_error == 0);
   TUPLE tuple;
-  fcm.insert(tuple);
-  fcm.insert(tuple);
+  TUPLE tuple2;
+  tuple2++;
+  for (size_t i = 0; i < 256; i++) {
+    fcm.insert(tuple);
+  }
+  for (size_t i = 0; i < 256; i++) {
+    fcm.insert(tuple2);
+  }
   fcm.print_sketch();
+  fcm.analyze(0);
+  fcm.estimator_org = false;
   fcm.analyze(0);
   REQUIRE(fcm.average_absolute_error == 0);
   REQUIRE(fcm.average_relative_error == 0);

@@ -60,15 +60,12 @@ void WaterfallFCM::analyze(int epoch) {
                          });
 
     vector<uint32_t> true_fsd(max_count->second + 1);
-    double wmre = 0.0;
 
     for (const auto &[tuple, count] : this->fcm_sketches.true_data) {
       true_fsd[count]++;
     }
 
     this->wmre = 0.0;
-    double wmre_nom = 0.0;
-    double wmre_denom = 0.0;
     auto start = std::chrono::high_resolution_clock::now();
     this->wmre = this->get_distribution(this->waterfall.tuples, true_fsd);
 
@@ -294,23 +291,6 @@ vector<uint32_t> WaterfallFCM::peel_sketches(set<TUPLE> &tuples) {
 
 double WaterfallFCM::get_distribution(set<TUPLE> &tuples,
                                       vector<uint32_t> &true_fsd) {
-
-  /*vector<uint32_t> init_fsd = this->peel_sketches(tuples);*/
-  /**/
-  /*uint32_t max_len = std::max(true_fsd.size(), init_fsd.size());*/
-  /*true_fsd.resize(max_len);*/
-  /*init_fsd.resize(max_len);*/
-  /**/
-  /*double wmre = 0.0;*/
-  /*double wmre_nom = 0.0;*/
-  /*double wmre_denom = 0.0;*/
-  /*for (size_t i = 0; i < max_len; i++) {*/
-  /*  wmre_nom += std::abs(double(true_fsd[i]) - init_fsd[i]);*/
-  /*  wmre_denom += double((double(true_fsd[i]) + init_fsd[i]) / 2);*/
-  /*}*/
-  /*wmre = wmre_nom / wmre_denom;*/
-  /*std::cout << "[WaterfallFCM - Peeling] intermediary wmre " << wmre*/
-  /*          << std::endl;*/
 
   /* Making summary note for conversion algorithm (4-tuple summary)
                  Each dimension is for (tree, layer, width, tuple)

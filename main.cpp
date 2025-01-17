@@ -44,15 +44,12 @@ int main() {
     file = file.erase(file.find(".dat"), sizeof(".dat") - 1);
 
     vector<PDS *> stages;
-    qWaterfall_Fcm qwaterfall_fcm(4, 5, file, tuple_sz);
-    stages.push_back(&qwaterfall_fcm);
-    /*WaterfallFCM waterfall_fcm(W3, NUM_STAGES, K, 100000, 5, 4, 65535, file,*/
-    /*                           tuple_sz, 0, 0);*/
-    /*stages.push_back(&waterfall_fcm);*/
+    /*qWaterfall_Fcm qwaterfall_fcm(4, 5, file, tuple_sz);*/
+    /*stages.push_back(&qwaterfall_fcm);*/
 
-    /*FCM_Sketches fcm_sketches(W3, NUM_STAGES, K, DEPTH, 100000, 5, file,*/
-    /*                          tuple_sz, 0, 0);*/
-    /*stages.push_back(&fcm_sketches);*/
+    FCM_Sketches fcm_sketches(W3, NUM_STAGES, K, DEPTH, 100000, 5, file,
+                              tuple_sz);
+    stages.push_back(&fcm_sketches);
 
     std::cout << "[PDS] Added " << stages.size() << " stages" << std::endl;
     Simulator sim(stages, stages.size(), sim_length);

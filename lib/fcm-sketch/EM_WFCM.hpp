@@ -80,34 +80,18 @@ public:
     // Inital guess for Flow Size Distribution (Phi)
     this->dist_new.resize(this->max_counter_value + 1);
     this->dist_old.resize(this->max_counter_value + 1);
-    for (auto &counter : counters) {
-      for (auto &degree : counter) {
-        for (auto count : degree) {
-          this->dist_new[count]++;
-        }
-      }
-    }
-    std::cout << "[EM_WFCM] Initial Flow Size Distribution guess" << std::endl;
-    for (auto &x : this->dist_new) {
-      if (x != 0) {
-        std::cout << x << " ";
-      }
-    }
-    std::cout << std::endl;
 
     this->ns.resize(this->max_counter_value + 1);
     for (size_t d = 0; d < DEPTH; d++) {
       for (size_t xi = 0; xi < this->counter_dist[d].size(); xi++) {
         for (size_t i = 0; i < this->counter_dist[d][xi].size(); i++) {
-          if (this->counter_dist[d][xi].size() == 0) {
-            continue;
-          }
           this->dist_new[i] += this->counter_dist[d][xi][i];
           this->ns[i] += this->counter_dist[d][xi][i];
         }
       }
     }
-    std::cout << "[EM_WFCM] Summed Flow Size Distribution" << std::endl;
+
+    std::cout << "[EM_WFCM] Initial Flow Size Distribution guess" << std::endl;
     for (auto &x : this->dist_new) {
       if (x != 0) {
         std::cout << x << " ";
@@ -149,10 +133,10 @@ private:
         : sum(_sum), flow_num_limit(_in_degree), in_degree(_in_degree),
           thresh(_thresh) {
       std::reverse(thresh.begin(), thresh.end());
-      now_flow_num = flow_num_limit;
-      now_result.resize(_in_degree);
-      for (size_t i = 0; i < now_result.size() - 1; i++) {
-        now_result[i] = 1;
+
+      now_flow_num = 0;
+      if (_in_degree <= 1) {
+        flow_num_limit = 6;
       }
 
       if (sum > 600) {
@@ -163,19 +147,19 @@ private:
         flow_num_limit = std::min(4, flow_num_limit);
       else if (sum > 50)
         flow_num_limit = std::min(5, flow_num_limit);
-      /*else*/
-      /*flow_num_limit = std::min(6, flow_num_limit);*/
-      start_pos = _in_degree - flow_num_limit;
+      else
+        flow_num_limit = std::min(6, flow_num_limit);
+      start_pos = 0;
     }
 
     bool get_new_comb() {
       for (int j = now_flow_num - 2; j >= start_pos; --j) {
         int t = ++now_result[j];
-        for (int k = j + 1; k < now_result.size(); ++k) {
+        for (int k = j + 1; k < now_flow_num - 1; ++k) {
           now_result[k] = t;
         }
         int partial_sum = 0;
-        for (int k = start_pos; k < now_result.size(); ++k) {
+        for (int k = start_pos; k < now_flow_num - 1; ++k) {
           partial_sum += now_result[k];
         }
         int remain = sum - partial_sum;
@@ -189,18 +173,38 @@ private:
     }
 
     bool get_next() {
-      if (get_new_comb()) {
-        if (check_condition()) {
-          // std::ostringstream oss;
-          // oss << "Current combi : ";
-          // for (auto &x : now_result) {
-          //   oss << x << " ";
-          // }
-          // std::cout << oss.str().c_str() << std::endl;
-          return true;
+      while (now_flow_num <= flow_num_limit) {
+        switch (now_flow_num) {
+        case 0:
+          now_flow_num = 1;
+          now_result.resize(now_flow_num);
+          now_result[0] = sum;
+          print_now_result();
+          if (in_degree == 1) {
+            return true;
+          }
+        case 1:
+          now_flow_num = 2;
+          now_result[0] = 0;
+        default:
+          print_now_result();
+          now_result.resize(now_flow_num);
+          if (get_new_comb()) {
+            if (in_degree == 1) {
+              return true;
+            }
+            if (check_condition()) {
+              return true;
+            }
+          } else { // no more combination -> go to next flow number
+            now_flow_num++;
+            for (int i = 0; i < now_flow_num - 2; ++i) {
+              now_result[i] = 1;
+            }
+            now_result[now_flow_num - 2] = 0;
+          }
         }
       }
-
       return false;
     }
 
@@ -247,6 +251,8 @@ private:
         uint32_t tot_colls = t[1];
         uint32_t colls = t[2];
 
+        /*print_thresholds();*/
+        /*print_now_result();*/
         if (colls <= 1 && tot_colls <= 1) {
           continue;
         }
@@ -255,12 +261,11 @@ private:
           continue;
         }
 
-        /*print_thresholds();*/
-        /*print_now_result();*/
-
         uint32_t min_val = t[3];
-        uint32_t group_sz = std::floor(now_flow_num / tot_colls);
-        uint32_t last_group_sz = std::ceil(now_flow_num / tot_colls);
+        uint32_t group_sz = std::max(
+            (uint32_t)std::floor(now_flow_num / tot_colls), (uint32_t)1);
+        uint32_t last_group_sz = std::max(
+            (uint32_t)std::ceil(now_flow_num / tot_colls), (uint32_t)1);
         uint32_t passes = 0;
 
         uint32_t val_last_group = std::accumulate(
@@ -358,6 +363,8 @@ private:
 
   void calculate_degree(vector<double> &nt, int d, int xi) {
     nt.resize(this->max_counter_value + 1);
+    std::fill(nt.begin(), nt.end(), 0.0);
+    double lambda = this->n_old * xi / double(W1);
 
     printf("[EM_WFCM] ******** Running for degree %2d with a size of "
            "%12zu\t\t"
@@ -382,18 +389,27 @@ private:
       double sum_p = 0.0;
       uint32_t it = 0;
 
-      double lambda = this->n_old * xi / double(W1);
       // Sum over first combinations
+      std::cout << "Found val " << this->counters[d][xi][i] << std::endl;
       while (alpha.get_next()) {
         double p =
             get_p_from_beta(alpha, lambda, this->dist_old, this->n_old, xi);
         sum_p += p;
         it++;
+        std::cout << "<";
+        for (auto &x : alpha.now_result) {
+          std::cout << x;
+          if (&x != &alpha.now_result.back()) {
+            std::cout << ", ";
+          }
+        }
+        std::cout << ">" << std::endl;
       }
 
       // If there where valid combinations, but value of combinations where not
       // found in measured data. We
       if (sum_p == 0.0) {
+        continue;
         if (it > 0) {
           uint32_t temp_val = this->counters[d][xi][i];
           vector<vector<uint32_t>> temp_thresh = this->thresholds[d][xi][i];
@@ -448,10 +464,10 @@ public:
     for (size_t d = 0; d < DEPTH; d++) {
       nt[d].resize(this->max_degree[d] + 1);
 
-      nt[d][1].resize(this->counter_dist[d][1].size());
-      for (size_t i = 0; i < this->counter_dist[d][1].size(); i++) {
-        nt[d][1][i] = this->counter_dist[d][1][i];
-      }
+      /*nt[d][1].resize(this->counter_dist[d][1].size());*/
+      /*for (size_t i = 0; i < this->counter_dist[d][1].size(); i++) {*/
+      /*  nt[d][1][i] = this->counter_dist[d][1][i];*/
+      /*}*/
     }
 
     std::fill(this->ns.begin(), this->ns.end(), 0);
@@ -466,30 +482,30 @@ public:
     std::cout << "[EM_WFCM] Created " << total_degree << " threads"
               << std::endl;
 
-    for (size_t d = 0; d < DEPTH; d++) {
-      for (size_t t = 2; t < threads[d].size(); t++) {
-        std::cout << "[EM_WFCM] Start thread " << t << " at depth " << d
-                  << std::endl;
-        threads[d][t] = std::thread(&EM_WFCM::calculate_degree, *this,
-                                    std::ref(nt[d][t]), d, t);
-      }
-    }
-
-    std::cout << "[EM_WFCM] Started all threads, wait for them to finish..."
-              << std::endl;
-
-    for (size_t d = 0; d < DEPTH; d++) {
-      for (size_t t = 2; t < threads[d].size(); t++) {
-        threads[d][t].join();
-      }
-    }
-
-    // Single threaded
     /*for (size_t d = 0; d < DEPTH; d++) {*/
-    /*  for (size_t xi = 2; xi <= this->max_degree[d]; xi++) {*/
-    /*    this->calculate_degree(nt[d][xi], d, xi);*/
+    /*  for (size_t t = 2; t < threads[d].size(); t++) {*/
+    /*    std::cout << "[EM_WFCM] Start thread " << t << " at depth " << d*/
+    /*              << std::endl;*/
+    /*    threads[d][t] = std::thread(&EM_WFCM::calculate_degree, *this,*/
+    /*                                std::ref(nt[d][t]), d, t);*/
     /*  }*/
     /*}*/
+    /**/
+    /*std::cout << "[EM_WFCM] Started all threads, wait for them to finish..."*/
+    /*          << std::endl;*/
+    /**/
+    /*for (size_t d = 0; d < DEPTH; d++) {*/
+    /*  for (size_t t = 2; t < threads[d].size(); t++) {*/
+    /*    threads[d][t].join();*/
+    /*  }*/
+    /*}*/
+
+    // Single threaded
+    for (size_t d = 0; d < DEPTH; d++) {
+      for (size_t xi = 1; xi <= this->max_degree[d]; xi++) {
+        this->calculate_degree(nt[d][xi], d, xi);
+      }
+    }
 
     std::cout << "[EM_WFCM] Finished calculating nt per degree" << std::endl;
 

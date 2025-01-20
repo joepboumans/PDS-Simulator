@@ -2,7 +2,7 @@
 #define _FCM_SKETCHES_CPP
 
 #include "fcm-sketches.hpp"
-#include "EM_FCM_org.h"
+#include "EM_FCMS_org.hpp"
 #include "EM_WFCM.hpp"
 #include "common.h"
 #include <algorithm>
@@ -525,7 +525,7 @@ double FCM_Sketches::get_distribution(vector<uint32_t> &true_fsd) {
                "newsk_thresh"
             << std::endl;
   // just for debugging, 1 for print, 0 for not print.
-  if (1) {
+  if (0) {
     int maximum_val = 0;
     for (int d = 0; d < DEPTH; ++d) {
       for (int i = 0; i < newsk[d].size(); ++i) {
@@ -552,7 +552,7 @@ double FCM_Sketches::get_distribution(vector<uint32_t> &true_fsd) {
     }
   }
 
-  EM_FCM_org<DEPTH, W1, OVERFLOW_LEVEL1, OVERFLOW_LEVEL2> em_fsd_algo; // new
+  EM_FCMS_org<DEPTH, W1, OVERFLOW_LEVEL1, OVERFLOW_LEVEL2> em_fsd_algo; // new
 
   /* now, make the distribution of each degree */
   em_fsd_algo.set_counters(newsk, newsk_thres); // new
@@ -717,39 +717,39 @@ double FCM_Sketches::get_distribution_Waterfall(vector<uint32_t> &true_fsd) {
   }
 
   std::cout << "[EMS_FSD] ...done!" << std::endl;
-  for (size_t d = 0; d < DEPTH; d++) {
-    for (size_t xi = 0; xi < thresholds[d].size(); xi++) {
-      if (thresholds[d][xi].size() == 0) {
-        continue;
-      }
-      std::cout << "Degree: " << xi << std::endl;
-      for (size_t i = 0; i < thresholds[d][xi].size(); i++) {
-        std::cout << "i " << i << ":";
-        for (size_t l = 0; l < thresholds[d][xi][i].size(); l++) {
-          std::cout << "\t" << l;
-          for (auto &col : thresholds[d][xi][i][l]) {
-            std::cout << " " << col;
-          }
-        }
-        std::cout << std::endl;
-      }
-    }
-
-    std::cout << std::endl;
-  }
-
-  for (size_t d = 0; d < DEPTH; d++) {
-    for (size_t st = 0; st < virtual_counters[d].size(); st++) {
-      if (virtual_counters[d][st].size() == 0) {
-        continue;
-      }
-      std::cout << "Degree: " << st << std::endl;
-      for (auto &val : virtual_counters[d][st]) {
-        std::cout << " " << val;
-      }
-      std::cout << std::endl;
-    }
-  }
+  /*for (size_t d = 0; d < DEPTH; d++) {*/
+  /*  for (size_t xi = 0; xi < thresholds[d].size(); xi++) {*/
+  /*    if (thresholds[d][xi].size() == 0) {*/
+  /*      continue;*/
+  /*    }*/
+  /*    std::cout << "Degree: " << xi << std::endl;*/
+  /*    for (size_t i = 0; i < thresholds[d][xi].size(); i++) {*/
+  /*      std::cout << "i " << i << ":";*/
+  /*      for (size_t l = 0; l < thresholds[d][xi][i].size(); l++) {*/
+  /*        std::cout << "\t" << l;*/
+  /*        for (auto &col : thresholds[d][xi][i][l]) {*/
+  /*          std::cout << " " << col;*/
+  /*        }*/
+  /*      }*/
+  /*      std::cout << std::endl;*/
+  /*    }*/
+  /*  }*/
+  /**/
+  /*  std::cout << std::endl;*/
+  /*}*/
+  /**/
+  /*for (size_t d = 0; d < DEPTH; d++) {*/
+  /*  for (size_t st = 0; st < virtual_counters[d].size(); st++) {*/
+  /*    if (virtual_counters[d][st].size() == 0) {*/
+  /*      continue;*/
+  /*    }*/
+  /*    std::cout << "Degree: " << st << std::endl;*/
+  /*    for (auto &val : virtual_counters[d][st]) {*/
+  /*      std::cout << " " << val;*/
+  /*    }*/
+  /*    std::cout << std::endl;*/
+  /*  }*/
+  /*}*/
   std::cout << "Maximum degree is: " << max_degree[0] << ", " << max_degree[1]
             << std::endl;
   std::cout << "Maximum counter value is: " << max_counter_value << std::endl;
@@ -758,6 +758,8 @@ double FCM_Sketches::get_distribution_Waterfall(vector<uint32_t> &true_fsd) {
   EM_WFCM EM(thresholds, max_counter_value, max_degree, virtual_counters);
   std::cout << "[EMS_FSD] ...done!" << std::endl;
   auto total_start = std::chrono::high_resolution_clock::now();
+
+  double d_wmre = 0.0;
   for (size_t i = 0; i < this->em_iters; i++) {
     auto start = std::chrono::high_resolution_clock::now();
     EM.next_epoch();
@@ -777,6 +779,9 @@ double FCM_Sketches::get_distribution_Waterfall(vector<uint32_t> &true_fsd) {
       wmre_denom += double((double(true_fsd[i]) + ns[i]) / 2);
     }
     wmre = wmre_nom / wmre_denom;
+    std::cout << "[FCMS - EM WFCM iter " << i << "] intermediary wmre " << wmre
+              << " delta: " << wmre - d_wmre << std::endl;
+    d_wmre = wmre;
 
     if (!this->store_results) {
       continue;

@@ -574,16 +574,16 @@ double FCM_Sketches::get_distribution(vector<uint32_t> &true_fsd) {
     auto total_time =
         chrono::duration_cast<chrono::milliseconds>(stop - total_start);
 
-    vector<double> ns = em_fsd_algo.ns;
+    this->ns = em_fsd_algo.ns;
     uint32_t max_len = std::max(true_fsd.size(), ns.size());
     true_fsd.resize(max_len);
-    ns.resize(max_len);
+    this->ns.resize(max_len);
 
     double wmre_nom = 0.0;
     double wmre_denom = 0.0;
     for (size_t i = 0; i < max_len; i++) {
-      wmre_nom += std::abs(double(true_fsd[i]) - ns[i]);
-      wmre_denom += double((double(true_fsd[i]) + ns[i]) / 2);
+      wmre_nom += std::abs(double(true_fsd[i]) - this->ns[i]);
+      wmre_denom += double((double(true_fsd[i]) + this->ns[i]) / 2);
     }
     wmre = wmre_nom / wmre_denom;
     std::cout << "[FCMS - EM FSD iter " << i << "] intermediary wmre " << wmre
@@ -596,10 +596,10 @@ double FCM_Sketches::get_distribution(vector<uint32_t> &true_fsd) {
     this->fcsv_em << csv << std::endl;
 
     // Write NS FSD size and then the FSD as uint64_t
-    uint32_t ns_size = ns.size();
+    uint32_t ns_size = this->ns.size();
     this->fcsv_ns.write((char *)&ns_size, sizeof(ns_size));
-    for (uint32_t i = 0; i < ns.size(); i++) {
-      if (ns[i] != 0) {
+    for (uint32_t i = 0; i < this->ns.size(); i++) {
+      if (this->ns[i] != 0) {
         this->fcsv_ns.write((char *)&i, sizeof(i));
         this->fcsv_ns.write((char *)&ns[i], sizeof(ns[i]));
       }
@@ -769,20 +769,20 @@ double FCM_Sketches::get_distribution_Waterfall(vector<uint32_t> &true_fsd) {
   for (size_t i = 0; i < this->em_iters; i++) {
     auto start = std::chrono::high_resolution_clock::now();
     EM.next_epoch();
-    vector<double> ns = EM.ns;
+    this->ns = EM.ns;
     auto stop = std::chrono::high_resolution_clock::now();
     auto time = std::chrono::duration_cast<chrono::milliseconds>(stop - start);
     auto total_time =
         std::chrono::duration_cast<chrono::milliseconds>(stop - total_start);
     uint32_t max_len = std::max(true_fsd.size(), ns.size());
     true_fsd.resize(max_len);
-    ns.resize(max_len);
+    this->ns.resize(max_len);
 
     double wmre_nom = 0.0;
     double wmre_denom = 0.0;
     for (size_t i = 0; i < max_len; i++) {
-      wmre_nom += std::abs(double(true_fsd[i]) - ns[i]);
-      wmre_denom += double((double(true_fsd[i]) + ns[i]) / 2);
+      wmre_nom += std::abs(double(true_fsd[i]) - this->ns[i]);
+      wmre_denom += double((double(true_fsd[i]) + this->ns[i]) / 2);
     }
     wmre = wmre_nom / wmre_denom;
     std::cout << "[FCMS - EM WFCM iter " << i << "] intermediary wmre " << wmre

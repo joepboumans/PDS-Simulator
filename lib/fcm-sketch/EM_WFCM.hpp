@@ -318,9 +318,7 @@ private:
         // Combination has not large enough values to meet all conditions
         // E.g. it needs have 2 values large than the L2 threshold +
         // predecessor (min_value)
-        if (passes < colls) {
-          std::cout << "Not passing combi: ";
-          print_now_result();
+        if (passes < colls and passes < flow_num_limit) {
           return false;
         }
       }

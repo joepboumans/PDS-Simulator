@@ -176,6 +176,9 @@ private:
         flow_num_limit = 2;
         beta_degree = 2;
       }
+      printf("Setup gen with sum:%d, in_degree:%d, beta_degree:%d, "
+             "simplified:%d, flow_num_limit:%d\n",
+             sum, _degree, beta_degree, simplified, flow_num_limit);
     }
 
     bool get_new_comb() {
@@ -223,27 +226,21 @@ private:
                 total_combi++;
                 return true;
               }
-              print_now_result();
             } else if (simplified == 3) {
               if (condition_check_fcm_simple2()) {
                 total_combi++;
-                /*print_now_result();*/
                 return true;
               }
-              print_now_result();
             } else if (beta_degree == 3) {
               if (condition_check_fcm_simple4to3()) {
                 total_combi++;
-                /*print_now_result();*/
                 return true;
               }
-              print_now_result();
             } else if (beta_degree == 2) {
               if (condition_check_fcm_simple4to2()) {
                 total_combi++;
                 return true;
               }
-              print_now_result();
             }
             /*****************************/
           } else { // no more combination -> go to next flow number

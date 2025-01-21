@@ -109,6 +109,7 @@ public:
   uint32_t em_iters;
   bool estimate_fsd = true;
   bool estimator_org = true;
+  vector<double> ns;
   double get_distribution(vector<uint32_t> &true_fsd);
   double get_distribution_Waterfall(vector<uint32_t> &true_fsd);
 

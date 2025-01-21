@@ -36,6 +36,7 @@ private:
     int sum;
     int now_flow_num;
     int flow_num_limit;
+    int total_combi = 0;
     vector<int> now_result;
 
     explicit BetaGenerator(int _sum) : sum(_sum) {
@@ -79,16 +80,15 @@ private:
           now_flow_num = 1;
           now_result.resize(1);
           now_result[0] = sum;
-          print_now_result();
           return true;
         case 1:
           now_flow_num = 2;
           now_result[0] = 0;
           // fallthrough
         default:
-          print_now_result();
           now_result.resize(now_flow_num);
           if (get_new_comb()) {
+            total_combi++;
             return true;
           } else {
             now_flow_num++;
@@ -135,6 +135,7 @@ private:
     int simplified;
     int now_flow_num;
     int flow_num_limit;
+    int total_combi = 0;
     vector<int> now_result;
 
     explicit BetaGenerator_highdeg(int _sum, vector<vector<uint32_t>> _thres,
@@ -218,17 +219,31 @@ private:
           if (get_new_comb()) {
             /******* condition_check *******/
             if (simplified == 0) {
-              if (condition_check_fcm())
+              if (condition_check_fcm()) {
+                total_combi++;
                 return true;
+              }
+              print_now_result();
             } else if (simplified == 3) {
-              if (condition_check_fcm_simple2())
+              if (condition_check_fcm_simple2()) {
+                total_combi++;
+                /*print_now_result();*/
                 return true;
+              }
+              print_now_result();
             } else if (beta_degree == 3) {
-              if (condition_check_fcm_simple4to3())
+              if (condition_check_fcm_simple4to3()) {
+                total_combi++;
+                /*print_now_result();*/
                 return true;
+              }
+              print_now_result();
             } else if (beta_degree == 2) {
-              if (condition_check_fcm_simple4to2())
+              if (condition_check_fcm_simple4to2()) {
+                total_combi++;
                 return true;
+              }
+              print_now_result();
             }
             /*****************************/
           } else { // no more combination -> go to next flow number
@@ -452,6 +467,14 @@ private:
       // }
       return true;
     }
+
+    void print_now_result() {
+      std::cout << "Now result[" << now_result.size() << "] ";
+      for (auto &x : now_result) {
+        std::cout << x << " ";
+      }
+      std::cout << std::endl;
+    }
   };
 
   double get_p_from_beta_fcm(BetaGenerator_highdeg &bt, double lambda,
@@ -551,9 +574,9 @@ public:
     }
 
     printf("[EM_FCM] Initial Flow Size Distribution guess\n");
-    for (auto &x : dist_new) {
-      if (x != 0) {
-        std::cout << x << " ";
+    for (size_t i = 0; i < this->dist_new.size(); i++) {
+      if (this->dist_new[i] != 0) {
+        std::cout << i << ":" << this->dist_new[i] << " ";
       }
     }
     std::cout << std::endl;
@@ -564,9 +587,9 @@ public:
       ns[j] /= static_cast<double>(FCM_DEPTH);
     }
     std::cout << "[EM_FCM] Normalize guesses" << std::endl;
-    for (auto &x : dist_new) {
-      if (x != 0) {
-        std::cout << x << " ";
+    for (size_t i = 0; i < this->dist_new.size(); i++) {
+      if (this->dist_new[i] != 0) {
+        std::cout << i << ":" << this->dist_new[i] << " ";
       }
     }
     std::cout << std::endl;
@@ -589,14 +612,6 @@ public:
       double sum_p = 0; // denominator
       while (bts1.get_next()) {
         sum_p += get_p_from_beta(bts1, lambda, dist_old, n_old, d);
-        std::cout << "<";
-        for (auto &x : bts1.now_result) {
-          std::cout << x;
-          if (&x != &bts1.now_result.back()) {
-            std::cout << ", ";
-          }
-        }
-        std::cout << ">" << std::endl;
       }
 
       // for debug
@@ -629,6 +644,7 @@ public:
       if (newsk[d][xi][i] == 0) {
         continue;
       }
+      std::cout << "Found val " << newsk[d][xi][i] << std::endl;
       /* iterate for all combinations of size newsk[d][xi][i] with threshold
        * newsk_thres[d][xi][i] : vector<vector<uint32_t> > : list of
        * <layer,#paths,threshold> */
@@ -640,22 +656,38 @@ public:
         // double p = get_p_from_beta_fcm(bts1, lambda, dist_old, n_old, xi, d);
         sum_p += get_p_from_beta_fcm(bts1, lambda, dist_old, n_old, xi, d);
         sum_iter += 1;
+        /*std::cout << "<";*/
+        /*for (auto &x : bts1.now_result) {*/
+        /*  std::cout << x;*/
+        /*  if (&x != &bts1.now_result.back()) {*/
+        /*    std::cout << ", ";*/
+        /*  }*/
+        /*}*/
+        /*std::cout << ">" << std::endl;*/
       }
+      std::cout << "Found sum_p " << sum_p << " with " << sum_iter << " iters"
+                << " and with " << bts1.total_combi << " combinations"
+                << std::endl;
 
       if (sum_p == 0) {                   // for debug
         if (sum_iter > 0) {               // adjust the value
           int temp_val = newsk[d][xi][i]; // value
+          std::cout << "adjust value at " << i << " with val " << temp_val
+                    << std::endl;
           vector<vector<uint32_t>> temp_thres =
               newsk_thres[d][xi][i]; // thresholds
           int temp_n_layer2 =
               temp_thres.size() - xi; // if layer 2 threshold exists?
           int temp_threshold_l1 = temp_thres[0][2]; // threshold of layer 1
+          std::cout << "with value " << temp_threshold_l1 << " of l1 and "
+                    << temp_n_layer2 << " of l2" << std::endl;
           temp_val -=
               temp_threshold_l1 * (xi - 1); // remove overlaps at layer 1
           if (temp_n_layer2 > 0) {
             int temp_threshold_l2 = temp_thres[xi][2];
             temp_val -= temp_threshold_l2 * (temp_n_layer2 - 1);
           }
+          std::cout << " Storing 1 in " << temp_val << std::endl;
           nt_vec[temp_val] += 1;
         }
       } else {
@@ -668,6 +700,14 @@ public:
       }
     }
     double accum = std::accumulate(nt_vec.begin(), nt_vec.end(), 0.0);
+    if (1) {
+      for (size_t i = 0; i < nt_vec.size(); i++) {
+        if (nt_vec[i] != 0) {
+          std::cout << i << ":" << nt_vec[i] << " ";
+        }
+      }
+      std::cout << std::endl;
+    }
     if (newsk[d][xi].size() != 0) {
       printf("[EM_FCM] ******* depth %2d, degree %2d is "
              "finished...(accum:%10.1f, #val:%8d)*******\n",
@@ -725,7 +765,7 @@ public:
 
     // /***** SINGLE_THREADING ****/
     printf("[EM] Start single-threading...\n");
-    for (int d = 0; d < DEPTH; ++d) {
+    for (int d = 0; d < FCM_DEPTH; ++d) {
       for (int xi = 1; xi <= num_thread[d]; ++xi) {
         if (xi == 1)
           this->epoch_parallel_singledeg(nt_d_xi[d][xi], d, xi);
@@ -748,8 +788,15 @@ public:
         n_new += ns[i];             // save the results
       }
     }
-    for (int i = 0; i < ns.size(); ++i)
+
+    std::cout << "Dist_new: " << std::endl;
+    for (int i = 0; i < ns.size(); ++i) {
       dist_new[i] = ns[i] / n_new;
+      if (dist_new[i] != 0) {
+        std::cout << i << ":" << dist_new[i] << " ";
+      }
+    }
+    std::cout << std::endl;
 
     printf("[EM_FCM - iter %2d] Intermediate cardianlity : %9.1f\n\n", iter,
            n_new);

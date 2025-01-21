@@ -393,6 +393,7 @@ double FCM_Sketches::get_distribution(vector<uint32_t> &true_fsd) {
       for (int w = 0; w < this->stages_sz[i]; ++w) {
         if (i == 0) { // stage 1
           summary[d][i][w][2] = 1;
+          summary[d][i][w][1] = 1;
           /*summary[d][i][w][2] =*/
           /*    std::max(init_degree[d][w], (uint32_t)1); // default*/
           summary[d][i][w][3] = std::min(this->stages[d][0][w].count,
@@ -423,14 +424,15 @@ double FCM_Sketches::get_distribution(vector<uint32_t> &true_fsd) {
                 track_thres[d][i - 1][K * w + t].begin(),
                 track_thres[d][i - 1][K * w + t].end());
 
-            summary[d][i][w][1] += summary[d][i - 1][K * w + t][0];
+            summary[d][i][w][1] += summary[d][i - 1][K * w + t][1];
             summary[d][i][w][2] += 1;
           }
 
-          if (!this->stages[d][1][w].overflow) // non-overflow, end of path
+          if (!this->stages[d][i][w].overflow) // non-overflow, end of path
           {
             summary[d][i][w][0] = summary[d][i][w][2];
           } else {
+            std::cout << "Overflowing l2 at " << i << std::endl;
             // if overflow, then push new threshold <layer, #path, value>
             track_thres[d][i][w].push_back(
                 vector<uint32_t>{i, summary[d][i][w][2], summary[d][i][w][3]});
@@ -452,7 +454,10 @@ double FCM_Sketches::get_distribution(vector<uint32_t> &true_fsd) {
                 track_thres[d][i - 1][K * w + t].begin(),
                 track_thres[d][i - 1][K * w + t].end());
 
-            summary[d][i][w][1] += summary[d][i - 1][K * w + t][0];
+            std::cout << "Summary[" << i - 1 << "][" << K * w + t
+                      << "][1]:" << summary[d][i - 1][K * w + t][1]
+                      << std::endl;
+            summary[d][i][w][1] += summary[d][i - 1][K * w + t][1];
             summary[d][i][w][2] += 1;
           }
 
@@ -463,6 +468,7 @@ double FCM_Sketches::get_distribution(vector<uint32_t> &true_fsd) {
             // if overflow, then push new threshold <layer, #path, value>
             track_thres[d][i][w].push_back(
                 vector<uint32_t>{i, summary[d][i][w][2], summary[d][i][w][3]});
+            std::cerr << "[ERROR] Overflowing at L3 at " << i << std::endl;
           }
 
         } else {
@@ -487,9 +493,9 @@ double FCM_Sketches::get_distribution(vector<uint32_t> &true_fsd) {
 
   for (int d = 0; d < DEPTH; ++d) {
     // size = all possible degree
-    newsk[d].resize(std::pow(K, NUM_STAGES - 1) * 3 +
+    newsk[d].resize(std::pow(K, NUM_STAGES - 1) +
                     1); // maximum degree : k^(L-1) + 1 (except 0 index)
-    newsk_thres[d].resize(std::pow(K, NUM_STAGES - 1) * 3 +
+    newsk_thres[d].resize(std::pow(K, NUM_STAGES - 1) +
                           1); // maximum degree : k^(L-1) + 1 (except 0 index)
     for (int i = 0; i < NUM_STAGES; ++i) {
       for (int w = 0; w < this->stages_sz[i]; ++w) {
@@ -525,7 +531,7 @@ double FCM_Sketches::get_distribution(vector<uint32_t> &true_fsd) {
                "newsk_thresh"
             << std::endl;
   // just for debugging, 1 for print, 0 for not print.
-  if (0) {
+  if (1) {
     int maximum_val = 0;
     for (int d = 0; d < DEPTH; ++d) {
       for (int i = 0; i < newsk[d].size(); ++i) {

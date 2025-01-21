@@ -8,7 +8,7 @@ TEST_CASE("Smoke Test", "[smoke-test]") {
   REQUIRE(false == false);
 }
 
-TEST_CASE("Analysis test", "[analysis]") {
+TEST_CASE("Degree 1 EM FCM vs EM WFCM", "[em]") {
   glob_t *glob_res = new glob_t;
   if (memset(glob_res, 0, sizeof(glob_t)) == NULL) {
     std::cout << "Glob init failed" << std::endl;
@@ -29,7 +29,7 @@ TEST_CASE("Analysis test", "[analysis]") {
       filenames[0].erase(filenames[0].find("data/"), sizeof("data/") - 1);
   file = file.erase(file.find(".dat"), sizeof(".dat") - 1);
 
-  FCM_Sketches fcm(4, NUM_STAGES, K, DEPTH, 1, 1, "test", TupleSize::FiveTuple);
+  FCM_Sketches fcm(4, NUM_STAGES, K, DEPTH, 1, 1, "test", tuple_sz);
   REQUIRE(fcm.average_absolute_error == 0);
   REQUIRE(fcm.average_relative_error == 0);
 
@@ -39,11 +39,59 @@ TEST_CASE("Analysis test", "[analysis]") {
 
   fcm.print_sketch();
   fcm.analyze(0);
+  double org_wmre = fcm.wmre;
   fcm.estimator_org = false;
   fcm.analyze(0);
+  double wfcm_wmre = fcm.wmre;
+  REQUIRE(org_wmre == wfcm_wmre);
+}
+
+TEST_CASE("Multi degree EM FCM vs EM WFCM", "[em][md]") {
+
+  TupleSize tuple_sz = SrcTuple;
+  FCM_Sketches fcm(4, NUM_STAGES, K, DEPTH, 1, 1, "test", tuple_sz);
   REQUIRE(fcm.average_absolute_error == 0);
   REQUIRE(fcm.average_relative_error == 0);
-  REQUIRE(fcm.precision == 1.0);
-  REQUIRE(fcm.recall == 1.0);
-  REQUIRE(fcm.f1 == 1.0);
+
+  TUPLE tuple;
+  tuple.sz = tuple_sz;
+  // Collision in l2, degree 2
+  for (size_t i = 0; i < 300; i++) {
+    fcm.insert(tuple, 0);
+    fcm.insert(tuple, 1);
+  }
+
+  fcm.print_sketch();
+  fcm.analyze(0);
+  double org_wmre = fcm.wmre;
+  fcm.estimator_org = false;
+  fcm.analyze(0);
+  double wfcm_wmre = fcm.wmre;
+  REQUIRE(org_wmre == wfcm_wmre);
+}
+
+TEST_CASE("Degree 2; L2 collision; L3 overflow", "[em][md][l3]") {
+
+  TupleSize tuple_sz = SrcTuple;
+  FCM_Sketches fcm(4, NUM_STAGES, K, DEPTH, 1, 1, "test", tuple_sz);
+  REQUIRE(fcm.average_absolute_error == 0);
+  REQUIRE(fcm.average_relative_error == 0);
+
+  TUPLE tuple;
+  tuple.sz = tuple_sz;
+  // Collision in l2, degree 2, overflow to l3
+  for (size_t i = 0; i < 70000; i++) {
+    fcm.insert(tuple, 0);
+  }
+  for (size_t i = 0; i < 300; i++) {
+    fcm.insert(tuple, 1);
+  }
+
+  fcm.print_sketch();
+  fcm.analyze(0);
+  double org_wmre = fcm.wmre;
+  fcm.estimator_org = false;
+  fcm.analyze(0);
+  double wfcm_wmre = fcm.wmre;
+  REQUIRE(org_wmre == wfcm_wmre);
 }

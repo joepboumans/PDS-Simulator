@@ -49,13 +49,13 @@ uint32_t FCM_Sketches::insert(TUPLE tuple) {
 uint32_t FCM_Sketches::insert(TUPLE tuple, uint32_t idx) {
   this->true_data[tuple]++;
 
-  uint32_t hash_idx = idx;
-  if (hash_idx >= this->stages_sz[0]) {
+  if (idx >= this->stages_sz[0]) {
     std::cout << "Given idx out of range" << std::endl;
     exit(1);
   }
   for (size_t d = 0; d < this->depth; d++) {
     uint32_t c = 0;
+    uint32_t hash_idx = idx;
     for (size_t s = 0; s < n_stages; s++) {
       Counter *curr_counter = &this->stages[d][s][hash_idx];
       curr_counter->increment();
@@ -230,7 +230,7 @@ void FCM_Sketches::print_sketch() {
       std::cout << "[FCM] Stage " << s << " with " << this->stages_sz[s]
                 << " counters" << std::endl;
       std::cout << string(s * 3, ' ');
-      for (size_t i = 0; i < this->stages_sz[s]; i++) {
+      for (size_t i = 0; i < std::min(this->stages_sz[s], (uint32_t)300); i++) {
         std::cout << this->stages[d][s][i].count << " ";
       }
       std::cout << std::endl;
@@ -526,7 +526,7 @@ double FCM_Sketches::get_distribution(vector<uint32_t> &true_fsd) {
                "newsk_thresh"
             << std::endl;
   // just for debugging, 1 for print, 0 for not print.
-  if (1) {
+  if (0) {
     int maximum_val = 0;
     for (int d = 0; d < DEPTH; ++d) {
       for (int i = 0; i < newsk[d].size(); ++i) {
@@ -614,7 +614,7 @@ double FCM_Sketches::get_distribution_Waterfall(vector<uint32_t> &true_fsd) {
   vector<vector<vector<vector<vector<uint32_t>>>>> overflow_paths(
       this->n_stages);
 
-  std::cout << "[EMS_FSD] Setting up summary and overflow paths..."
+  std::cout << "[EM_WFCM] Setting up summary and overflow paths..."
             << std::endl;
   // Setup sizes for summary and overflow_paths
   for (size_t d = 0; d < this->depth; d++) {
@@ -629,8 +629,8 @@ double FCM_Sketches::get_distribution_Waterfall(vector<uint32_t> &true_fsd) {
       }
     }
   }
-  std::cout << "[EMS_FSD] ...done!" << std::endl;
-  std::cout << "[EMS_FSD] Setting up virtual counters and thresholds..."
+  std::cout << "[EM_WFCM] ...done!" << std::endl;
+  std::cout << "[EM_WFCM] Setting up virtual counters and thresholds..."
             << std::endl;
   // Create virtual counters based on degree and count
   // depth, degree, count value, n
@@ -647,8 +647,8 @@ double FCM_Sketches::get_distribution_Waterfall(vector<uint32_t> &true_fsd) {
     thresholds[d].resize(std::pow(this->k, this->n_stages));
   }
 
-  std::cout << "[EMS_FSD] ...done!" << std::endl;
-  std::cout << "[EMS_FSD] Load count from sketches into virtual counters and "
+  std::cout << "[EM_WFCM] ...done!" << std::endl;
+  std::cout << "[EM_WFCM] Load count from sketches into virtual counters and "
                "thresholds..."
             << std::endl;
   for (size_t d = 0; d < this->depth; d++) {
@@ -717,40 +717,37 @@ double FCM_Sketches::get_distribution_Waterfall(vector<uint32_t> &true_fsd) {
     }
   }
 
-  std::cout << "[EMS_FSD] ...done!" << std::endl;
-  /*for (size_t d = 0; d < DEPTH; d++) {*/
-  /*  for (size_t xi = 0; xi < thresholds[d].size(); xi++) {*/
-  /*    if (thresholds[d][xi].size() == 0) {*/
-  /*      continue;*/
-  /*    }*/
-  /*    std::cout << "Degree: " << xi << std::endl;*/
-  /*    for (size_t i = 0; i < thresholds[d][xi].size(); i++) {*/
-  /*      std::cout << "i " << i << ":";*/
-  /*      for (size_t l = 0; l < thresholds[d][xi][i].size(); l++) {*/
-  /*        std::cout << "\t" << l;*/
-  /*        for (auto &col : thresholds[d][xi][i][l]) {*/
-  /*          std::cout << " " << col;*/
-  /*        }*/
-  /*      }*/
-  /*      std::cout << std::endl;*/
-  /*    }*/
-  /*  }*/
-  /**/
-  /*  std::cout << std::endl;*/
-  /*}*/
-  /**/
-  /*for (size_t d = 0; d < DEPTH; d++) {*/
-  /*  for (size_t st = 0; st < virtual_counters[d].size(); st++) {*/
-  /*    if (virtual_counters[d][st].size() == 0) {*/
-  /*      continue;*/
-  /*    }*/
-  /*    std::cout << "Degree: " << st << std::endl;*/
-  /*    for (auto &val : virtual_counters[d][st]) {*/
-  /*      std::cout << " " << val;*/
-  /*    }*/
-  /*    std::cout << std::endl;*/
-  /*  }*/
-  /*}*/
+  std::cout << "[EM_WFCM] ...done!" << std::endl;
+
+  if (0) {
+    // Print vc with thresholds
+    for (size_t d = 0; d < DEPTH; d++) {
+      for (size_t st = 0; st < virtual_counters[d].size(); st++) {
+        if (virtual_counters[d][st].size() == 0) {
+          continue;
+        }
+        for (size_t i = 0; i < virtual_counters[d][st].size(); i++) {
+          printf("Depth %zu, Degree %zu, Index %zu ]= Val %d \tThresholds: ", d,
+                 st, i, virtual_counters[d][st][i]);
+          for (auto &t : thresholds[d][st][i]) {
+            std::cout << "<";
+            for (auto &x : t) {
+              std::cout << x;
+              if (&x != &t.back()) {
+                std::cout << ", ";
+              }
+              std::cout << ">";
+            }
+            if (&t != &thresholds[d][st][i].back()) {
+              std::cout << ", ";
+            }
+          }
+          std::cout << std::endl;
+        }
+      }
+    }
+  }
+
   std::cout << "Maximum degree is: " << max_degree[0] << ", " << max_degree[1]
             << std::endl;
   std::cout << "Maximum counter value is: " << max_counter_value << std::endl;

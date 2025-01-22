@@ -92,12 +92,12 @@ public:
     }
 
     std::cout << "[EM_WFCM] Initial Flow Size Distribution guess" << std::endl;
-    for (size_t i = 0; i < this->dist_new.size(); i++) {
-      if (this->dist_new[i] != 0) {
-        std::cout << i << ":" << this->dist_new[i] << " ";
-      }
-    }
-    std::cout << std::endl;
+    /*for (size_t i = 0; i < this->dist_new.size(); i++) {*/
+    /*  if (this->dist_new[i] != 0) {*/
+    /*    std::cout << i << ":" << this->dist_new[i] << " ";*/
+    /*  }*/
+    /*}*/
+    /*std::cout << std::endl;*/
 
     std::cout << "[EM_WFCM] Normalize guesses" << std::endl;
     // Normalize over inital cardinality
@@ -106,12 +106,12 @@ public:
       this->ns[i] /= double(DEPTH);
     }
 
-    for (size_t i = 0; i < this->dist_new.size(); i++) {
-      if (this->dist_new[i] != 0) {
-        std::cout << i << ":" << this->dist_new[i] << " ";
-      }
-    }
-    std::cout << std::endl;
+    /*for (size_t i = 0; i < this->dist_new.size(); i++) {*/
+    /*  if (this->dist_new[i] != 0) {*/
+    /*    std::cout << i << ":" << this->dist_new[i] << " ";*/
+    /*  }*/
+    /*}*/
+    /*std::cout << std::endl;*/
 
     printf("[EM_WFCM] Initial Cardinality : %9.1f\n", this->n_new);
     printf("[EM_WFCM] Max Counter value : %d\n", this->max_counter_value);
@@ -136,9 +136,9 @@ private:
           thresh(_thresh) {
 
       now_flow_num = 0;
-      switch (in_degree) {
-      case 1:
-      case 2:
+
+      // Setup limit for degree 1
+      if (in_degree <= 1) {
         flow_num_limit = 6;
         if (sum > 600) {
           flow_num_limit = std::min(2, flow_num_limit);
@@ -150,8 +150,8 @@ private:
           flow_num_limit = std::min(5, flow_num_limit);
         else
           flow_num_limit = std::min(6, flow_num_limit);
-        break;
-      default:
+
+      } else { // Setup Multi degree limits
         if (sum > 1100)
           flow_num_limit = in_degree;
         else if (sum > 550)
@@ -181,9 +181,10 @@ private:
       }
 
       start_pos = 0;
-      printf("Setup gen with sum:%d, in_degree:%d, flow_num_limit:%d\n", sum,
-             in_degree, flow_num_limit);
-      print_thresholds();
+      /*printf("Setup gen with sum:%d, in_degree:%d, flow_num_limit:%d\n",
+       * sum,*/
+      /*       in_degree, flow_num_limit);*/
+      /*print_thresholds();*/
     }
 
     bool get_new_comb() {
@@ -223,6 +224,7 @@ private:
           now_result.resize(now_flow_num);
           if (get_new_comb()) {
             if (in_degree == 1) {
+              total_combi++;
               return true;
             }
             if (check_condition()) {
@@ -408,7 +410,7 @@ private:
       uint32_t it = 0;
 
       // Sum over first combinations
-      std::cout << "Found val " << this->counters[d][xi][i] << std::endl;
+      /*std::cout << "Found val " << this->counters[d][xi][i] << std::endl;*/
       while (alpha.get_next()) {
         double p =
             get_p_from_beta(alpha, lambda, this->dist_old, this->n_old, xi);
@@ -416,20 +418,20 @@ private:
         it++;
       }
 
-      std::cout << "Found sum_p " << sum_p << " with " << it << " iters"
-                << " and with " << alpha.total_combi << " combinations"
-                << std::endl;
-      for (auto &t : this->thresholds[d][xi][i]) {
-        std::cout << "<";
-        for (auto &x : t) {
-          std::cout << x;
-          if (&x != &t.back()) {
-            std::cout << ", ";
-          }
-        }
-        std::cout << "> ";
-      }
-      std::cout << std::endl;
+      /*std::cout << "Val " << this->counters[d][xi][i] << " found sum_p "*/
+      /*          << sum_p << " with " << it << " iters"*/
+      /*          << " and with " << alpha.total_combi << " combinations"*/
+      /*          << std::endl;*/
+      /*for (auto &t : this->thresholds[d][xi][i]) {*/
+      /*  std::cout << "<";*/
+      /*  for (auto &x : t) {*/
+      /*    std::cout << x;*/
+      /*    if (&x != &t.back()) {*/
+      /*      std::cout << ", ";*/
+      /*    }*/
+      /*  }*/
+      /*  std::cout << "> ";*/
+      /*}*/
       // If there where valid combinations, but value of combinations where not
       // found in measured data. We
       if (sum_p == 0.0) {
@@ -441,7 +443,6 @@ private:
           std::cout << "adjust value at " << i << " with val " << temp_val
                     << std::endl;
           vector<vector<uint32_t>> temp_thresh = this->thresholds[d][xi][i];
-          std::reverse(temp_thresh.begin(), temp_thresh.end());
           for (auto &t : temp_thresh) {
             std::cout << "<";
             for (auto &x : t) {
@@ -453,17 +454,20 @@ private:
             std::cout << "> ";
           }
           std::cout << std::endl;
-
-          for (auto &t : temp_thresh) {
-            if (temp_val < t[1] * (t[0] - 1) && t[0] <= 1) {
-              continue;
+          switch (temp_thresh.size()) {
+          case 3: // Reached L2
+            // Collission in L2
+            if (temp_thresh[1][0] > 1) {
+              temp_val -= temp_thresh.back()[1] * temp_thresh.back()[0];
+              break;
             }
-            temp_val -= t[1] * (t[0] - 1);
+          case 2:
+          default:
+            temp_val -= temp_thresh.back()[1] * (temp_thresh.back()[0] - 1);
           }
-          if (temp_val >= 0 and temp_val <= this->max_counter_value) {
-            std::cout << "Storing 1 at " << temp_val << std::endl;
-            nt[temp_val] += 1;
-          }
+
+          std::cout << "Storing 1 at " << temp_val << std::endl;
+          nt[temp_val] += 1;
         }
       } else {
         while (beta.get_next()) {

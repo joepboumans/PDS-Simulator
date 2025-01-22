@@ -176,9 +176,9 @@ private:
         flow_num_limit = 2;
         beta_degree = 2;
       }
-      printf("Setup gen with sum:%d, in_degree:%d, beta_degree:%d, "
-             "simplified:%d, flow_num_limit:%d\n",
-             sum, _degree, beta_degree, simplified, flow_num_limit);
+      /*printf("Setup gen with sum:%d, in_degree:%d, beta_degree:%d, "*/
+      /*       "simplified:%d, flow_num_limit:%d\n",*/
+      /*       sum, _degree, beta_degree, simplified, flow_num_limit);*/
     }
 
     bool get_new_comb() {
@@ -571,12 +571,12 @@ public:
     }
 
     printf("[EM_FCM] Initial Flow Size Distribution guess\n");
-    for (size_t i = 0; i < this->dist_new.size(); i++) {
-      if (this->dist_new[i] != 0) {
-        std::cout << i << ":" << this->dist_new[i] << " ";
-      }
-    }
-    std::cout << std::endl;
+    /*for (size_t i = 0; i < this->dist_new.size(); i++) {*/
+    /*  if (this->dist_new[i] != 0) {*/
+    /*    std::cout << i << ":" << this->dist_new[i] << " ";*/
+    /*  }*/
+    /*}*/
+    /*std::cout << std::endl;*/
     // normalizing the above ones
     for (int j = 0; j < dist_new.size(); ++j) {
       dist_new[j] /=
@@ -584,12 +584,12 @@ public:
       ns[j] /= static_cast<double>(FCM_DEPTH);
     }
     std::cout << "[EM_FCM] Normalize guesses" << std::endl;
-    for (size_t i = 0; i < this->dist_new.size(); i++) {
-      if (this->dist_new[i] != 0) {
-        std::cout << i << ":" << this->dist_new[i] << " ";
-      }
-    }
-    std::cout << std::endl;
+    /*for (size_t i = 0; i < this->dist_new.size(); i++) {*/
+    /*  if (this->dist_new[i] != 0) {*/
+    /*    std::cout << i << ":" << this->dist_new[i] << " ";*/
+    /*  }*/
+    /*}*/
+    /*std::cout << std::endl;*/
     printf("[EM_FCM] Counter Setting is finished...\n");
   }
 
@@ -602,15 +602,21 @@ public:
       if (counter_dist[d][xi][i] == 0) {
         continue; // no value, then move next
       }
-      std::cout << "Found " << i << std::endl;
+      /*std::cout << "Found " << i << std::endl;*/
       // iterate all combinations of size i flows
       BetaGenerator bts1(i), bts2(i);
 
       double sum_p = 0; // denominator
+      uint32_t sum_iter = 0;
       while (bts1.get_next()) {
         sum_p += get_p_from_beta(bts1, lambda, dist_old, n_old, d);
+        sum_iter++;
       }
 
+      /*std::cout << "Found sum_p " << sum_p << " with " << sum_iter << "
+       * iters"*/
+      /*          << " and with " << bts1.total_combi << " combinations"*/
+      /*          << std::endl;*/
       // for debug
       if (sum_p == 0) {
         continue;
@@ -641,7 +647,7 @@ public:
       if (newsk[d][xi][i] == 0) {
         continue;
       }
-      std::cout << "Found val " << newsk[d][xi][i] << std::endl;
+      /*std::cout << "Found val " << newsk[d][xi][i] << std::endl;*/
       /* iterate for all combinations of size newsk[d][xi][i] with threshold
        * newsk_thres[d][xi][i] : vector<vector<uint32_t> > : list of
        * <layer,#paths,threshold> */
@@ -662,9 +668,10 @@ public:
         /*}*/
         /*std::cout << ">" << std::endl;*/
       }
-      std::cout << "Found sum_p " << sum_p << " with " << sum_iter << " iters"
-                << " and with " << bts1.total_combi << " combinations"
-                << std::endl;
+      /*std::cout << "Found sum_p " << sum_p << " with " << sum_iter << "
+       * iters"*/
+      /*          << " and with " << bts1.total_combi << " combinations"*/
+      /*          << std::endl;*/
 
       if (sum_p == 0) {                   // for debug
         if (sum_iter > 0) {               // adjust the value

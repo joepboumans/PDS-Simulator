@@ -4,6 +4,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_vector.hpp>
+#include <cstddef>
 
 TEST_CASE("Smoke Test", "[smoke-test]") {
   REQUIRE(true == true);
@@ -54,8 +55,7 @@ TEST_CASE("Degree 1 EM FCM vs EM WFCM", "[em]") {
   REQUIRE_THAT(ns_org, Catch::Matchers::Equals(ns_wfcm));
 }
 
-TEST_CASE("Degree 1, l2, l3 ", "[em][md][l1]") {
-
+TEST_CASE("Degree 1, l2 ", "[em][md][l1]") {
   TupleSize tuple_sz = SrcTuple;
   FCM_Sketches fcm(4, NUM_STAGES, K, DEPTH, 1, 1, "test", tuple_sz);
   REQUIRE(fcm.average_absolute_error == 0);
@@ -63,7 +63,7 @@ TEST_CASE("Degree 1, l2, l3 ", "[em][md][l1]") {
 
   TUPLE tuple;
   tuple.sz = tuple_sz;
-  // Collision in l2, degree 2
+  // Collision in l2, degree 1
   for (size_t i = 0; i < 300; i++) {
     fcm.insert(tuple, 0);
   }
@@ -82,6 +82,35 @@ TEST_CASE("Degree 1, l2, l3 ", "[em][md][l1]") {
   REQUIRE(org_wmre == wfcm_wmre);
   REQUIRE_THAT(ns_org, Catch::Matchers::Equals(ns_wfcm));
 }
+
+TEST_CASE("Degree 1, l3 ", "[em][md][l1]") {
+  TupleSize tuple_sz = SrcTuple;
+  FCM_Sketches fcm(4, NUM_STAGES, K, DEPTH, 1, 1, "test", tuple_sz);
+  REQUIRE(fcm.average_absolute_error == 0);
+  REQUIRE(fcm.average_relative_error == 0);
+
+  TUPLE tuple;
+  tuple.sz = tuple_sz;
+  // Collision in l3, degree 1
+  for (size_t i = 0; i < 70000; i++) {
+    fcm.insert(tuple, 0);
+  }
+
+  fcm.print_sketch();
+
+  fcm.analyze(0);
+  vector<double> ns_org = fcm.ns;
+  double org_wmre = fcm.wmre;
+
+  fcm.estimator_org = false;
+  fcm.analyze(0);
+  vector<double> ns_wfcm = fcm.ns;
+  double wfcm_wmre = fcm.wmre;
+
+  REQUIRE(org_wmre == wfcm_wmre);
+  REQUIRE_THAT(ns_org, Catch::Matchers::Equals(ns_wfcm));
+}
+
 TEST_CASE("Degree 2; L2 Collision", "[em][md][l2]") {
 
   TupleSize tuple_sz = SrcTuple;
@@ -91,10 +120,13 @@ TEST_CASE("Degree 2; L2 Collision", "[em][md][l2]") {
 
   TUPLE tuple;
   tuple.sz = tuple_sz;
+  TUPLE tuple2;
+  tuple2.sz = tuple_sz;
+  tuple2++;
   // Collision in l2, degree 2
   for (size_t i = 0; i < 300; i++) {
     fcm.insert(tuple, 0);
-    fcm.insert(tuple, 1);
+    fcm.insert(tuple2, 1);
   }
 
   fcm.print_sketch();
@@ -119,14 +151,16 @@ TEST_CASE("Degree 4; 4x L2 Collision", "[em][md][l2]") {
   REQUIRE(fcm.average_absolute_error == 0);
   REQUIRE(fcm.average_relative_error == 0);
 
-  TUPLE tuple;
-  tuple.sz = tuple_sz;
+  vector<TUPLE> tuple(4);
+  for (size_t i = 0; i < tuple.size(); i++) {
+    tuple[i] += i;
+    tuple[i].sz = tuple_sz;
+  }
   // Collision in l2, degree 2
   for (size_t i = 0; i < 300; i++) {
-    fcm.insert(tuple, 0);
-    fcm.insert(tuple, 1);
-    fcm.insert(tuple, 2);
-    fcm.insert(tuple, 3);
+    for (size_t i = 0; i < tuple.size(); i++) {
+      fcm.insert(tuple[i], i);
+    }
   }
 
   fcm.print_sketch();
@@ -151,18 +185,16 @@ TEST_CASE("Degree 8; 8x L2 Collision", "[em][md][l2]") {
   REQUIRE(fcm.average_absolute_error == 0);
   REQUIRE(fcm.average_relative_error == 0);
 
-  TUPLE tuple;
-  tuple.sz = tuple_sz;
+  TUPLE tuple[8];
+  for (size_t i = 0; i < 8; i++) {
+    tuple[i].sz = tuple_sz;
+    tuple[i] = tuple[i] + i;
+  }
   // Collision in l2, degree 2
   for (size_t i = 0; i < 300; i++) {
-    fcm.insert(tuple, 0);
-    fcm.insert(tuple, 1);
-    fcm.insert(tuple, 2);
-    fcm.insert(tuple, 3);
-    fcm.insert(tuple, 4);
-    fcm.insert(tuple, 5);
-    fcm.insert(tuple, 6);
-    fcm.insert(tuple, 7);
+    for (size_t i = 0; i < 8; i++) {
+      fcm.insert(tuple[i], i);
+    }
   }
 
   fcm.print_sketch();
@@ -193,6 +225,7 @@ TEST_CASE("Degree 2; L2 collision; L3 overflow", "[em][md][l3]") {
   for (size_t i = 0; i < 70000; i++) {
     fcm.insert(tuple, 0);
   }
+  tuple++;
   for (size_t i = 0; i < 300; i++) {
     fcm.insert(tuple, 1);
   }
@@ -212,6 +245,11 @@ TEST_CASE("Degree 2; L2 collision; L3 overflow", "[em][md][l3]") {
 }
 
 TEST_CASE("Degree 2; L3 Collision", "[em][md][l3]") {
+  std::cout << std::endl;
+  std::cout << "-------------" << std::endl;
+  std::cout << "[TEST CASE] Degree 2; L3 Collision" << std::endl;
+  std::cout << "-------------" << std::endl;
+  std::cout << std::endl;
 
   TupleSize tuple_sz = SrcTuple;
   FCM_Sketches fcm(4, NUM_STAGES, K, DEPTH, 1, 1, "test", tuple_sz);
@@ -220,10 +258,13 @@ TEST_CASE("Degree 2; L3 Collision", "[em][md][l3]") {
 
   TUPLE tuple;
   tuple.sz = tuple_sz;
+  TUPLE tuple2;
+  tuple2++;
+  tuple2.sz = tuple_sz;
   // Collision in l3, degree 2
   for (size_t i = 0; i < 70000; i++) {
     fcm.insert(tuple, 0);
-    /*fcm.insert(tuple, 8);*/
+    fcm.insert(tuple2, 8);
   }
 
   fcm.print_sketch();
@@ -238,5 +279,5 @@ TEST_CASE("Degree 2; L3 Collision", "[em][md][l3]") {
   double wfcm_wmre = fcm.wmre;
 
   REQUIRE(org_wmre == wfcm_wmre);
-  /*REQUIRE_THAT(ns_org, Catch::Matchers::Equals(ns_wfcm));*/
+  REQUIRE_THAT(ns_org, Catch::Matchers::Equals(ns_wfcm));
 }

@@ -14,7 +14,7 @@
 using std::unordered_map;
 using std::vector;
 
-template <int FCM_DEPTH, int W, uint32_t THRESL1, uint32_t THRESL2>
+template <int FCM_DEPTH, int W0, uint32_t THRESL1, uint32_t THRESL2>
 class EM_FCMS_org {
   vector<vector<vector<uint32_t>>> newsk;
   vector<vector<vector<vector<vector<uint32_t>>>>> newsk_thres;
@@ -121,7 +121,7 @@ private:
     for (auto &kv : mp) {
       uint32_t fi = kv.second;
       uint32_t si = kv.first;
-      double lambda_i = now_n * now_dist[si] / W;
+      double lambda_i = now_n * now_dist[si] / W0;
       ret *= (std::pow(lambda_i, fi)) / factorial(fi);
     }
     return ret;
@@ -486,7 +486,7 @@ private:
       uint32_t fi = kv.second; // > 0
       uint32_t si = kv.first;
       double lambda_i =
-          now_n * degree * now_dist[si] / W; // now_dist_i = \[phi_i]
+          now_n * degree * now_dist[si] / W0; // now_dist_i = \[phi_i]
       ret *= (std::pow(lambda_i, fi)) / factorial(fi);
     }
     return ret;
@@ -538,7 +538,7 @@ public:
     m.resize(FCM_DEPTH);
     for (int d = 0; d < FCM_DEPTH; ++d) {
       m[d].resize(newsk[d].size(), 0);
-      m[d][0] = W;
+      m[d][0] = W0;
     }
     collect_counters(_newsk); // align the input counters
 
@@ -571,12 +571,12 @@ public:
     }
 
     printf("[EM_FCM] Initial Flow Size Distribution guess\n");
-    /*for (size_t i = 0; i < this->dist_new.size(); i++) {*/
-    /*  if (this->dist_new[i] != 0) {*/
-    /*    std::cout << i << ":" << this->dist_new[i] << " ";*/
-    /*  }*/
-    /*}*/
-    /*std::cout << std::endl;*/
+    for (size_t i = 0; i < this->dist_new.size(); i++) {
+      if (this->dist_new[i] != 0) {
+        std::cout << i << ":" << this->dist_new[i] << " ";
+      }
+    }
+    std::cout << std::endl;
     // normalizing the above ones
     for (int j = 0; j < dist_new.size(); ++j) {
       dist_new[j] /=
@@ -584,18 +584,18 @@ public:
       ns[j] /= static_cast<double>(FCM_DEPTH);
     }
     std::cout << "[EM_FCM] Normalize guesses" << std::endl;
-    /*for (size_t i = 0; i < this->dist_new.size(); i++) {*/
-    /*  if (this->dist_new[i] != 0) {*/
-    /*    std::cout << i << ":" << this->dist_new[i] << " ";*/
-    /*  }*/
-    /*}*/
-    /*std::cout << std::endl;*/
+    for (size_t i = 0; i < this->dist_new.size(); i++) {
+      if (this->dist_new[i] != 0) {
+        std::cout << i << ":" << this->dist_new[i] << " ";
+      }
+    }
+    std::cout << std::endl;
     printf("[EM_FCM] Counter Setting is finished...\n");
   }
 
   void epoch_parallel_singledeg(vector<double> &nt_vec, int d, int xi) {
     // start EM
-    double lambda = n_old * xi / static_cast<double>(W);
+    double lambda = n_old * xi / static_cast<double>(W0);
     nt_vec.resize(this->max_val + 1);
     std::fill(nt_vec.begin(), nt_vec.end(), 0.0);          // initilize
     for (int i = 1; i < counter_dist[d][xi].size(); ++i) { // start size 1
@@ -647,7 +647,6 @@ public:
       if (newsk[d][xi][i] == 0) {
         continue;
       }
-      /*std::cout << "Found val " << newsk[d][xi][i] << std::endl;*/
       /* iterate for all combinations of size newsk[d][xi][i] with threshold
        * newsk_thres[d][xi][i] : vector<vector<uint32_t> > : list of
        * <layer,#paths,threshold> */
@@ -659,19 +658,10 @@ public:
         // double p = get_p_from_beta_fcm(bts1, lambda, dist_old, n_old, xi, d);
         sum_p += get_p_from_beta_fcm(bts1, lambda, dist_old, n_old, xi, d);
         sum_iter += 1;
-        /*std::cout << "<";*/
-        /*for (auto &x : bts1.now_result) {*/
-        /*  std::cout << x;*/
-        /*  if (&x != &bts1.now_result.back()) {*/
-        /*    std::cout << ", ";*/
-        /*  }*/
-        /*}*/
-        /*std::cout << ">" << std::endl;*/
       }
-      /*std::cout << "Found sum_p " << sum_p << " with " << sum_iter << "
-       * iters"*/
-      /*          << " and with " << bts1.total_combi << " combinations"*/
-      /*          << std::endl;*/
+      std::cout << "Found sum_p " << sum_p << " with " << sum_iter << " iters"
+                << " and with " << bts1.total_combi << " combinations"
+                << std::endl;
 
       if (sum_p == 0) {                   // for debug
         if (sum_iter > 0) {               // adjust the value
@@ -704,7 +694,7 @@ public:
       }
     }
     double accum = std::accumulate(nt_vec.begin(), nt_vec.end(), 0.0);
-    if (1) {
+    if (0) {
       for (size_t i = 0; i < nt_vec.size(); i++) {
         if (nt_vec[i] != 0) {
           std::cout << i << ":" << nt_vec[i] << " ";
@@ -747,63 +737,65 @@ public:
     printf("[EM] Start multi-threading...\n");
     std::thread thrd[total_num_thread];
     int iter_thread = 0;
-    /*for (int d = 0; d < FCM_DEPTH; ++d) {*/
-    /*  for (int xi = 1; xi <= num_thread[d]; ++xi) { // degree (xi)*/
-    /*    // parallelization*/
-    /*    if (xi == 1) {*/
-    /*      thrd[iter_thread] =*/
-    /*          std::thread(&EM_FCMS_org::epoch_parallel_singledeg, *this,*/
-    /*                      std::ref(nt_d_xi[d][xi]), d, xi);*/
-    /*    } else {*/
-    /*      thrd[iter_thread] =*/
-    /*          std::thread(&EM_FCMS_org::epoch_parallel_multideg, *this,*/
-    /*                      std::ref(nt_d_xi[d][xi]), d, xi);*/
-    /*    }*/
-    /*    iter_thread += 1;*/
-    /*  }*/
-    /*}*/
-    /***   dash until thread is finished ***/
-    /*for (int i = 0; i < total_num_thread; ++i)*/
-    /*  thrd[i].join();*/
-    /**************************/
+    if (1) {
+      for (int d = 0; d < FCM_DEPTH; ++d) {
+        for (int xi = 1; xi <= num_thread[d]; ++xi) { // degree (xi)
+          // parallelization
+          if (xi == 1) {
+            thrd[iter_thread] =
+                std::thread(&EM_FCMS_org::epoch_parallel_singledeg, *this,
+                            std::ref(nt_d_xi[d][xi]), d, xi);
+          } else {
+            thrd[iter_thread] =
+                std::thread(&EM_FCMS_org::epoch_parallel_multideg, *this,
+                            std::ref(nt_d_xi[d][xi]), d, xi);
+          }
+          iter_thread += 1;
+        }
+      }
+      /***   dash until thread is finished ***/
+      for (int i = 0; i < total_num_thread; ++i)
+        thrd[i].join();
+    } else {
 
-    // /***** SINGLE_THREADING ****/
-    printf("[EM] Start single-threading...\n");
-    for (int d = 0; d < FCM_DEPTH; ++d) {
-      for (int xi = 1; xi <= num_thread[d]; ++xi) {
-        if (xi == 1)
-          this->epoch_parallel_singledeg(nt_d_xi[d][xi], d, xi);
-        else
-          this->epoch_parallel_multideg(nt_d_xi[d][xi], d, xi);
+      // /***** SINGLE_THREADING ****/
+      printf("[EM] Start single-threading...\n");
+      for (int d = 0; d < FCM_DEPTH; ++d) {
+        for (int xi = 1; xi <= num_thread[d]; ++xi) {
+          if (xi == 1)
+            this->epoch_parallel_singledeg(nt_d_xi[d][xi], d, xi);
+          else
+            this->epoch_parallel_multideg(nt_d_xi[d][xi], d, xi);
+        }
       }
     }
-    // /***************************/
 
     // collect all information
     for (int d = 0; d < FCM_DEPTH; ++d)
       for (int xi = 1; xi <= num_thread[d]; ++xi)
-        for (int i = 0; i < nt_d_xi[d][xi].size(); ++i)
+        /*for (int i = 0; i < nt_d_xi[d][xi].size(); ++i)*/
+        for (int i = 0; i < ns.size(); ++i)
           ns[i] += nt_d_xi[d][xi][i];
 
-    std::cout << "ns : " << std::endl;
+    /*std::cout << "ns : " << std::endl;*/
     n_new = 0.0;
     for (int i = 0; i < ns.size(); ++i) {
       if (ns[i] != 0) {
         ns[i] /= double(FCM_DEPTH); // divide the denominator
         n_new += ns[i];             // save the results
-        std::cout << i << ":" << ns[i] << " ";
+        /*std::cout << i << ":" << ns[i] << " ";*/
       }
     }
-    std::cout << std::endl;
+    /*std::cout << std::endl;*/
 
-    std::cout << "Dist_new: " << std::endl;
+    /*std::cout << "Dist_new: " << std::endl;*/
     for (int i = 0; i < ns.size(); ++i) {
       dist_new[i] = ns[i] / n_new;
       if (dist_new[i] != 0) {
-        std::cout << i << ":" << dist_new[i] << " ";
+        /*std::cout << i << ":" << dist_new[i] << " ";*/
       }
     }
-    std::cout << std::endl;
+    /*std::cout << std::endl;*/
 
     printf("[EM_FCM - iter %2d] Intermediate cardianlity : %9.1f\n\n", iter,
            n_new);

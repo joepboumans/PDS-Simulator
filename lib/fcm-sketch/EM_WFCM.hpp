@@ -384,104 +384,135 @@ private:
   void calculate_degree(vector<double> &nt, int d, int xi) {
     nt.resize(this->max_counter_value + 1);
     std::fill(nt.begin(), nt.end(), 0.0);
-    double lambda = this->n_old * xi / double(W1);
+    double lambda = this->n_old * xi / static_cast<double>(w);
 
     printf("[EM_WFCM] ******** Running for degree %2d with a size of "
            "%12zu\t\t"
            "**********\n",
            xi, this->counters[d][xi].size());
 
-    for (uint32_t i = 0; i < this->counters[d][xi].size(); i++) {
-      if (this->counters[d][xi][i] == 0) {
-        continue;
-      }
-
-      if (this->thresholds[d][xi].size() <= i) {
-        std::cout << "Out of bound for thresholds" << std::endl;
-        std::cout << this->thresholds[d][xi].size() << std::endl;
-        std::cout << "At " << xi << " " << i << " with count "
-                  << this->counters[d][xi][i] << " ";
-        exit(1);
-      }
-      BetaGenerator alpha(this->counters[d][xi][i], xi,
-                          this->thresholds[d][xi][i]),
-          beta(this->counters[d][xi][i], xi, this->thresholds[d][xi][i]);
-      double sum_p = 0.0;
-      uint32_t it = 0;
-
-      // Sum over first combinations
-      /*std::cout << "Found val " << this->counters[d][xi][i] << std::endl;*/
-      while (alpha.get_next()) {
-        double p =
-            get_p_from_beta(alpha, lambda, this->dist_old, this->n_old, xi);
-        sum_p += p;
-        it++;
-      }
-
-      /*std::cout << "Val " << this->counters[d][xi][i] << " found sum_p "*/
-      /*          << sum_p << " with " << it << " iters"*/
-      /*          << " and with " << alpha.total_combi << " combinations"*/
-      /*          << std::endl;*/
-      /*for (auto &t : this->thresholds[d][xi][i]) {*/
-      /*  std::cout << "<";*/
-      /*  for (auto &x : t) {*/
-      /*    std::cout << x;*/
-      /*    if (&x != &t.back()) {*/
-      /*      std::cout << ", ";*/
-      /*    }*/
-      /*  }*/
-      /*  std::cout << "> ";*/
-      /*}*/
-      // If there where valid combinations, but value of combinations where not
-      // found in measured data. We
-      if (sum_p == 0.0) {
-        if (xi == 1) {
+    // FCM 1 degree does not care about thresholds and thus can be calculated on
+    // distribution instead of individual counters
+    if (xi == 1) {
+      for (uint32_t i = 0; i < this->counter_dist[d][xi].size(); i++) {
+        if (this->counter_dist[d][xi][i] == 0) {
           continue;
         }
-        if (it > 0) {
-          uint32_t temp_val = this->counters[d][xi][i];
-          std::cout << "adjust value at " << i << " with val " << temp_val
-                    << std::endl;
-          vector<vector<uint32_t>> temp_thresh = this->thresholds[d][xi][i];
-          for (auto &t : temp_thresh) {
-            std::cout << "<";
-            for (auto &x : t) {
-              std::cout << x;
-              if (&x != &t.back()) {
-                std::cout << ", ";
-              }
-            }
-            std::cout << "> ";
-          }
-          std::cout << std::endl;
-          switch (temp_thresh.size()) {
-          case 3: // Reached L2
-            // Collission in L2
-            if (temp_thresh[1][0] > 1) {
-              temp_val -= temp_thresh.back()[1] * temp_thresh.back()[0];
-              break;
-            }
-          case 2:
-          default:
-            temp_val -= temp_thresh.back()[1] * (temp_thresh.back()[0] - 1);
-          }
 
-          std::cout << "Storing 1 at " << temp_val << std::endl;
-          nt[temp_val] += 1;
-        }
-      } else {
-        while (beta.get_next()) {
+        BetaGenerator alpha(i, xi, this->thresholds[d][xi][i]),
+            beta(i, xi, this->thresholds[d][xi][i]);
+        double sum_p = 0.0;
+
+        // Sum over first combinations
+        while (alpha.get_next()) {
           double p =
-              get_p_from_beta(beta, lambda, this->dist_old, this->n_old, xi);
-          for (size_t j = 0; j < beta.now_flow_num; ++j) {
-            nt[beta.now_result[j]] += p / sum_p;
+              get_p_from_beta(alpha, lambda, this->dist_old, this->n_old, xi);
+          sum_p += p;
+        }
+
+        if (sum_p == 0.0) {
+          continue;
+        } else {
+          while (beta.get_next()) {
+            double p =
+                get_p_from_beta(beta, lambda, this->dist_old, this->n_old, xi);
+            for (size_t j = 0; j < beta.now_flow_num; ++j) {
+              nt[beta.now_result[j]] +=
+                  this->counter_dist[d][xi][i] * p / sum_p;
+            }
+          }
+        }
+      }
+    } else {
+      for (uint32_t i = 0; i < this->counters[d][xi].size(); i++) {
+        if (this->counters[d][xi][i] == 0) {
+          continue;
+        }
+
+        if (this->thresholds[d][xi].size() <= i) {
+          std::cout << "Out of bound for thresholds" << std::endl;
+          std::cout << this->thresholds[d][xi].size() << std::endl;
+          std::cout << "At " << xi << " " << i << " with count "
+                    << this->counters[d][xi][i] << " ";
+          exit(1);
+        }
+        BetaGenerator alpha(this->counters[d][xi][i], xi,
+                            this->thresholds[d][xi][i]),
+            beta(this->counters[d][xi][i], xi, this->thresholds[d][xi][i]);
+        double sum_p = 0.0;
+        uint32_t it = 0;
+
+        // Sum over first combinations
+        /*std::cout << "Found val " << this->counters[d][xi][i] << std::endl;*/
+        while (alpha.get_next()) {
+          double p =
+              get_p_from_beta(alpha, lambda, this->dist_old, this->n_old, xi);
+          sum_p += p;
+          it++;
+        }
+
+        std::cout << "Val " << this->counters[d][xi][i] << " found sum_p "
+                  << sum_p << " with " << it << " iters"
+                  << " and with " << alpha.total_combi << " combinations"
+                  << std::endl;
+        /*for (auto &t : this->thresholds[d][xi][i]) {*/
+        /*  std::cout << "<";*/
+        /*  for (auto &x : t) {*/
+        /*    std::cout << x;*/
+        /*    if (&x != &t.back()) {*/
+        /*      std::cout << ", ";*/
+        /*    }*/
+        /*  }*/
+        /*  std::cout << "> ";*/
+        /*}*/
+        // If there where valid combinations, but value of combinations where
+        // not found in measured data. We
+        if (sum_p == 0.0) {
+          if (it > 0) {
+            uint32_t temp_val = this->counters[d][xi][i];
+            std::cout << "adjust value at " << i << " with val " << temp_val
+                      << std::endl;
+            vector<vector<uint32_t>> temp_thresh = this->thresholds[d][xi][i];
+            for (auto &t : temp_thresh) {
+              std::cout << "<";
+              for (auto &x : t) {
+                std::cout << x;
+                if (&x != &t.back()) {
+                  std::cout << ", ";
+                }
+              }
+              std::cout << "> ";
+            }
+            std::cout << std::endl;
+            switch (temp_thresh.size()) {
+            case 3: // Reached L2
+              // Collission in L2
+              if (temp_thresh[1][0] > 1) {
+                temp_val -= temp_thresh.back()[1] * temp_thresh.back()[0];
+                break;
+              }
+            case 2:
+            default:
+              temp_val -= temp_thresh.back()[1] * (temp_thresh.back()[0] - 1);
+            }
+
+            std::cout << "Storing 1 at " << temp_val << std::endl;
+            nt[temp_val] += 1;
+          }
+        } else {
+          while (beta.get_next()) {
+            double p =
+                get_p_from_beta(beta, lambda, this->dist_old, this->n_old, xi);
+            for (size_t j = 0; j < beta.now_flow_num; ++j) {
+              nt[beta.now_result[j]] += p / sum_p;
+            }
           }
         }
       }
     }
 
     double accum = std::accumulate(nt.begin(), nt.end(), 0.0);
-    if (1) {
+    if (0) {
       for (size_t i = 0; i < nt.size(); i++) {
         if (nt[i] != 0) {
           std::cout << i << ":" << nt[i] << " ";
@@ -529,30 +560,30 @@ public:
     std::cout << "[EM_WFCM] Created " << total_degree << " threads"
               << std::endl;
 
-    /*for (size_t d = 0; d < DEPTH; d++) {*/
-    /*  for (size_t t = 2; t < threads[d].size(); t++) {*/
-    /*    std::cout << "[EM_WFCM] Start thread " << t << " at depth " << d*/
-    /*              << std::endl;*/
-    /*    threads[d][t] = std::thread(&EM_WFCM::calculate_degree, *this,*/
-    /*                                std::ref(nt[d][t]), d, t);*/
-    /*  }*/
-    /*}*/
-    /**/
-    /*std::cout << "[EM_WFCM] Started all threads, wait for them to finish..."*/
-    /*          << std::endl;*/
-    /**/
-    /*for (size_t d = 0; d < DEPTH; d++) {*/
-    /*  for (size_t t = 2; t < threads[d].size(); t++) {*/
-    /*    threads[d][t].join();*/
-    /*  }*/
-    /*}*/
-
-    // Single threaded
     for (size_t d = 0; d < DEPTH; d++) {
-      for (size_t xi = 1; xi <= this->max_degree[d]; xi++) {
-        this->calculate_degree(nt[d][xi], d, xi);
+      for (size_t t = 1; t < threads[d].size(); t++) {
+        std::cout << "[EM_WFCM] Start thread " << t << " at depth " << d
+                  << std::endl;
+        threads[d][t] = std::thread(&EM_WFCM::calculate_degree, *this,
+                                    std::ref(nt[d][t]), d, t);
       }
     }
+
+    std::cout << "[EM_WFCM] Started all threads, wait for them to finish..."
+              << std::endl;
+
+    for (size_t d = 0; d < DEPTH; d++) {
+      for (size_t t = 1; t < threads[d].size(); t++) {
+        threads[d][t].join();
+      }
+    }
+
+    // Single threaded
+    /*for (size_t d = 0; d < DEPTH; d++) {*/
+    /*  for (size_t xi = 1; xi <= this->max_degree[d]; xi++) {*/
+    /*    this->calculate_degree(nt[d][xi], d, xi);*/
+    /*  }*/
+    /*}*/
 
     std::cout << "[EM_WFCM] Finished calculating nt per degree" << std::endl;
 
@@ -564,25 +595,25 @@ public:
       }
     }
 
-    std::cout << "ns : " << std::endl;
+    /*std::cout << "ns : " << std::endl;*/
     this->n_new = 0.0;
     for (size_t i = 0; i < this->ns.size(); i++) {
       if (this->ns[i] != 0) {
         this->ns[i] /= static_cast<double>(DEPTH);
         this->n_new += this->ns[i];
-        std::cout << i << ":" << this->ns[i] << " ";
+        /*std::cout << i << ":" << this->ns[i] << " ";*/
       }
     }
-    std::cout << std::endl;
+    /*std::cout << std::endl;*/
 
-    std::cout << "Dist_new: " << std::endl;
+    /*std::cout << "Dist_new: " << std::endl;*/
     for (uint32_t i = 0; i < this->ns.size(); i++) {
       this->dist_new[i] = this->ns[i] / this->n_new;
       if (this->dist_new[i] != 0) {
-        std::cout << i << ":" << this->dist_new[i] << " ";
+        /*std::cout << i << ":" << this->dist_new[i] << " ";*/
       }
     }
-    std::cout << std::endl;
+    /*std::cout << std::endl;*/
 
     auto stop = std::chrono::high_resolution_clock::now();
     auto time =

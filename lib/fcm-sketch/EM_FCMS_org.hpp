@@ -775,16 +775,19 @@ public:
     // collect all information
     for (int d = 0; d < FCM_DEPTH; ++d)
       for (int xi = 1; xi <= num_thread[d]; ++xi)
-        for (int i = 0; i < ns.size(); ++i)
+        for (int i = 0; i < nt_d_xi[d][xi].size(); ++i)
           ns[i] += nt_d_xi[d][xi][i];
 
+    std::cout << "ns : " << std::endl;
     n_new = 0.0;
     for (int i = 0; i < ns.size(); ++i) {
       if (ns[i] != 0) {
         ns[i] /= double(FCM_DEPTH); // divide the denominator
         n_new += ns[i];             // save the results
+        std::cout << i << ":" << ns[i] << " ";
       }
     }
+    std::cout << std::endl;
 
     std::cout << "Dist_new: " << std::endl;
     for (int i = 0; i < ns.size(); ++i) {

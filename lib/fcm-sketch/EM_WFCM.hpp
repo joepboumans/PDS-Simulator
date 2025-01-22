@@ -531,13 +531,16 @@ public:
       }
     }
 
+    std::cout << "ns : " << std::endl;
     this->n_new = 0.0;
     for (size_t i = 0; i < this->ns.size(); i++) {
       if (this->ns[i] != 0) {
         this->ns[i] /= static_cast<double>(DEPTH);
         this->n_new += this->ns[i];
+        std::cout << i << ":" << this->ns[i] << " ";
       }
     }
+    std::cout << std::endl;
 
     std::cout << "Dist_new: " << std::endl;
     for (uint32_t i = 0; i < this->ns.size(); i++) {

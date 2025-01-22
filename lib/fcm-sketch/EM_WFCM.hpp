@@ -141,17 +141,49 @@ private:
       /*  flow_num_limit = 6;*/
       /*}*/
       flow_num_limit = 6;
+      switch (in_degree) {
+      case 1:
+      case 2:
+        if (sum > 600) {
+          flow_num_limit = std::min(2, flow_num_limit);
+        } else if (sum > 250)
+          flow_num_limit = std::min(3, flow_num_limit);
+        else if (sum > 100)
+          flow_num_limit = std::min(4, flow_num_limit);
+        else if (sum > 50)
+          flow_num_limit = std::min(5, flow_num_limit);
+        else
+          flow_num_limit = std::min(6, flow_num_limit);
+        break;
+      default:
+        if (sum > 1100)
+          flow_num_limit = in_degree;
+        else if (sum > 550)
+          flow_num_limit = std::max(in_degree, (uint32_t)3);
+        else
+          flow_num_limit = std::max(in_degree, (uint32_t)4);
 
-      if (sum > 600) {
-        flow_num_limit = std::min(2, flow_num_limit);
-      } else if (sum > 250)
-        flow_num_limit = std::min(3, flow_num_limit);
-      else if (sum > 100)
-        flow_num_limit = std::min(4, flow_num_limit);
-      else if (sum > 50)
-        flow_num_limit = std::min(5, flow_num_limit);
-      else
-        flow_num_limit = std::min(6, flow_num_limit);
+        // Note that the counters of degree D (> 1) includes at least D flows.
+        // But, the combinatorial complexity also increases to O(N^D), which
+        // takes a lot of time. To truncate the compexity, we introduce a
+        // simplified version that prohibits the number of flows less than D. As
+        // explained in the paper, its effect is quite limited as the number of
+        // such counters are only a few.
+
+        // "simplified" keeps the original in_degree
+        // 15k, 15k, 7k
+        if (in_degree >= 4 and sum < 10000) {
+          flow_num_limit = 3;
+          in_degree = 3;
+        } else if (in_degree >= 4 and sum >= 10000) {
+          flow_num_limit = 2;
+          in_degree = 2;
+        } else if (in_degree == 3 and sum > 5000) {
+          flow_num_limit = 2;
+          in_degree = 2;
+        }
+      }
+
       start_pos = 0;
       printf("Setup gen with sum:%d, in_degree:%d, flow_num_limit:%d\n", sum,
              in_degree, flow_num_limit);

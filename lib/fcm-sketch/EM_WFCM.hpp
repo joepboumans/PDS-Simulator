@@ -134,16 +134,12 @@ private:
                            vector<vector<uint32_t>> _thresh)
         : sum(_sum), flow_num_limit(_in_degree), in_degree(_in_degree),
           thresh(_thresh) {
-      /*std::reverse(thresh.begin(), thresh.end());*/
 
       now_flow_num = 0;
-      /*if (_in_degree <= 1) {*/
-      /*  flow_num_limit = 6;*/
-      /*}*/
-      flow_num_limit = 6;
       switch (in_degree) {
       case 1:
       case 2:
+        flow_num_limit = 6;
         if (sum > 600) {
           flow_num_limit = std::min(2, flow_num_limit);
         } else if (sum > 250)
@@ -445,6 +441,7 @@ private:
           std::cout << "adjust value at " << i << " with val " << temp_val
                     << std::endl;
           vector<vector<uint32_t>> temp_thresh = this->thresholds[d][xi][i];
+          std::reverse(temp_thresh.begin(), temp_thresh.end());
           for (auto &t : temp_thresh) {
             std::cout << "<";
             for (auto &x : t) {

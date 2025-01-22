@@ -40,14 +40,48 @@ TEST_CASE("Degree 1 EM FCM vs EM WFCM", "[em]") {
   }
 
   fcm.print_sketch();
+
   fcm.analyze(0);
+  vector<double> ns_org = fcm.ns;
   double org_wmre = fcm.wmre;
+
   fcm.estimator_org = false;
   fcm.analyze(0);
+  vector<double> ns_wfcm = fcm.ns;
   double wfcm_wmre = fcm.wmre;
+
   REQUIRE(org_wmre == wfcm_wmre);
+  REQUIRE_THAT(ns_org, Catch::Matchers::Equals(ns_wfcm));
 }
 
+TEST_CASE("Degree 1, l2, l3 ", "[em][md][l1]") {
+
+  TupleSize tuple_sz = SrcTuple;
+  FCM_Sketches fcm(4, NUM_STAGES, K, DEPTH, 1, 1, "test", tuple_sz);
+  REQUIRE(fcm.average_absolute_error == 0);
+  REQUIRE(fcm.average_relative_error == 0);
+
+  TUPLE tuple;
+  tuple.sz = tuple_sz;
+  // Collision in l2, degree 2
+  for (size_t i = 0; i < 300; i++) {
+    fcm.insert(tuple, 0);
+  }
+
+  fcm.print_sketch();
+
+  fcm.analyze(0);
+  vector<double> ns_org = fcm.ns;
+  double org_wmre = fcm.wmre;
+
+  fcm.estimator_org = false;
+  fcm.analyze(0);
+  vector<double> ns_wfcm = fcm.ns;
+  double wfcm_wmre = fcm.wmre;
+
+  REQUIRE(org_wmre == wfcm_wmre);
+  REQUIRE_THAT(ns_org, Catch::Matchers::Equals(ns_wfcm));
+}
 TEST_CASE("Degree 2; L2 Collision", "[em][md][l2]") {
 
   TupleSize tuple_sz = SrcTuple;
@@ -78,7 +112,7 @@ TEST_CASE("Degree 2; L2 Collision", "[em][md][l2]") {
   REQUIRE_THAT(ns_org, Catch::Matchers::Equals(ns_wfcm));
 }
 
-TEST_CASE("Degree 2; 4x L2 Collision", "[em][md][l2]") {
+TEST_CASE("Degree 4; 4x L2 Collision", "[em][md][l2]") {
 
   TupleSize tuple_sz = SrcTuple;
   FCM_Sketches fcm(4, NUM_STAGES, K, DEPTH, 1, 1, "test", tuple_sz);
@@ -93,6 +127,42 @@ TEST_CASE("Degree 2; 4x L2 Collision", "[em][md][l2]") {
     fcm.insert(tuple, 1);
     fcm.insert(tuple, 2);
     fcm.insert(tuple, 3);
+  }
+
+  fcm.print_sketch();
+
+  fcm.analyze(0);
+  vector<double> ns_org = fcm.ns;
+  double org_wmre = fcm.wmre;
+
+  fcm.estimator_org = false;
+  fcm.analyze(0);
+  vector<double> ns_wfcm = fcm.ns;
+  double wfcm_wmre = fcm.wmre;
+
+  REQUIRE(org_wmre == wfcm_wmre);
+  REQUIRE_THAT(ns_org, Catch::Matchers::Equals(ns_wfcm));
+}
+
+TEST_CASE("Degree 8; 8x L2 Collision", "[em][md][l2]") {
+
+  TupleSize tuple_sz = SrcTuple;
+  FCM_Sketches fcm(4, NUM_STAGES, K, DEPTH, 1, 1, "test", tuple_sz);
+  REQUIRE(fcm.average_absolute_error == 0);
+  REQUIRE(fcm.average_relative_error == 0);
+
+  TUPLE tuple;
+  tuple.sz = tuple_sz;
+  // Collision in l2, degree 2
+  for (size_t i = 0; i < 300; i++) {
+    fcm.insert(tuple, 0);
+    fcm.insert(tuple, 1);
+    fcm.insert(tuple, 2);
+    fcm.insert(tuple, 3);
+    fcm.insert(tuple, 4);
+    fcm.insert(tuple, 5);
+    fcm.insert(tuple, 6);
+    fcm.insert(tuple, 7);
   }
 
   fcm.print_sketch();
@@ -139,4 +209,34 @@ TEST_CASE("Degree 2; L2 collision; L3 overflow", "[em][md][l3]") {
 
   REQUIRE(org_wmre == wfcm_wmre);
   REQUIRE_THAT(ns_org, Catch::Matchers::Equals(ns_wfcm));
+}
+
+TEST_CASE("Degree 2; L3 Collision", "[em][md][l3]") {
+
+  TupleSize tuple_sz = SrcTuple;
+  FCM_Sketches fcm(4, NUM_STAGES, K, DEPTH, 1, 1, "test", tuple_sz);
+  REQUIRE(fcm.average_absolute_error == 0);
+  REQUIRE(fcm.average_relative_error == 0);
+
+  TUPLE tuple;
+  tuple.sz = tuple_sz;
+  // Collision in l3, degree 2
+  for (size_t i = 0; i < 70000; i++) {
+    fcm.insert(tuple, 0);
+    /*fcm.insert(tuple, 8);*/
+  }
+
+  fcm.print_sketch();
+
+  fcm.analyze(0);
+  vector<double> ns_org = fcm.ns;
+  double org_wmre = fcm.wmre;
+
+  fcm.estimator_org = false;
+  fcm.analyze(0);
+  vector<double> ns_wfcm = fcm.ns;
+  double wfcm_wmre = fcm.wmre;
+
+  REQUIRE(org_wmre == wfcm_wmre);
+  /*REQUIRE_THAT(ns_org, Catch::Matchers::Equals(ns_wfcm));*/
 }

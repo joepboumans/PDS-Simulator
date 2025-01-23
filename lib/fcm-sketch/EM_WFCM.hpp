@@ -177,6 +177,8 @@ private:
         } else if (in_degree == 3 and sum > 5000) {
           flow_num_limit = 2;
           in_degree = 2;
+        } else if (in_degree == 2 and sum > ADD_LEVEL2) {
+          thresh[1][1] = 1;
         }
       }
 
@@ -222,7 +224,7 @@ private:
           now_result[0] = 0;
         default:
           now_result.resize(now_flow_num);
-          if (get_new_comb()) {
+          if (get_new_comb() and now_flow_num >= in_degree) {
             if (in_degree == 1) {
               total_combi++;
               return true;
@@ -280,6 +282,7 @@ private:
     }
 
     bool check_condition() {
+
       for (auto &t : thresh) {
         uint32_t colls = t[0];
 
@@ -294,54 +297,72 @@ private:
         /*print_now_result();*/
 
         uint32_t min_val = t[1];
-        uint32_t group_sz = std::max(
-            (uint32_t)std::floor(now_flow_num / in_degree), (uint32_t)1);
-        uint32_t last_group_sz = std::max(
-            (uint32_t)std::ceil(now_flow_num / in_degree), (uint32_t)1);
+        uint32_t last_group_sz = 1;
         uint32_t passes = 0;
 
-        uint32_t val_last_group = std::accumulate(
-            now_result.end() - last_group_sz, now_result.end(), 0);
-        /*std::cout << "group sz " << group_sz << " last_group_sz "*/
-        /*          << last_group_sz << " last group val " << val_last_group*/
+        uint32_t n_spread = 1;
+        if (now_flow_num > in_degree) {
+          n_spread = now_flow_num - in_degree;
+        }
+
+        uint32_t last_val = now_result.back();
+        /*std::cout << "n spread " << n_spread << " last_group_sz "*/
+        /*          << last_group_sz << " last group val " << last_val*/
         /*          << " min val " << min_val << std::endl;*/
-        if (val_last_group > min_val) {
-          /*std::cout << "Passes min val" << std::endl;*/
+
+        if (now_flow_num == in_degree and last_val <= min_val) {
+          return false;
+        }
+
+        if (last_val > min_val) {
           passes++;
-          for (size_t i = 0; i < now_flow_num - 1; i++) {
-            uint32_t accum =
-                std::accumulate(now_result.begin() + i * group_sz,
-                                now_result.begin() + (i + 1) * group_sz, 0);
-            if (accum > min_val) {
+          // First group takes whole spread
+          uint32_t first_val = std::accumulate(
+              now_result.begin(), now_result.begin() + n_spread, 0);
+          if (first_val <= min_val) {
+            return false;
+          }
+          passes++;
+          // Next groups are singles
+          for (size_t i = 0; i < in_degree - 2; i++) {
+            if (now_result[i + n_spread] > min_val) {
               passes++;
             }
           }
         } else {
-          /*std::cout << "Shifting group" << std::endl;*/
           // Shift group to include first entry
-          val_last_group = std::accumulate(now_result.end() - last_group_sz + 1,
-                                           now_result.end(), 0) +
-                           now_result[0];
-          /*std::cout << "group sz " << group_sz << " last_group_sz "*/
-          /*          << last_group_sz << " last group val " << val_last_group*/
+          last_val += now_result[0];
+
+          /*std::cout << "Shifting group" << std::endl;*/
+          /*std::cout << "n spread " << n_spread << " last_group_sz "*/
+          /*          << last_group_sz << " last group val " << last_val*/
           /*          << " min val " << min_val << std::endl;*/
-          if (val_last_group < min_val) {
+
+          if (last_val <= min_val) {
             return false;
           }
           passes++;
-          for (size_t i = 0; i < now_flow_num - 1; i++) {
-            uint32_t accum = 0;
-            if (1 + (i + 1) * group_sz >= now_result.size()) {
-              accum =
-                  std::accumulate(now_result.begin() + 1 + i * group_sz,
-                                  now_result.begin() + (i + 1) * group_sz, 0);
-            } else {
-              accum = std::accumulate(
-                  now_result.begin() + 1 + i * group_sz,
-                  now_result.begin() + 1 + (i + 1) * group_sz, 0);
+
+          if (n_spread > 1) {
+            // First group takes whole spread
+            uint32_t first_val = std::accumulate(
+                now_result.begin() + 1, now_result.begin() + 1 + n_spread, 0);
+            if (first_val <= min_val) {
+              return false;
             }
-            if (accum > min_val) {
-              passes++;
+            passes++;
+            // Next groups are singles
+            for (size_t i = 0; i < in_degree - 2; i++) {
+              if (now_result[i + 1 + n_spread] > min_val) {
+                passes++;
+              }
+            }
+          } else {
+            // Next groups are singles
+            for (size_t i = 0; i < in_degree - 1; i++) {
+              if (now_result[i + 1] > min_val) {
+                passes++;
+              }
             }
           }
         }
@@ -484,16 +505,10 @@ private:
               std::cout << "> ";
             }
             std::cout << std::endl;
-            switch (temp_thresh.size()) {
-            case 3: // Reached L2
-              // Collission in L2
-              if (temp_thresh[1][0] > 1) {
-                temp_val -= temp_thresh.back()[1] * temp_thresh.back()[0];
-                break;
-              }
-            case 2:
-            default:
-              temp_val -= temp_thresh.back()[1] * (temp_thresh.back()[0] - 1);
+
+            temp_val -= temp_thresh.back()[1] * (xi - 1);
+            if (temp_thresh.size() == 3) {
+              temp_val -= temp_thresh[1][1] * (temp_thresh[1][0] - 1);
             }
 
             std::cout << "Storing 1 at " << temp_val << std::endl;
@@ -560,30 +575,32 @@ public:
     std::cout << "[EM_WFCM] Created " << total_degree << " threads"
               << std::endl;
 
-    for (size_t d = 0; d < DEPTH; d++) {
-      for (size_t t = 1; t < threads[d].size(); t++) {
-        std::cout << "[EM_WFCM] Start thread " << t << " at depth " << d
-                  << std::endl;
-        threads[d][t] = std::thread(&EM_WFCM::calculate_degree, *this,
-                                    std::ref(nt[d][t]), d, t);
+    if (0) {
+      for (size_t d = 0; d < DEPTH; d++) {
+        for (size_t t = 1; t < threads[d].size(); t++) {
+          std::cout << "[EM_WFCM] Start thread " << t << " at depth " << d
+                    << std::endl;
+          threads[d][t] = std::thread(&EM_WFCM::calculate_degree, *this,
+                                      std::ref(nt[d][t]), d, t);
+        }
+      }
+
+      std::cout << "[EM_WFCM] Started all threads, wait for them to finish..."
+                << std::endl;
+
+      for (size_t d = 0; d < DEPTH; d++) {
+        for (size_t t = 1; t < threads[d].size(); t++) {
+          threads[d][t].join();
+        }
+      }
+    } else {
+      // Single threaded
+      for (size_t d = 0; d < DEPTH; d++) {
+        for (size_t xi = 1; xi <= this->max_degree[d]; xi++) {
+          this->calculate_degree(nt[d][xi], d, xi);
+        }
       }
     }
-
-    std::cout << "[EM_WFCM] Started all threads, wait for them to finish..."
-              << std::endl;
-
-    for (size_t d = 0; d < DEPTH; d++) {
-      for (size_t t = 1; t < threads[d].size(); t++) {
-        threads[d][t].join();
-      }
-    }
-
-    // Single threaded
-    /*for (size_t d = 0; d < DEPTH; d++) {*/
-    /*  for (size_t xi = 1; xi <= this->max_degree[d]; xi++) {*/
-    /*    this->calculate_degree(nt[d][xi], d, xi);*/
-    /*  }*/
-    /*}*/
 
     std::cout << "[EM_WFCM] Finished calculating nt per degree" << std::endl;
 
@@ -595,25 +612,18 @@ public:
       }
     }
 
-    /*std::cout << "ns : " << std::endl;*/
     this->n_new = 0.0;
     for (size_t i = 0; i < this->ns.size(); i++) {
       if (this->ns[i] != 0) {
         this->ns[i] /= static_cast<double>(DEPTH);
         this->n_new += this->ns[i];
-        /*std::cout << i << ":" << this->ns[i] << " ";*/
       }
     }
-    /*std::cout << std::endl;*/
 
-    /*std::cout << "Dist_new: " << std::endl;*/
     for (uint32_t i = 0; i < this->ns.size(); i++) {
       this->dist_new[i] = this->ns[i] / this->n_new;
-      if (this->dist_new[i] != 0) {
-        /*std::cout << i << ":" << this->dist_new[i] << " ";*/
-      }
     }
-    /*std::cout << std::endl;*/
+    std::cout << std::endl;
 
     auto stop = std::chrono::high_resolution_clock::now();
     auto time =
@@ -624,6 +634,26 @@ public:
            "%9.1f\n\n",
            iter, this->n_new);
     iter++;
+
+    print_stats();
+  }
+
+  void print_stats() {
+    std::cout << "ns : " << std::endl;
+    for (size_t i = 0; i < this->ns.size(); i++) {
+      if (this->ns[i] != 0) {
+        std::cout << i << ":" << this->ns[i] << " ";
+      }
+    }
+    std::cout << std::endl;
+
+    std::cout << "Dist_new: " << std::endl;
+    for (uint32_t i = 0; i < this->dist_new.size(); i++) {
+      if (this->dist_new[i] != 0) {
+        std::cout << i << ":" << this->dist_new[i] << " ";
+      }
+    }
+    std::cout << std::endl;
   }
 };
 

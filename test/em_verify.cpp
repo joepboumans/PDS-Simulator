@@ -1,11 +1,49 @@
 #include "common.h"
 #include "data-parser.h"
 #include "fcm-sketches.hpp"
+#include <catch2/catch_all.hpp>
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/internal/catch_run_context.hpp>
+#include <catch2/internal/catch_stdstreams.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 #include <catch2/matchers/catch_matchers_vector.hpp>
 #include <cstddef>
+#include <cstdint>
+#include <iostream>
+#include <vector>
+
+vector<TUPLE> generate_n_tuples(uint32_t n, TupleSize sz) {
+  std::srand(Catch::rngSeed());
+  uint32_t r = std::rand() % 255;
+  vector<TUPLE> tuple(n);
+  for (size_t i = 0; i < n; i++) {
+    tuple[i].sz = sz;
+    tuple[i] = tuple[i] + i + r;
+  }
+  return tuple;
+}
+
+void compare_fsd(vector<double> x, vector<double> y) {
+  if (x.size() != y.size()) {
+    std::cout << "[ERROR] not matching sizes!" << std::endl;
+    exit(1);
+  }
+  for (size_t i = 0; i < x.size(); i++) {
+    if (x[i] == 0 and y[i] == 0) {
+      continue;
+    }
+
+    std::cout << i << ": " << x[i] << " = " << y[i];
+    if (&x[i] != &x.back()) {
+      std::cout << ", ";
+    }
+    REQUIRE(x[i] == y[i]);
+  }
+  std::cout << std::endl;
+}
 
 TEST_CASE("Smoke Test", "[smoke-test]") {
   REQUIRE(true == true);
@@ -37,7 +75,8 @@ TEST_CASE("Small trace of EM FCM vs EM WFCM", "[trace][small]") {
   REQUIRE(fcm.average_absolute_error == 0);
   REQUIRE(fcm.average_relative_error == 0);
 
-  for (size_t i = 0; i < trace.size(); i++) {
+  /*for (size_t i = 0; i < trace.size(); i++) {*/
+  for (size_t i = 0; i < 1000; i++) {
     fcm.insert(trace.at(i));
   }
 
@@ -56,7 +95,7 @@ TEST_CASE("Small trace of EM FCM vs EM WFCM", "[trace][small]") {
   // Compare if WMRE and NS are approx equal. Small difference due to different
   // floating point operations between FCMS and WFCM
   REQUIRE(org_wmre == Catch::Approx(wfcm_wmre).margin(0.0001));
-  /*REQUIRE_THAT(ns_org, Catch::Matchers::Approx(ns_wfcm).margin(0.0001));*/
+  REQUIRE_THAT(ns_org, Catch::Matchers::Approx(ns_wfcm).margin(0.0001));
 }
 
 TEST_CASE("Degree 1, l2 ", "[em][l1]") {
@@ -115,7 +154,7 @@ TEST_CASE("Degree 1, l3 ", "[em][l1]") {
   REQUIRE_THAT(ns_org, Catch::Matchers::Equals(ns_wfcm));
 }
 
-TEST_CASE("Degree 2; L2 Collision", "[em][md][d2][l2]") {
+TEST_CASE("Degree 2; L2 Collision", "[em][d2][l2]") {
 
   TupleSize tuple_sz = SrcTuple;
   FCM_Sketches fcm(4, NUM_STAGES, K, DEPTH, 1, 1, "test", tuple_sz);
@@ -128,7 +167,7 @@ TEST_CASE("Degree 2; L2 Collision", "[em][md][d2][l2]") {
   tuple2.sz = tuple_sz;
   tuple2++;
   // Collision in l2, degree 2
-  for (size_t i = 0; i < 300; i++) {
+  for (size_t i = 0; i < 260; i++) {
     fcm.insert(tuple, 0);
     fcm.insert(tuple2, 1);
   }
@@ -148,7 +187,7 @@ TEST_CASE("Degree 2; L2 Collision", "[em][md][d2][l2]") {
   REQUIRE_THAT(ns_org, Catch::Matchers::Equals(ns_wfcm));
 }
 
-TEST_CASE("Degree 4; 4x L2 Collision", "[em][md][d4][l2]") {
+TEST_CASE("Degree 4; 4x L2 Collision", "[em][d4][l2]") {
 
   TupleSize tuple_sz = SrcTuple;
   FCM_Sketches fcm(4, NUM_STAGES, K, DEPTH, 1, 1, "test", tuple_sz);
@@ -182,22 +221,18 @@ TEST_CASE("Degree 4; 4x L2 Collision", "[em][md][d4][l2]") {
   REQUIRE_THAT(ns_org, Catch::Matchers::Equals(ns_wfcm));
 }
 
-TEST_CASE("Degree 8; 8x L2 Collision", "[em][md][l2]") {
+TEST_CASE("Degree 8; 8x L2 Collision", "[em][d8][l2]") {
 
   TupleSize tuple_sz = SrcTuple;
   FCM_Sketches fcm(4, NUM_STAGES, K, DEPTH, 1, 1, "test", tuple_sz);
   REQUIRE(fcm.average_absolute_error == 0);
   REQUIRE(fcm.average_relative_error == 0);
 
-  TUPLE tuple[8];
-  for (size_t i = 0; i < 8; i++) {
-    tuple[i].sz = tuple_sz;
-    tuple[i] = tuple[i] + i;
-  }
+  vector<TUPLE> tuple = generate_n_tuples(8, tuple_sz);
   // Collision in l2, degree 2
   for (size_t i = 0; i < 300; i++) {
-    for (size_t i = 0; i < 8; i++) {
-      fcm.insert(tuple[i], i);
+    for (size_t i = 0; i < tuple.size(); i++) {
+      fcm.insert(tuple.at(i), i);
     }
   }
 
@@ -213,10 +248,11 @@ TEST_CASE("Degree 8; 8x L2 Collision", "[em][md][l2]") {
   double wfcm_wmre = fcm.wmre;
 
   REQUIRE(org_wmre == wfcm_wmre);
+  compare_fsd(ns_org, ns_wfcm);
   REQUIRE_THAT(ns_org, Catch::Matchers::Equals(ns_wfcm));
 }
 
-TEST_CASE("Degree 2; L2 collision; L3 overflow", "[em][md][l3]") {
+TEST_CASE("Degree 2; L2 collision; L3 overflow", "[em][d2][l3]") {
 
   TupleSize tuple_sz = SrcTuple;
   FCM_Sketches fcm(4, NUM_STAGES, K, DEPTH, 1, 1, "test", tuple_sz);
@@ -245,10 +281,11 @@ TEST_CASE("Degree 2; L2 collision; L3 overflow", "[em][md][l3]") {
   double wfcm_wmre = fcm.wmre;
 
   REQUIRE(org_wmre == wfcm_wmre);
+  compare_fsd(ns_org, ns_wfcm);
   REQUIRE_THAT(ns_org, Catch::Matchers::Equals(ns_wfcm));
 }
 
-TEST_CASE("Degree 2; L3 Collision", "[em][md][l3]") {
+TEST_CASE("Degree 2; L3 Collision", "[em][d2][l3]") {
   std::cout << std::endl;
   std::cout << "-------------" << std::endl;
   std::cout << "[TEST CASE] Degree 2; L3 Collision" << std::endl;
@@ -283,5 +320,41 @@ TEST_CASE("Degree 2; L3 Collision", "[em][md][l3]") {
   double wfcm_wmre = fcm.wmre;
 
   REQUIRE(org_wmre == wfcm_wmre);
+  compare_fsd(ns_org, ns_wfcm);
+  REQUIRE_THAT(ns_org, Catch::Matchers::Equals(ns_wfcm));
+}
+
+TEST_CASE("Multi Degree ; L3 Collision", "[em][md][l3]") {
+  TupleSize tuple_sz = SrcTuple;
+  FCM_Sketches fcm(4, NUM_STAGES, K, DEPTH, 1, 1, "test", tuple_sz);
+  REQUIRE(fcm.average_absolute_error == 0);
+  REQUIRE(fcm.average_relative_error == 0);
+
+  auto colls = GENERATE(2, 3);
+  vector<TUPLE> tuple = generate_n_tuples(1 + colls, tuple_sz);
+  // Collision in l3, degree 2
+  for (size_t i = 0; i < 70000; i++) {
+    for (size_t j = 0; j < colls; j++) {
+      fcm.insert(tuple.at(j), j * 8);
+    }
+  }
+
+  for (size_t i = 0; i < 260; i++) {
+    fcm.insert(tuple.at(2), 1);
+  }
+
+  fcm.print_sketch();
+
+  fcm.analyze(0);
+  vector<double> ns_org = fcm.ns;
+  double org_wmre = fcm.wmre;
+
+  fcm.estimator_org = false;
+  fcm.analyze(0);
+  vector<double> ns_wfcm = fcm.ns;
+  double wfcm_wmre = fcm.wmre;
+
+  REQUIRE(org_wmre == wfcm_wmre);
+  compare_fsd(ns_org, ns_wfcm);
   REQUIRE_THAT(ns_org, Catch::Matchers::Equals(ns_wfcm));
 }

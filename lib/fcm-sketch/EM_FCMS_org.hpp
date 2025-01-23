@@ -1,6 +1,7 @@
 #ifndef _EMALGORITHM_FCM_H_
 #define _EMALGORITHM_FCM_H_
 
+#include "common.h"
 #include <cmath>
 #include <cstdint>
 #include <functional>
@@ -179,6 +180,7 @@ private:
       /*printf("Setup gen with sum:%d, in_degree:%d, beta_degree:%d, "*/
       /*       "simplified:%d, flow_num_limit:%d\n",*/
       /*       sum, _degree, beta_degree, simplified, flow_num_limit);*/
+      /*print_thresholds();*/
     }
 
     bool get_new_comb() {
@@ -300,8 +302,9 @@ private:
                    i < thres[beta_degree][1] + thres[beta_degree + 1][1]; ++i)
                 val_2 += now_result[i];
 
-              if (val_1 <= thres_l2_1 or val_2 <= thres_l2_2)
+              if (val_1 <= thres_l2_1 or val_2 <= thres_l2_2) {
                 return false;
+              }
             }
           }
         } else { // only when degree 3
@@ -463,6 +466,21 @@ private:
       }
       // }
       return true;
+    }
+
+    void print_thresholds() {
+      std::cout << "Threshold[" << thres.size() << "] ";
+      for (auto &t : thres) {
+        std::cout << " <";
+        for (auto &x : t) {
+          std::cout << x;
+          if (&x != &t.back()) {
+            std::cout << ", ";
+          }
+        }
+        std::cout << "> ";
+      }
+      std::cout << std::endl;
     }
 
     void print_now_result() {
@@ -670,6 +688,18 @@ public:
                     << std::endl;
           vector<vector<uint32_t>> temp_thres =
               newsk_thres[d][xi][i]; // thresholds
+          for (auto &t : temp_thres) {
+            std::cout << "<";
+            for (auto &x : t) {
+              std::cout << x;
+              if (&x != &t.back()) {
+                std::cout << ", ";
+              }
+            }
+            std::cout << "> ";
+          }
+          std::cout << std::endl;
+
           int temp_n_layer2 =
               temp_thres.size() - xi; // if layer 2 threshold exists?
           int temp_threshold_l1 = temp_thres[0][2]; // threshold of layer 1
@@ -679,6 +709,8 @@ public:
               temp_threshold_l1 * (xi - 1); // remove overlaps at layer 1
           if (temp_n_layer2 > 0) {
             int temp_threshold_l2 = temp_thres[xi][2];
+            std::cout << "Removing " << temp_threshold_l2 << " "
+                      << temp_n_layer2 << " times" << std::endl;
             temp_val -= temp_threshold_l2 * (temp_n_layer2 - 1);
           }
           std::cout << " Storing 1 in " << temp_val << std::endl;
@@ -737,7 +769,7 @@ public:
     printf("[EM] Start multi-threading...\n");
     std::thread thrd[total_num_thread];
     int iter_thread = 0;
-    if (1) {
+    if (0) {
       for (int d = 0; d < FCM_DEPTH; ++d) {
         for (int xi = 1; xi <= num_thread[d]; ++xi) { // degree (xi)
           // parallelization
@@ -756,6 +788,7 @@ public:
       /***   dash until thread is finished ***/
       for (int i = 0; i < total_num_thread; ++i)
         thrd[i].join();
+
     } else {
 
       // /***** SINGLE_THREADING ****/
@@ -773,32 +806,42 @@ public:
     // collect all information
     for (int d = 0; d < FCM_DEPTH; ++d)
       for (int xi = 1; xi <= num_thread[d]; ++xi)
-        /*for (int i = 0; i < nt_d_xi[d][xi].size(); ++i)*/
-        for (int i = 0; i < ns.size(); ++i)
+        for (int i = 0; i < nt_d_xi[d][xi].size(); ++i)
           ns[i] += nt_d_xi[d][xi][i];
 
-    /*std::cout << "ns : " << std::endl;*/
     n_new = 0.0;
     for (int i = 0; i < ns.size(); ++i) {
       if (ns[i] != 0) {
         ns[i] /= double(FCM_DEPTH); // divide the denominator
         n_new += ns[i];             // save the results
-        /*std::cout << i << ":" << ns[i] << " ";*/
       }
     }
-    /*std::cout << std::endl;*/
 
-    /*std::cout << "Dist_new: " << std::endl;*/
     for (int i = 0; i < ns.size(); ++i) {
       dist_new[i] = ns[i] / n_new;
-      if (dist_new[i] != 0) {
-        /*std::cout << i << ":" << dist_new[i] << " ";*/
-      }
     }
-    /*std::cout << std::endl;*/
 
     printf("[EM_FCM - iter %2d] Intermediate cardianlity : %9.1f\n\n", iter,
            n_new);
+    print_stats();
+  }
+
+  void print_stats() {
+    std::cout << "ns : " << std::endl;
+    for (size_t i = 0; i < this->ns.size(); i++) {
+      if (this->ns[i] != 0) {
+        std::cout << i << ":" << this->ns[i] << " ";
+      }
+    }
+    std::cout << std::endl;
+
+    std::cout << "Dist_new: " << std::endl;
+    for (uint32_t i = 0; i < this->dist_new.size(); i++) {
+      if (this->dist_new[i] != 0) {
+        std::cout << i << ":" << this->dist_new[i] << " ";
+      }
+    }
+    std::cout << std::endl;
   }
 };
 

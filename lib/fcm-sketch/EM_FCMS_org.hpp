@@ -677,43 +677,55 @@ public:
         sum_p += get_p_from_beta_fcm(bts1, lambda, dist_old, n_old, xi, d);
         sum_iter += 1;
       }
-      std::cout << "Found sum_p " << sum_p << " with " << sum_iter << " iters"
-                << " and with " << bts1.total_combi << " combinations"
-                << std::endl;
+      std::cout << "Val " << newsk[d][xi][i] << " found sum_p " << sum_p
+                << " with " << bts1.total_combi << " combinations" << std::endl;
+      for (auto &t : newsk_thres[d][xi][i]) {
+        std::cout << "<";
+        for (auto &x : t) {
+          std::cout << x;
+          if (&x != &t.back()) {
+            std::cout << ", ";
+          }
+        }
+        std::cout << "> ";
+      }
+      std::cout << std::endl;
 
       if (sum_p == 0) {                   // for debug
         if (sum_iter > 0) {               // adjust the value
           int temp_val = newsk[d][xi][i]; // value
-          std::cout << "adjust value at " << i << " with val " << temp_val
-                    << std::endl;
           vector<vector<uint32_t>> temp_thres =
               newsk_thres[d][xi][i]; // thresholds
-          for (auto &t : temp_thres) {
-            std::cout << "<";
-            for (auto &x : t) {
-              std::cout << x;
-              if (&x != &t.back()) {
-                std::cout << ", ";
-              }
-            }
-            std::cout << "> ";
-          }
-          std::cout << std::endl;
 
           int temp_n_layer2 =
               temp_thres.size() - xi; // if layer 2 threshold exists?
           int temp_threshold_l1 = temp_thres[0][2]; // threshold of layer 1
-          std::cout << "with value " << temp_threshold_l1 << " of l1 and "
-                    << temp_n_layer2 << " of l2" << std::endl;
+
+          /*std::cout << "adjust value at " << i << " with val " << temp_val*/
+          /*          << std::endl;*/
+          /*for (auto &t : temp_thres) {*/
+          /*  std::cout << "<";*/
+          /*  for (auto &x : t) {*/
+          /*    std::cout << x;*/
+          /*    if (&x != &t.back()) {*/
+          /*      std::cout << ", ";*/
+          /*    }*/
+          /*  }*/
+          /*  std::cout << "> ";*/
+          /*}*/
+          /*std::cout << std::endl;*/
+          /*std::cout << "with value " << temp_threshold_l1 << " of l1 and "*/
+          /*          << temp_n_layer2 << " of l2" << std::endl;*/
+
           temp_val -=
               temp_threshold_l1 * (xi - 1); // remove overlaps at layer 1
           if (temp_n_layer2 > 0) {
             int temp_threshold_l2 = temp_thres[temp_thres.size() - 1][2];
-            std::cout << "Removing " << temp_threshold_l2 << " "
-                      << temp_n_layer2 << " times" << std::endl;
+            /*std::cout << "Removing " << temp_threshold_l2 << " "*/
+            /*          << temp_n_layer2 << " times" << std::endl;*/
             temp_val -= temp_threshold_l2 * (temp_n_layer2 - 1);
           }
-          std::cout << " Storing 1 in " << temp_val << std::endl;
+          /*std::cout << " Storing 1 in " << temp_val << std::endl;*/
           nt_vec[temp_val] += 1;
         }
       } else {
@@ -823,7 +835,7 @@ public:
 
     printf("[EM_FCM - iter %2d] Intermediate cardianlity : %9.1f\n\n", iter,
            n_new);
-    print_stats();
+    /*print_stats();*/
   }
 
   void print_stats() {

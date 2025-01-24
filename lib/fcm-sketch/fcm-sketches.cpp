@@ -47,12 +47,13 @@ uint32_t FCM_Sketches::insert(TUPLE tuple) {
 }
 
 uint32_t FCM_Sketches::insert(TUPLE tuple, uint32_t idx) {
-  this->true_data[tuple]++;
 
   if (idx >= this->stages_sz[0]) {
     std::cout << "Given idx out of range" << std::endl;
     exit(1);
   }
+
+  this->true_data[tuple]++;
   for (size_t d = 0; d < this->depth; d++) {
     uint32_t c = 0;
     uint32_t hash_idx = idx;
@@ -700,6 +701,10 @@ double FCM_Sketches::get_distribution_Waterfall(vector<uint32_t> &true_fsd) {
               // overflown paths
               overflown++;
               child_overflown = true;
+              // TODO: Adding thresholds like this does not account for
+              // differences in layers: 254 + 254 + 65534 = 66042 is treated the
+              // same as 254 + 65534 = 65788
+              // Results in minor error max ~2.5%
               for (size_t j = 0;
                    j < overflow_paths[d][stage - 1][child_idx].size(); j++) {
                 overflow_paths[d][stage][i][j][0] +=

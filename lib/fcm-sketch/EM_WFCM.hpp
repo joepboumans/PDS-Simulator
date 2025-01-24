@@ -51,6 +51,7 @@ public:
     // Setup counters and counters_distribution for estimation, counter_dist is
     // Depth, Degree, Count
     for (size_t d = 0; d < DEPTH; d++) {
+      this->thresholds[d][1].resize(this->max_counter_value + 1);
       this->counter_dist[d].resize(this->max_degree[d] + 1);
 
       for (size_t xi = 0; xi < this->counter_dist[d].size(); xi++) {
@@ -473,38 +474,40 @@ private:
         }
 
         std::cout << "Val " << this->counters[d][xi][i] << " found sum_p "
-                  << sum_p << " with " << it << " iters"
-                  << " and with " << alpha.total_combi << " combinations"
+                  << sum_p << " with " << alpha.total_combi << " combinations"
                   << std::endl;
-        /*for (auto &t : this->thresholds[d][xi][i]) {*/
-        /*  std::cout << "<";*/
-        /*  for (auto &x : t) {*/
-        /*    std::cout << x;*/
-        /*    if (&x != &t.back()) {*/
-        /*      std::cout << ", ";*/
-        /*    }*/
-        /*  }*/
-        /*  std::cout << "> ";*/
-        /*}*/
+        for (auto &t : this->thresholds[d][xi][i]) {
+          std::cout << "<";
+          for (auto &x : t) {
+            std::cout << x;
+            if (&x != &t.back()) {
+              std::cout << ", ";
+            }
+          }
+          std::cout << "> ";
+        }
+        std::cout << std::endl;
+
         // If there where valid combinations, but value of combinations where
         // not found in measured data. We
         if (sum_p == 0.0) {
           if (it > 0) {
             uint32_t temp_val = this->counters[d][xi][i];
-            std::cout << "adjust value at " << i << " with val " << temp_val
-                      << std::endl;
             vector<vector<uint32_t>> temp_thresh = this->thresholds[d][xi][i];
-            for (auto &t : temp_thresh) {
-              std::cout << "<";
-              for (auto &x : t) {
-                std::cout << x;
-                if (&x != &t.back()) {
-                  std::cout << ", ";
-                }
-              }
-              std::cout << "> ";
-            }
-            std::cout << std::endl;
+
+            /*std::cout << "adjust value at " << i << " with val " << temp_val*/
+            /*          << std::endl;*/
+            /*for (auto &t : temp_thresh) {*/
+            /*  std::cout << "<";*/
+            /*  for (auto &x : t) {*/
+            /*    std::cout << x;*/
+            /*    if (&x != &t.back()) {*/
+            /*      std::cout << ", ";*/
+            /*    }*/
+            /*  }*/
+            /*  std::cout << "> ";*/
+            /*}*/
+            /*std::cout << std::endl;*/
 
             // Remove l1 collisions, keep one flow
             temp_val -= temp_thresh.back()[1] * (xi - 1);
@@ -512,7 +515,7 @@ private:
               temp_val -= temp_thresh[1][1] * (temp_thresh[1][0] - 1);
             }
 
-            std::cout << "Storing 1 at " << temp_val << std::endl;
+            /*std::cout << "Storing 1 at " << temp_val << std::endl;*/
             nt[temp_val] += 1;
           }
         } else {
@@ -636,7 +639,7 @@ public:
            iter, this->n_new);
     iter++;
 
-    print_stats();
+    /*print_stats();*/
   }
 
   void print_stats() {

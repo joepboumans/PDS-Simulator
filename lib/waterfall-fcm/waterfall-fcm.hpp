@@ -31,7 +31,8 @@ public:
                uint32_t length, string trace, uint8_t tuple_sz)
       : PDS(trace, tuple_sz), waterfall(n_tables, length, trace, tuple_sz),
         n_stages(n_stages), em_iters(em_iters), hh_threshold(hh_threshold),
-        fcm_sketches(W3, 3, 8, DEPTH, 100000, 1, trace, tuple_sz) {
+        fcm_sketches(n_roots, n_stages, k, DEPTH, hh_threshold, em_iters, trace,
+                     tuple_sz) {
 
     this->fcm_sketches.estimate_fsd = false;
     // Setup logging
@@ -67,6 +68,7 @@ public:
   void store_data();
   void print_sketch();
   vector<uint32_t> peel_sketches(set<TUPLE> &tuples);
+  vector<vector<uint32_t>> get_initial_degrees(set<TUPLE> tuples);
   double get_distribution(set<TUPLE> &tuples, vector<uint32_t> &true_fsd);
   void set_estimate_fsd(bool onoff);
   void analyze(int epoch);

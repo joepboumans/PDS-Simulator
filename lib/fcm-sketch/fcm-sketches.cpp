@@ -516,7 +516,7 @@ double FCM_Sketches::get_distribution(vector<uint32_t> &true_fsd) {
                "newsk_thresh"
             << std::endl;
   // just for debugging, 1 for print, 0 for not print.
-  if (0) {
+  if (1) {
     int maximum_val = 0;
     for (int d = 0; d < DEPTH; ++d) {
       for (int i = 0; i < newsk[d].size(); ++i) {
@@ -742,7 +742,7 @@ double FCM_Sketches::get_distribution_Waterfall(vector<uint32_t> &true_fsd) {
 
   std::cout << "[EM_GFCM] ...done!" << std::endl;
 
-  if (0) {
+  if (1) {
     // Print vc with thresholds
     for (size_t d = 0; d < DEPTH; d++) {
       for (size_t st = 0; st < virtual_counters[d].size(); st++) {
@@ -759,8 +759,8 @@ double FCM_Sketches::get_distribution_Waterfall(vector<uint32_t> &true_fsd) {
               if (&x != &t.back()) {
                 std::cout << ", ";
               }
-              std::cout << ">";
             }
+            std::cout << ">";
             if (&t != &thresholds[d][st][i].back()) {
               std::cout << ", ";
             }

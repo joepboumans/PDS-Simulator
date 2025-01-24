@@ -46,7 +46,7 @@ public:
       : thresholds(thresh), counters(counters), counter_dist(DEPTH),
         max_counter_value(in_max_value), max_degree(max_degree) {
 
-    std::cout << "[EM_GFCM] Init EMFSD" << std::endl;
+    std::cout << "[EM_WFCM] Init EMFSD" << std::endl;
 
     // Setup counters and counters_distribution for estimation, counter_dist is
     // Depth, Degree, Count
@@ -58,7 +58,7 @@ public:
         this->counter_dist[d][xi].resize(this->max_counter_value + 1);
       }
     }
-    std::cout << "[EM_GFCM] Finished setting up counter_dist and "
+    std::cout << "[EM_WFCM] Finished setting up counter_dist and "
                  "thresholds"
               << std::endl;
     // Inital guess for # of flows, sum total number of counters
@@ -75,7 +75,7 @@ public:
     // Divide by number of sketches
     this->n_new = this->n_new / double(DEPTH);
 
-    std::cout << "[EM_GFCM] Initial cardinality guess : " << this->n_new
+    std::cout << "[EM_WFCM] Initial cardinality guess : " << this->n_new
               << std::endl;
 
     // Inital guess for Flow Size Distribution (Phi)
@@ -92,7 +92,7 @@ public:
       }
     }
 
-    std::cout << "[EM_GFCM] Initial Flow Size Distribution guess" << std::endl;
+    std::cout << "[EM_WFCM] Initial Flow Size Distribution guess" << std::endl;
     /*for (size_t i = 0; i < this->dist_new.size(); i++) {*/
     /*  if (this->dist_new[i] != 0) {*/
     /*    std::cout << i << ":" << this->dist_new[i] << " ";*/
@@ -100,7 +100,7 @@ public:
     /*}*/
     /*std::cout << std::endl;*/
 
-    std::cout << "[EM_GFCM] Normalize guesses" << std::endl;
+    std::cout << "[EM_WFCM] Normalize guesses" << std::endl;
     // Normalize over inital cardinality
     for (size_t i = 0; i < this->dist_new.size(); i++) {
       this->dist_new[i] /= (static_cast<double>(DEPTH) * this->n_new);
@@ -114,9 +114,9 @@ public:
     /*}*/
     /*std::cout << std::endl;*/
 
-    printf("[EM_GFCM] Initial Cardinality : %9.1f\n", this->n_new);
-    printf("[EM_GFCM] Max Counter value : %d\n", this->max_counter_value);
-    printf("[EM_GFCM] Max degree : %d, %d\n", this->max_degree[0],
+    printf("[EM_WFCM] Initial Cardinality : %9.1f\n", this->n_new);
+    printf("[EM_WFCM] Max Counter value : %d\n", this->max_counter_value);
+    printf("[EM_WFCM] Max degree : %d, %d\n", this->max_degree[0],
            this->max_degree[1]);
   }
 
@@ -408,7 +408,7 @@ private:
     std::fill(nt.begin(), nt.end(), 0.0);
     double lambda = this->n_old * xi / static_cast<double>(w);
 
-    printf("[EM_GFCM] ******** Running for degree %2d with a size of "
+    printf("[EM_WFCM] ******** Running for degree %2d with a size of "
            "%12zu\t\t"
            "**********\n",
            xi, this->counters[d][xi].size());
@@ -540,20 +540,20 @@ private:
       std::cout << std::endl;
     }
     if (this->counters[d][xi].size() != 0)
-      printf("[EM_GFCM] ******** depth %d degree %2d is "
+      printf("[EM_WFCM] ******** depth %d degree %2d is "
              "finished...(accum:%10.1f #val:%8d)\t**********\n",
              d, xi, accum, (int)this->counters[d][xi].size());
   }
 
 public:
   void next_epoch() {
-    std::cout << "[EM_GFCM] Start next epoch" << std::endl;
+    std::cout << "[EM_WFCM] Start next epoch" << std::endl;
     auto start = std::chrono::high_resolution_clock::now();
 
     this->n_old = this->n_new;
     this->dist_old = this->dist_new;
 
-    std::cout << "[EM_GFCM] Copy first degree distribution" << std::endl;
+    std::cout << "[EM_WFCM] Copy first degree distribution" << std::endl;
 
     // Always copy first degree as this is can be considered a perfect
     // estimation. qWaterfall is not perfect, but assumed to be
@@ -568,7 +568,7 @@ public:
     }
 
     std::fill(this->ns.begin(), this->ns.end(), 0);
-    std::cout << "[EM_GFCM] Init first degree" << std::endl;
+    std::cout << "[EM_WFCM] Init first degree" << std::endl;
     // Simple Multi thread
     vector<vector<std::thread>> threads(DEPTH);
     for (size_t d = 0; d < threads.size(); d++) {
@@ -576,20 +576,20 @@ public:
     }
 
     uint32_t total_degree = this->max_degree[0] + this->max_degree[1] + 1;
-    std::cout << "[EM_GFCM] Created " << total_degree << " threads"
+    std::cout << "[EM_WFCM] Created " << total_degree << " threads"
               << std::endl;
 
     if (0) {
       for (size_t d = 0; d < DEPTH; d++) {
         for (size_t t = 1; t < threads[d].size(); t++) {
-          std::cout << "[EM_GFCM] Start thread " << t << " at depth " << d
+          std::cout << "[EM_WFCM] Start thread " << t << " at depth " << d
                     << std::endl;
           threads[d][t] = std::thread(&EM_WFCM::calculate_degree, *this,
                                       std::ref(nt[d][t]), d, t);
         }
       }
 
-      std::cout << "[EM_GFCM] Started all threads, wait for them to finish..."
+      std::cout << "[EM_WFCM] Started all threads, wait for them to finish..."
                 << std::endl;
 
       for (size_t d = 0; d < DEPTH; d++) {
@@ -606,7 +606,7 @@ public:
       }
     }
 
-    std::cout << "[EM_GFCM] Finished calculating nt per degree" << std::endl;
+    std::cout << "[EM_WFCM] Finished calculating nt per degree" << std::endl;
 
     for (size_t d = 0; d < DEPTH; d++) {
       for (size_t xi = 0; xi < nt[d].size(); xi++) {
@@ -633,8 +633,8 @@ public:
     auto time =
         std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
 
-    printf("[EM_GFCM - iter %2d] Compute time : %li\n", iter, time.count());
-    printf("[EM_GFCM - iter %2d] Intermediate cardianlity : "
+    printf("[EM_WFCM - iter %2d] Compute time : %li\n", iter, time.count());
+    printf("[EM_WFCM - iter %2d] Intermediate cardianlity : "
            "%9.1f\n\n",
            iter, this->n_new);
     iter++;

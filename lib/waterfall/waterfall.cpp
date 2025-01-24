@@ -9,6 +9,7 @@
 #include <math.h>
 #include <ostream>
 #include <sys/types.h>
+#include <vector>
 
 uint32_t Waterfall::insert(TUPLE tuple) {
   tuple.sz = this->tuple_sz;
@@ -127,4 +128,5 @@ void Waterfall::print_sketch() {
     std::cout << std::endl;
   }
 }
+
 #endif // !_WATERFALL_CPP

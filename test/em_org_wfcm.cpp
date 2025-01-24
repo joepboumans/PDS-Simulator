@@ -89,9 +89,9 @@ TEST_CASE("Small trace of EM FCM vs EM WFCM", "[trace][small]") {
   vector<double> ns_wfcm = wfcm.fcm_sketches.ns;
   double wfcm_wmre = wfcm.wmre;
 
-  wfcm.analyze(0);
   wfcm.fcm_sketches.estimate_fsd = true;
   wfcm.estimate_fsd = false;
+  wfcm.analyze(0);
 
   vector<double> ns_org = wfcm.fcm_sketches.ns;
   double org_wmre = wfcm.wmre;
@@ -102,6 +102,91 @@ TEST_CASE("Small trace of EM FCM vs EM WFCM", "[trace][small]") {
   CHECK(org_wmre == Catch::Approx(wfcm_wmre).margin(0.0001));
   compare_fsd(ns_org, ns_wfcm);
   /*CHECK_THAT(ns_org, Catch::Matchers::Approx(ns_wfcm).margin(0.0001));*/
+}
+
+TEST_CASE("Degree 2 ; l2", "[em][md][l2]") {
+  TupleSize tuple_sz = SrcTuple;
+  WaterfallFCM wfcm(4, NUM_STAGES, K, 1, 1, 4, 65535, "test", tuple_sz);
+  REQUIRE(wfcm.average_absolute_error == 0);
+  REQUIRE(wfcm.average_relative_error == 0);
+
+  vector<TUPLE> tuple = generate_n_tuples(2, tuple_sz);
+
+  // Insert flows
+  for (size_t i = 0; i < 260; i++) {
+    for (size_t j = 0; j < 2; j++) {
+      wfcm.insert(tuple.at(j), j);
+    }
+  }
+  wfcm.fcm_sketches.print_sketch();
+
+  wfcm.analyze(0);
+  vector<double> ns_wfcm = wfcm.fcm_sketches.ns;
+  double wfcm_wmre = wfcm.wmre;
+
+  wfcm.fcm_sketches.estimate_fsd = true;
+  wfcm.estimate_fsd = false;
+  wfcm.analyze(0);
+
+  vector<double> ns_org = wfcm.fcm_sketches.ns;
+  double org_wmre = wfcm.wmre;
+
+  CHECK(org_wmre < 2.0);
+  CHECK(wfcm_wmre < 2.0);
+  CHECK(wfcm_wmre <= org_wmre);
+
+  REQUIRE(org_wmre == wfcm_wmre);
+  compare_fsd(ns_org, ns_wfcm);
+  REQUIRE_THAT(ns_org, Catch::Matchers::Equals(ns_wfcm));
+}
+
+TEST_CASE("Multi Degree ; l1", "[em][md][l1]") {
+  TupleSize tuple_sz = SrcTuple;
+  WaterfallFCM wfcm(4, NUM_STAGES, K, 1, 1, 4, 65535, "test", tuple_sz);
+  size_t l1_sz = wfcm.fcm_sketches.stages_sz[0];
+  REQUIRE(wfcm.average_absolute_error == 0);
+  REQUIRE(wfcm.average_relative_error == 0);
+
+  auto l1_flows = GENERATE(64, 128, 256, 2048);
+  vector<TUPLE> tuple = generate_n_tuples(l1_flows, tuple_sz);
+
+  std::random_device rd{};
+  std::mt19937 gen{rd()};
+  std::normal_distribution d{0.9, 16.0};
+  auto random_uint = [&d, &gen] {
+    auto val = d(gen);
+    if (val <= 0.0) {
+      return (uint32_t)1;
+    }
+    return (uint32_t)std::lround(val);
+  };
+  // Insert L1 flows
+  for (size_t j = 0; j < l1_flows; j++) {
+    uint32_t idx = rand() % l1_sz;
+    for (size_t i = 0; i < random_uint(); i++) {
+      wfcm.insert(tuple.at(j), idx);
+    }
+  }
+  wfcm.fcm_sketches.print_sketch();
+
+  wfcm.analyze(0);
+  vector<double> ns_wfcm = wfcm.fcm_sketches.ns;
+  double wfcm_wmre = wfcm.wmre;
+
+  wfcm.analyze(0);
+  wfcm.fcm_sketches.estimate_fsd = true;
+  wfcm.estimate_fsd = false;
+
+  vector<double> ns_org = wfcm.fcm_sketches.ns;
+  double org_wmre = wfcm.wmre;
+
+  CHECK(org_wmre < 2.0);
+  CHECK(wfcm_wmre < 2.0);
+  CHECK(wfcm_wmre <= org_wmre);
+
+  REQUIRE(org_wmre == wfcm_wmre);
+  compare_fsd(ns_org, ns_wfcm);
+  REQUIRE_THAT(ns_org, Catch::Matchers::Equals(ns_wfcm));
 }
 
 TEST_CASE("Multi Degree ; All", "[em][md][all]") {
@@ -156,9 +241,9 @@ TEST_CASE("Multi Degree ; All", "[em][md][all]") {
   vector<double> ns_wfcm = wfcm.fcm_sketches.ns;
   double wfcm_wmre = wfcm.wmre;
 
-  wfcm.analyze(0);
   wfcm.fcm_sketches.estimate_fsd = true;
   wfcm.estimate_fsd = false;
+  wfcm.analyze(0);
 
   vector<double> ns_org = wfcm.fcm_sketches.ns;
   double org_wmre = wfcm.wmre;

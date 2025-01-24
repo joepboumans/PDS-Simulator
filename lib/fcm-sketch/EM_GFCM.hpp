@@ -21,7 +21,7 @@
 using std::unordered_map;
 using std::vector;
 
-class EM_WFCM {
+class EM_GWFM {
 private:
   vector<vector<vector<vector<vector<uint32_t>>>>>
       thresholds; // depth, degree, count, < stage, total coll, local
@@ -40,7 +40,7 @@ public:
   double n_sum;
   double card_init; // initial cardinality by MLE
   uint32_t iter = 0;
-  EM_WFCM(vector<vector<vector<vector<vector<uint32_t>>>>> &thresh,
+  EM_GWFM(vector<vector<vector<vector<vector<uint32_t>>>>> &thresh,
           uint32_t in_max_value, vector<uint32_t> max_degree,
           vector<vector<vector<uint32_t>>> &counters)
       : thresholds(thresh), counters(counters), counter_dist(DEPTH),
@@ -584,7 +584,7 @@ public:
         for (size_t t = 1; t < threads[d].size(); t++) {
           std::cout << "[EM_WFCM] Start thread " << t << " at depth " << d
                     << std::endl;
-          threads[d][t] = std::thread(&EM_WFCM::calculate_degree, *this,
+          threads[d][t] = std::thread(&EM_GWFM::calculate_degree, *this,
                                       std::ref(nt[d][t]), d, t);
         }
       }

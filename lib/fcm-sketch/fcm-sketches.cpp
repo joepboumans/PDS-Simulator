@@ -3,7 +3,7 @@
 
 #include "fcm-sketches.hpp"
 #include "EM_FCMS_org.hpp"
-#include "EM_WFCM.hpp"
+#include "EM_GFCM.hpp"
 #include "common.h"
 #include <algorithm>
 #include <chrono>
@@ -776,7 +776,7 @@ double FCM_Sketches::get_distribution_Waterfall(vector<uint32_t> &true_fsd) {
   std::cout << "Maximum counter value is: " << max_counter_value << std::endl;
 
   std::cout << "[EMS_FSD] Initializing EMS_FSD..." << std::endl;
-  EM_WFCM EM(thresholds, max_counter_value, max_degree, virtual_counters);
+  EM_GWFM EM(thresholds, max_counter_value, max_degree, virtual_counters);
   std::cout << "[EMS_FSD] ...done!" << std::endl;
   auto total_start = std::chrono::high_resolution_clock::now();
 

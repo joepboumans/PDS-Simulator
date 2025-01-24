@@ -708,7 +708,7 @@ public:
           temp_val -=
               temp_threshold_l1 * (xi - 1); // remove overlaps at layer 1
           if (temp_n_layer2 > 0) {
-            int temp_threshold_l2 = temp_thres[xi][2];
+            int temp_threshold_l2 = temp_thres[temp_thres.size() - 1][2];
             std::cout << "Removing " << temp_threshold_l2 << " "
                       << temp_n_layer2 << " times" << std::endl;
             temp_val -= temp_threshold_l2 * (temp_n_layer2 - 1);

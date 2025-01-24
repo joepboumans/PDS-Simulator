@@ -506,6 +506,7 @@ private:
             }
             std::cout << std::endl;
 
+            // Remove l1 collisions, keep one flow
             temp_val -= temp_thresh.back()[1] * (xi - 1);
             if (temp_thresh.size() == 3) {
               temp_val -= temp_thresh[1][1] * (temp_thresh[1][0] - 1);

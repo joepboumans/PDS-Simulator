@@ -633,7 +633,7 @@ double FCM_Sketches::get_distribution_Waterfall(vector<uint32_t> &true_fsd) {
   vector<vector<vector<vector<vector<uint32_t>>>>> overflow_paths(
       this->n_stages);
 
-  std::cout << "[EM_WFCM] Setting up summary and overflow paths..."
+  std::cout << "[EM_GFCM] Setting up summary and overflow paths..."
             << std::endl;
   // Setup sizes for summary and overflow_paths
   for (size_t d = 0; d < this->depth; d++) {
@@ -648,8 +648,8 @@ double FCM_Sketches::get_distribution_Waterfall(vector<uint32_t> &true_fsd) {
       }
     }
   }
-  std::cout << "[EM_WFCM] ...done!" << std::endl;
-  std::cout << "[EM_WFCM] Setting up virtual counters and thresholds..."
+  std::cout << "[EM_GFCM] ...done!" << std::endl;
+  std::cout << "[EM_GFCM] Setting up virtual counters and thresholds..."
             << std::endl;
   // Create virtual counters based on degree and count
   // depth, degree, count value, n
@@ -666,8 +666,8 @@ double FCM_Sketches::get_distribution_Waterfall(vector<uint32_t> &true_fsd) {
     thresholds[d].resize(std::pow(this->k, this->n_stages));
   }
 
-  std::cout << "[EM_WFCM] ...done!" << std::endl;
-  std::cout << "[EM_WFCM] Load count from sketches into virtual counters and "
+  std::cout << "[EM_GFCM] ...done!" << std::endl;
+  std::cout << "[EM_GFCM] Load count from sketches into virtual counters and "
                "thresholds..."
             << std::endl;
   for (size_t d = 0; d < this->depth; d++) {
@@ -740,7 +740,7 @@ double FCM_Sketches::get_distribution_Waterfall(vector<uint32_t> &true_fsd) {
     }
   }
 
-  std::cout << "[EM_WFCM] ...done!" << std::endl;
+  std::cout << "[EM_GFCM] ...done!" << std::endl;
 
   if (0) {
     // Print vc with thresholds
@@ -776,7 +776,7 @@ double FCM_Sketches::get_distribution_Waterfall(vector<uint32_t> &true_fsd) {
   std::cout << "Maximum counter value is: " << max_counter_value << std::endl;
 
   std::cout << "[EMS_FSD] Initializing EMS_FSD..." << std::endl;
-  EM_GWFM EM(thresholds, max_counter_value, max_degree, virtual_counters);
+  EM_GFCM EM(thresholds, max_counter_value, max_degree, virtual_counters);
   std::cout << "[EMS_FSD] ...done!" << std::endl;
   auto total_start = std::chrono::high_resolution_clock::now();
 
@@ -800,7 +800,7 @@ double FCM_Sketches::get_distribution_Waterfall(vector<uint32_t> &true_fsd) {
       wmre_denom += double((double(true_fsd[i]) + this->ns[i]) / 2);
     }
     wmre = wmre_nom / wmre_denom;
-    std::cout << "[FCMS - EM WFCM iter " << i << "] intermediary wmre " << wmre
+    std::cout << "[FCMS - EM GFCM iter " << i << "] intermediary wmre " << wmre
               << " delta: " << wmre - d_wmre << std::endl;
     d_wmre = wmre;
     // entropy initialization

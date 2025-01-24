@@ -16,7 +16,6 @@
 
 class WaterfallFCM : public PDS {
 private:
-  FCM_Sketches fcm_sketches;
   Waterfall waterfall;
   uint32_t n_stages;
   uint32_t em_iters;
@@ -26,13 +25,13 @@ private:
   std::unordered_set<TUPLE, TupleHash> HH_candidates;
 
 public:
+  FCM_Sketches fcm_sketches;
   WaterfallFCM(uint32_t n_roots, uint32_t n_stages, uint32_t k,
                uint32_t hh_threshold, uint32_t em_iters, uint32_t n_tables,
                uint32_t length, string trace, uint8_t tuple_sz)
-      : PDS(trace, tuple_sz),
-        fcm_sketches(W3, 3, 8, DEPTH, 100000, 1, trace, tuple_sz),
-        waterfall(n_tables, length, trace, tuple_sz), n_stages(n_stages),
-        em_iters(em_iters), hh_threshold(hh_threshold) {
+      : PDS(trace, tuple_sz), waterfall(n_tables, length, trace, tuple_sz),
+        n_stages(n_stages), em_iters(em_iters), hh_threshold(hh_threshold),
+        fcm_sketches(W3, 3, 8, DEPTH, 100000, 1, trace, tuple_sz) {
 
     this->fcm_sketches.estimate_fsd = false;
     // Setup logging
@@ -52,6 +51,7 @@ public:
   }
 
   uint32_t insert(TUPLE tuple);
+  uint32_t insert(TUPLE tuple, uint32_t idx);
   uint32_t hashing(TUPLE tuple, uint32_t k);
   uint32_t lookup(TUPLE tuple);
   void reset();

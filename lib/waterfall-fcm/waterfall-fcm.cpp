@@ -18,6 +18,12 @@ uint32_t WaterfallFCM::insert(TUPLE tuple) {
   return 0;
 }
 
+uint32_t WaterfallFCM::insert(TUPLE tuple, uint32_t idx) {
+  this->waterfall.insert(tuple);
+  this->fcm_sketches.insert(tuple, idx);
+  return 0;
+}
+
 uint32_t WaterfallFCM::lookup(TUPLE tuple) {
   uint32_t member = this->waterfall.lookup(tuple);
   uint32_t count = this->fcm_sketches.lookup(tuple);

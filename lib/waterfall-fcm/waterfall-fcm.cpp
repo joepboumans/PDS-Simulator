@@ -25,7 +25,7 @@ uint32_t WaterfallFCM::insert(TUPLE tuple, uint32_t idx) {
   }
   TUPLE tmp;
   if (not this->waterfall.lookup(tuple)) {
-    std::cout << tuple << std::endl;
+    std::cout << tuple << " at idx " << idx << std::endl;
     this->idx_degree[idx]++;
   }
 
@@ -478,8 +478,10 @@ double WaterfallFCM::get_distribution(set<TUPLE> &tuples,
           continue;
         }
         for (size_t i = 0; i < virtual_counters[d][st].size(); i++) {
-          printf("Depth %zu, Degree %zu, Index %zu ]= Val %d \tThresholds: ", d,
-                 st, i, virtual_counters[d][st][i]);
+          printf("Depth %zu, Degree %zu, Sketch Degree %u, Index %zu ]= Val "
+                 "%d \tThresholds: ",
+                 d, st, sketch_degrees[d][st][i], i,
+                 virtual_counters[d][st][i]);
           for (auto &t : thresholds[d][st][i]) {
             std::cout << "<";
             for (auto &x : t) {

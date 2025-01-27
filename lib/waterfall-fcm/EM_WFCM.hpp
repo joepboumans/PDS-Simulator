@@ -3,6 +3,7 @@
 
 #include "common.h"
 #include <algorithm>
+#include <catch2/internal/catch_stdstreams.hpp>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
@@ -130,20 +131,23 @@ private:
     int flow_num_limit;
     int start_pos;
     uint32_t in_degree;
+    uint32_t in_sketch_degree;
     uint32_t total_combi = 0;
     vector<int> now_result;
     vector<vector<uint32_t>> thresh;
 
     explicit BetaGenerator(uint32_t _sum, uint32_t _in_degree,
+                           uint32_t _in_sketch_degree,
                            vector<vector<uint32_t>> _thresh)
         : sum(_sum), flow_num_limit(_in_degree), in_degree(_in_degree),
-          thresh(_thresh) {
+          in_sketch_degree(_in_sketch_degree), thresh(_thresh) {
 
+      flow_num_limit = std::max((uint32_t)6, in_degree);
       now_flow_num = 0;
+      start_pos = 0;
 
       // Setup limit for degree 1
-      if (in_degree <= 1) {
-        flow_num_limit = 6;
+      if (in_sketch_degree <= 1) {
         if (sum > 600) {
           flow_num_limit = std::min(2, flow_num_limit);
         } else if (sum > 250)
@@ -181,16 +185,13 @@ private:
         } else if (in_degree == 3 and sum > 5000) {
           flow_num_limit = 2;
           in_degree = 2;
-        } else if (in_degree == 2 and sum > ADD_LEVEL2) {
-          thresh[1][1] = 1;
         }
       }
 
-      start_pos = 0;
-      /*printf("Setup gen with sum:%d, in_degree:%d, flow_num_limit:%d\n",
-       * sum,*/
-      /*       in_degree, flow_num_limit);*/
-      /*print_thresholds();*/
+      printf("Setup gen with sum:%d, in_degree:%d, in_sketch_degree:%d, "
+             "flow_num_limit:%d\n",
+             sum, in_degree, in_sketch_degree, flow_num_limit);
+      print_thresholds();
     }
 
     bool get_new_comb() {
@@ -220,11 +221,11 @@ private:
           now_flow_num = 1;
           now_result.resize(now_flow_num);
           now_result[0] = sum;
-          if (in_degree == 1) {
+          if (in_sketch_degree == 1) {
             return true;
           }
         case 1:
-          now_flow_num = 2;
+          now_flow_num = in_degree;
           now_result[0] = 0;
         default:
           now_result.resize(now_flow_num);
@@ -286,6 +287,9 @@ private:
     }
 
     bool check_condition() {
+      if (in_sketch_degree == 1) {
+        return true;
+      }
 
       for (auto &t : thresh) {
         uint32_t colls = t[0];
@@ -418,116 +422,71 @@ private:
 
     // FCM 1 degree does not care about thresholds and thus can be calculated on
     // distribution instead of individual counters
-    if (xi == 1) {
-      for (uint32_t i = 0; i < this->counter_dist[d][xi].size(); i++) {
-        if (this->counter_dist[d][xi][i] == 0) {
-          continue;
-        }
-
-        BetaGenerator alpha(i, xi, this->thresholds[d][xi][i]),
-            beta(i, xi, this->thresholds[d][xi][i]);
-        double sum_p = 0.0;
-
-        // Sum over first combinations
-        while (alpha.get_next()) {
-          double p =
-              get_p_from_beta(alpha, lambda, this->dist_old, this->n_old, xi);
-          sum_p += p;
-        }
-
-        if (sum_p == 0.0) {
-          continue;
-        } else {
-          while (beta.get_next()) {
-            double p =
-                get_p_from_beta(beta, lambda, this->dist_old, this->n_old, xi);
-            for (size_t j = 0; j < beta.now_flow_num; ++j) {
-              nt[beta.now_result[j]] +=
-                  this->counter_dist[d][xi][i] * p / sum_p;
-            }
-          }
-        }
+    for (uint32_t i = 0; i < this->counters[d][xi].size(); i++) {
+      if (this->counters[d][xi][i] == 0) {
+        continue;
       }
-    } else {
-      for (uint32_t i = 0; i < this->counters[d][xi].size(); i++) {
-        if (this->counters[d][xi][i] == 0) {
+
+      uint32_t sum = this->counters[d][xi][i];
+      uint32_t sketch_xi = this->sketch_degrees[d][xi][i];
+      vector<vector<uint32_t>> thresh = this->thresholds[d][xi][i];
+
+      BetaGenerator alpha(sum, xi, sketch_xi, thresh),
+          beta(sum, xi, sketch_xi, thresh);
+      double sum_p = 0.0;
+      uint32_t it = 0;
+
+      // Sum over first combinations
+      std::cout << "Found val " << this->counters[d][xi][i] << std::endl;
+      while (alpha.get_next()) {
+        double p =
+            get_p_from_beta(alpha, lambda, this->dist_old, this->n_old, xi);
+        sum_p += p;
+        it++;
+      }
+
+      std::cout << "Val " << sum << " found sum_p " << sum_p << " with "
+                << alpha.total_combi << " combinations" << std::endl;
+      for (auto &t : thresh) {
+        std::cout << "<";
+        for (auto &x : t) {
+          std::cout << x;
+          if (&x != &t.back()) {
+            std::cout << ", ";
+          }
+        }
+        std::cout << "> ";
+      }
+      std::cout << std::endl;
+
+      // If there where valid combinations, but value of combinations where
+      // not found in measured data. We
+      if (sum_p == 0.0) {
+        if (sketch_xi <= 1) {
           continue;
         }
+        if (it > 0) {
+          uint32_t temp_val = sum;
 
-        if (this->thresholds[d][xi].size() <= i) {
-          std::cout << "Out of bound for thresholds" << std::endl;
-          std::cout << this->thresholds[d][xi].size() << std::endl;
-          std::cout << "At " << xi << " " << i << " with count "
-                    << this->counters[d][xi][i] << " ";
-          exit(1);
+          std::cout << "adjust value at " << i << " with val " << temp_val
+                    << std::endl;
+          alpha.print_thresholds();
+
+          // Remove l1 collisions, keep one flow
+          temp_val -= thresh.back()[3] * (sketch_xi - 1);
+          if (thresh.size() == 3) {
+            temp_val -= thresh[1][3] * (thresh[1][1] - 1);
+          }
+
+          std::cout << "Storing 1 at " << temp_val << std::endl;
+          nt[temp_val] += 1;
         }
-        BetaGenerator alpha(this->counters[d][xi][i], xi,
-                            this->thresholds[d][xi][i]),
-            beta(this->counters[d][xi][i], xi, this->thresholds[d][xi][i]);
-        double sum_p = 0.0;
-        uint32_t it = 0;
-
-        // Sum over first combinations
-        /*std::cout << "Found val " << this->counters[d][xi][i] << std::endl;*/
-        while (alpha.get_next()) {
+      } else {
+        while (beta.get_next()) {
           double p =
-              get_p_from_beta(alpha, lambda, this->dist_old, this->n_old, xi);
-          sum_p += p;
-          it++;
-        }
-
-        std::cout << "Val " << this->counters[d][xi][i] << " found sum_p "
-                  << sum_p << " with " << alpha.total_combi << " combinations"
-                  << std::endl;
-        for (auto &t : this->thresholds[d][xi][i]) {
-          std::cout << "<";
-          for (auto &x : t) {
-            std::cout << x;
-            if (&x != &t.back()) {
-              std::cout << ", ";
-            }
-          }
-          std::cout << "> ";
-        }
-        std::cout << std::endl;
-
-        // If there where valid combinations, but value of combinations where
-        // not found in measured data. We
-        if (sum_p == 0.0) {
-          if (it > 0) {
-            uint32_t temp_val = this->counters[d][xi][i];
-            vector<vector<uint32_t>> temp_thresh = this->thresholds[d][xi][i];
-
-            /*std::cout << "adjust value at " << i << " with val " << temp_val*/
-            /*          << std::endl;*/
-            /*for (auto &t : temp_thresh) {*/
-            /*  std::cout << "<";*/
-            /*  for (auto &x : t) {*/
-            /*    std::cout << x;*/
-            /*    if (&x != &t.back()) {*/
-            /*      std::cout << ", ";*/
-            /*    }*/
-            /*  }*/
-            /*  std::cout << "> ";*/
-            /*}*/
-            /*std::cout << std::endl;*/
-
-            // Remove l1 collisions, keep one flow
-            temp_val -= temp_thresh.back()[3] * (xi - 1);
-            if (temp_thresh.size() == 3) {
-              temp_val -= temp_thresh[1][3] * (temp_thresh[1][1] - 1);
-            }
-
-            /*std::cout << "Storing 1 at " << temp_val << std::endl;*/
-            nt[temp_val] += 1;
-          }
-        } else {
-          while (beta.get_next()) {
-            double p =
-                get_p_from_beta(beta, lambda, this->dist_old, this->n_old, xi);
-            for (size_t j = 0; j < beta.now_flow_num; ++j) {
-              nt[beta.now_result[j]] += p / sum_p;
-            }
+              get_p_from_beta(beta, lambda, this->dist_old, this->n_old, xi);
+          for (size_t j = 0; j < beta.now_flow_num; ++j) {
+            nt[beta.now_result[j]] += p / sum_p;
           }
         }
       }
@@ -627,6 +586,12 @@ public:
       }
     }
 
+    if (this->n_new == 0.0) {
+      std::cout << "N new is 0.0" << std::endl;
+      print_stats();
+      exit(1);
+    }
+
     for (uint32_t i = 0; i < this->ns.size(); i++) {
       this->dist_new[i] = this->ns[i] / this->n_new;
     }
@@ -642,7 +607,7 @@ public:
            iter, this->n_new);
     iter++;
 
-    /*print_stats();*/
+    print_stats();
   }
 
   void print_stats() {

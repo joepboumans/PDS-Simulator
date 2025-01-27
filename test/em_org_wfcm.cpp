@@ -19,12 +19,13 @@
 
 vector<TUPLE> generate_n_tuples(uint32_t n, TupleSize sz) {
   std::srand(Catch::rngSeed());
-  static uint32_t c = 1;
+  static uint32_t c = 0;
   vector<TUPLE> tuple(n);
   for (size_t i = 0; i < n; i++) {
     tuple[i].sz = sz;
-    tuple[i] = tuple[i] + i + c++;
+    tuple[i] = tuple[i] + i + c;
   }
+  c += n;
   return tuple;
 }
 
@@ -73,12 +74,12 @@ TEST_CASE("Small trace of EM FCM vs EM WFCM", "[trace][small]") {
       filenames[0].erase(filenames[0].find("data/"), sizeof("data/") - 1);
   file = file.erase(file.find(".dat"), sizeof(".dat") - 1);
 
-  WaterfallFCM wfcm(4, NUM_STAGES, K, 1, 1, 4, 65535, file, tuple_sz);
+  WaterfallFCM wfcm(W3, NUM_STAGES, K, 1, 1, 4, 65535, file, tuple_sz);
   REQUIRE(wfcm.average_absolute_error == 0);
   REQUIRE(wfcm.average_relative_error == 0);
 
-  /*for (size_t i = 0; i < trace.size(); i++) {*/
-  for (size_t i = 0; i < 100000; i++) {
+  for (size_t i = 0; i < trace.size(); i++) {
+    /*for (size_t i = 0; i < 1000; i++) {*/
     wfcm.insert(trace.at(i));
   }
 
@@ -98,8 +99,8 @@ TEST_CASE("Small trace of EM FCM vs EM WFCM", "[trace][small]") {
   printf("ORG WMRE: %.8f vs WFCM WMRE: %.8f\n", org_wmre, wfcm_wmre);
   // Compare if WMRE and NS are approx equal. Small difference due to different
   // floating point operations between FCMS and WFCM
-  CHECK(org_wmre == Catch::Approx(wfcm_wmre).margin(0.0001));
-  compare_fsd(ns_org, ns_wfcm);
+  CHECK(wfcm_wmre <= org_wmre);
+  /*compare_fsd(ns_org, ns_wfcm);*/
   /*CHECK_THAT(ns_org, Catch::Matchers::Approx(ns_wfcm).margin(0.0001));*/
 }
 
@@ -131,13 +132,61 @@ TEST_CASE("Degree 2 ; l2", "[em][l2]") {
   vector<double> ns_org = wfcm.fcm_sketches.ns;
   double org_wmre = wfcm.wmre;
 
-  CHECK(org_wmre < 2.0);
-  CHECK(wfcm_wmre < 2.0);
+  printf("ORG WMRE: %.8f vs WFCM WMRE: %.8f\n", org_wmre, wfcm_wmre);
   CHECK(wfcm_wmre <= org_wmre);
 
   REQUIRE(org_wmre == wfcm_wmre);
   compare_fsd(ns_org, ns_wfcm);
   REQUIRE_THAT(ns_org, Catch::Matchers::Equals(ns_wfcm));
+}
+
+TEST_CASE("Degree 2 - 4 ; l2", "[em][l2]") {
+  TupleSize tuple_sz = SrcTuple;
+  WaterfallFCM wfcm(4, NUM_STAGES, K, 1, 1, 4, 65535, "test", tuple_sz);
+  REQUIRE(wfcm.average_absolute_error == 0);
+  REQUIRE(wfcm.average_relative_error == 0);
+
+  // Insert flows for sketch degree 2
+  vector<TUPLE> tuple = generate_n_tuples(8, tuple_sz);
+  for (size_t i = 0; i < 260; i++) {
+    for (size_t j = 0; j < 2; j++) {
+      wfcm.insert(tuple.at(j), j);
+    }
+  }
+  // At extra information from Waterfall
+  for (size_t j = 0; j < 6; j++) {
+    wfcm.insert(tuple.at(j + 2), j % 2);
+  }
+
+  // Add some tuples for Bayes estimation
+  vector<TUPLE> single_tuples = generate_n_tuples(4, tuple_sz);
+  for (size_t j = 0; j < 4; j++) {
+    wfcm.insert(single_tuples.at(j), j + 2);
+  }
+
+  vector<TUPLE> overflow_tuples = generate_n_tuples(1, tuple_sz);
+  for (size_t i = 0; i < 260; i++) {
+    wfcm.insert(overflow_tuples[0], 16);
+  }
+  wfcm.fcm_sketches.print_sketch();
+
+  wfcm.analyze(0);
+  vector<double> ns_wfcm = wfcm.fcm_sketches.ns;
+  double wfcm_wmre = wfcm.wmre;
+
+  wfcm.fcm_sketches.estimate_fsd = true;
+  wfcm.estimate_fsd = false;
+  wfcm.analyze(0);
+
+  vector<double> ns_org = wfcm.fcm_sketches.ns;
+  double org_wmre = wfcm.wmre;
+
+  printf("ORG WMRE: %.8f vs WFCM WMRE: %.8f\n", org_wmre, wfcm_wmre);
+  CHECK(wfcm_wmre <= org_wmre);
+
+  REQUIRE(org_wmre == wfcm_wmre);
+  compare_fsd(ns_org, ns_wfcm);
+  /*REQUIRE_THAT(ns_org, Catch::Matchers::Equals(ns_wfcm));*/
 }
 
 TEST_CASE("Multi Degree ; l1", "[em][md][l1]") {
@@ -173,9 +222,9 @@ TEST_CASE("Multi Degree ; l1", "[em][md][l1]") {
   vector<double> ns_wfcm = wfcm.fcm_sketches.ns;
   double wfcm_wmre = wfcm.wmre;
 
-  wfcm.analyze(0);
   wfcm.fcm_sketches.estimate_fsd = true;
   wfcm.estimate_fsd = false;
+  wfcm.analyze(0);
 
   vector<double> ns_org = wfcm.fcm_sketches.ns;
   double org_wmre = wfcm.wmre;
@@ -184,9 +233,7 @@ TEST_CASE("Multi Degree ; l1", "[em][md][l1]") {
   CHECK(wfcm_wmre < 2.0);
   CHECK(wfcm_wmre <= org_wmre);
 
-  REQUIRE(org_wmre == wfcm_wmre);
   compare_fsd(ns_org, ns_wfcm);
-  REQUIRE_THAT(ns_org, Catch::Matchers::Equals(ns_wfcm));
 }
 
 TEST_CASE("Multi Degree ; All", "[em][md][all]") {

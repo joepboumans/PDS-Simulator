@@ -19,8 +19,17 @@ uint32_t WaterfallFCM::insert(TUPLE tuple) {
 }
 
 uint32_t WaterfallFCM::insert(TUPLE tuple, uint32_t idx) {
+  // Store initial degree with idx for debugging
+  if (this->idx_degree.empty()) {
+    this->idx_degree = vector<uint32_t>(this->fcm_sketches.stages_sz[0]);
+  }
+  if (not this->waterfall.lookup(tuple)) {
+    this->idx_degree[idx]++;
+  }
+
   this->waterfall.insert(tuple);
   this->fcm_sketches.insert(tuple, idx);
+
   return 0;
 }
 
@@ -297,6 +306,17 @@ vector<uint32_t> WaterfallFCM::peel_sketches(set<TUPLE> &tuples) {
 
 // Gets maps of flows to the first counter layer of FCM
 vector<vector<uint32_t>> WaterfallFCM::get_initial_degrees(set<TUPLE> tuples) {
+  if (not this->idx_degree.empty()) {
+    std::cout << "[WaterfallFCM] Insertion happened with idx, use stored "
+                 "values as initial degree"
+              << std::endl;
+    vector<vector<uint32_t>> init_degree(DEPTH, vector<uint32_t>(W1));
+    for (size_t d = 0; d < init_degree.size(); d++) {
+      init_degree[d] = this->idx_degree;
+    }
+    return init_degree;
+  }
+
   std::cout << "[WaterfallFCM] Calculate initial degrees from Waterfall..."
             << std::endl;
   vector<vector<uint32_t>> init_degree(DEPTH, vector<uint32_t>(W1));
@@ -330,9 +350,18 @@ double WaterfallFCM::get_distribution(set<TUPLE> &tuples,
   // Summarize sketch and find collisions
   // depth, stage, idx, (count, total degree, sketch degree)
   vector<vector<vector<vector<uint32_t>>>> summary(this->n_stages);
-  // depth, stage, idx, layer, (stage, local degree, total degree, min value)
+  // Create virtual counters based on degree and count
+  // depth, degree, count, value, collisions
+  vector<vector<vector<uint32_t>>> virtual_counters;
+  // Base for EM
+  vector<vector<vector<uint32_t>>> sketch_degrees;
+  // depth, stage, idx, layer, vector<stage, local degree, total degree, min
+  // value>
   vector<vector<vector<vector<vector<uint32_t>>>>> overflow_paths(
       this->n_stages);
+  // depth, degree, count, value, vector<stage, local collisions, total
+  // collisions, min value>
+  vector<vector<vector<vector<vector<uint32_t>>>>> thresholds;
 
   std::cout << "[EM_WFCM] Setting up summary and overflow paths..."
             << std::endl;
@@ -349,21 +378,9 @@ double WaterfallFCM::get_distribution(set<TUPLE> &tuples,
   std::cout << "[EM_WFCM] ...done!" << std::endl;
   std::cout << "[EM_WFCM] Setting up virtual counters and thresholds..."
             << std::endl;
-  // Create virtual counters based on degree and count
-  // depth, degree, count, value, collisions
-  vector<vector<vector<uint32_t>>> virtual_counters;
+
   virtual_counters.resize(DEPTH);
-  for (size_t d = 0; d < DEPTH; d++) {
-    virtual_counters[d].resize(this->n_stages);
-  }
-  // depth,degree, count value, layer, (stage, local collisions, total
-  // collisions, min value)
-  vector<vector<vector<vector<vector<uint32_t>>>>> thresholds;
   thresholds.resize(DEPTH);
-  for (size_t d = 0; d < DEPTH; d++) {
-    virtual_counters[d].resize(std::pow(K, this->n_stages));
-    thresholds[d].resize(std::pow(K, this->n_stages));
-  }
 
   std::cout << "[EM_WFCM] ...done!" << std::endl;
   std::cout << "[EM_WFCM] Load count from sketches into virtual counters and "
@@ -381,62 +398,53 @@ double WaterfallFCM::get_distribution(set<TUPLE> &tuples,
         if (this->fcm_sketches.stages[d][stage][i].overflow) {
           summary[d][stage][i][0] =
               this->fcm_sketches.stages[d][stage][i].max_count;
-
-          if (stage == 0) {
-            // Add total results to my overflow_paths
-            uint32_t local_degree = init_degree[d][i];
-            uint32_t max_val = summary[d][stage][i][0];
-            vector<uint32_t> local = {static_cast<uint32_t>(stage), 1,
-                                      local_degree, max_val};
-            overflow_paths[d][stage][i].push_back(local);
-          }
         }
 
-        if (stage == 0) { // Set initial degree and sketch degree
+        // Store local and initial degree
+        if (stage == 0) {
           summary[d][stage][i][1] = 1;
           summary[d][stage][i][2] = init_degree[d][i];
         } else if (stage > 0) { // Start checking childeren from stage 1 and up
-          uint32_t overflown = 0;
-          // Loop over all childeren
           for (size_t k = 0; k < K; k++) {
             uint32_t child_idx = i * K + k;
+
             // Add childs count, degree and min_value to current counter
             if (this->fcm_sketches.stages[d][stage - 1][child_idx].overflow) {
               summary[d][stage][i][0] += summary[d][stage - 1][child_idx][0];
               summary[d][stage][i][1] += summary[d][stage - 1][child_idx][1];
               summary[d][stage][i][2] += summary[d][stage - 1][child_idx][2];
-              // If any of my predecessors have overflown, add them to my
-              // overflown paths
-              overflown++;
-              // Add overflow path of child to my own
-              for (size_t j = 0;
-                   j < overflow_paths[d][stage - 1][child_idx].size(); j++) {
-                overflow_paths[d][stage][i].push_back(
-                    overflow_paths[d][stage - 1][child_idx][j]);
+
+              // Add overflow path of child to my own path
+              for (auto &path : overflow_paths[d][stage - 1][child_idx]) {
+                overflow_paths[d][stage][i].push_back(path);
               }
             }
           }
-          // Add total results to my overflow_paths
-          uint32_t local_degree = summary[d][stage][i][2];
-          uint32_t max_val = summary[d][stage][i][0];
-          vector<uint32_t> local = {static_cast<uint32_t>(stage), overflown,
-                                    local_degree, max_val};
-          overflow_paths[d][stage][i].push_back(local);
         }
 
         // If not overflown and non-zero, we are at the end of the path
         if (!this->fcm_sketches.stages[d][stage][i].overflow &&
             summary[d][stage][i][0] > 0) {
+
           uint32_t count = summary[d][stage][i][0];
           uint32_t degree = summary[d][stage][i][1];
+
+          if (degree >= virtual_counters[d].size()) {
+            virtual_counters[d].resize(degree + 1);
+            thresholds[d].resize(degree + 1);
+          }
           // Add entry to VC with its degree [1] and count [0]
           virtual_counters[d][degree].push_back(count);
           max_counter_value = std::max(max_counter_value, count);
           max_degree[d] = std::max(max_degree[d], degree);
-
-          /*std::reverse(overflow_paths[d][stage][i].begin(),*/
-          /*             overflow_paths[d][stage][i].end());*/
           thresholds[d][degree].push_back(overflow_paths[d][stage][i]);
+        } else {
+          uint32_t max_val = summary[d][stage][i][0];
+          uint32_t local_degree = summary[d][stage][i][1];
+          uint32_t total_degree = summary[d][stage][i][2];
+          vector<uint32_t> local = {static_cast<uint32_t>(stage), local_degree,
+                                    total_degree, max_val};
+          overflow_paths[d][stage][i].push_back(local);
         }
       }
     }

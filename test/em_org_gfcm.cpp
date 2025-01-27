@@ -19,12 +19,11 @@
 
 vector<TUPLE> generate_n_tuples(uint32_t n, TupleSize sz) {
   std::srand(Catch::rngSeed());
-  uint32_t r =
-      std::rand() % ((uint32_t)std::pow((uint32_t)2, (uint32_t)sz) - n - 1);
+  static uint32_t c = 0;
   vector<TUPLE> tuple(n);
   for (size_t i = 0; i < n; i++) {
     tuple[i].sz = sz;
-    tuple[i] = tuple[i] + i + r;
+    tuple[i] = tuple[i] + i + c++;
   }
   return tuple;
 }

@@ -19,7 +19,7 @@ private:
   Waterfall waterfall;
   uint32_t n_stages;
   uint32_t em_iters;
-  size_t n_unique_tuples;
+  vector<uint32_t> idx_degree;
 
   uint32_t hh_threshold;
   std::unordered_set<TUPLE, TupleHash> HH_candidates;
@@ -35,6 +35,7 @@ public:
                      tuple_sz) {
 
     this->fcm_sketches.estimate_fsd = false;
+
     // Setup logging
     this->csv_header_em =
         "Epoch,Estimation Time,Total Time,Weighted Mean Relative Error,"

@@ -23,7 +23,9 @@ uint32_t WaterfallFCM::insert(TUPLE tuple, uint32_t idx) {
   if (this->idx_degree.empty()) {
     this->idx_degree = vector<uint32_t>(this->fcm_sketches.stages_sz[0]);
   }
+  TUPLE tmp;
   if (not this->waterfall.lookup(tuple)) {
+    std::cout << tuple << std::endl;
     this->idx_degree[idx]++;
   }
 
@@ -313,6 +315,17 @@ vector<vector<uint32_t>> WaterfallFCM::get_initial_degrees(set<TUPLE> tuples) {
     vector<vector<uint32_t>> init_degree(DEPTH, vector<uint32_t>(W1));
     for (size_t d = 0; d < init_degree.size(); d++) {
       init_degree[d] = this->idx_degree;
+    }
+    std::cout << "[WaterfallFCM] ...done!" << std::endl;
+    for (size_t d = 0; d < DEPTH; d++) {
+      std::cout << "Depth " << d << std::endl;
+      for (size_t i = 0; i < init_degree.size(); i++) {
+        if (init_degree[d][i] == 0) {
+          continue;
+        }
+        std::cout << i << ":" << init_degree[d][i] << " ";
+      }
+      std::cout << std::endl;
     }
     return init_degree;
   }

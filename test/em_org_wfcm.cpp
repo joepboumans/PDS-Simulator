@@ -19,7 +19,7 @@
 
 vector<TUPLE> generate_n_tuples(uint32_t n, TupleSize sz) {
   std::srand(Catch::rngSeed());
-  static uint32_t c = 0;
+  static uint32_t c = 1;
   vector<TUPLE> tuple(n);
   for (size_t i = 0; i < n; i++) {
     tuple[i].sz = sz;
@@ -103,13 +103,14 @@ TEST_CASE("Small trace of EM FCM vs EM WFCM", "[trace][small]") {
   /*CHECK_THAT(ns_org, Catch::Matchers::Approx(ns_wfcm).margin(0.0001));*/
 }
 
-TEST_CASE("Degree 2 ; l2", "[em][md][l2]") {
+TEST_CASE("Degree 2 ; l2", "[em][l2]") {
   TupleSize tuple_sz = SrcTuple;
   WaterfallFCM wfcm(4, NUM_STAGES, K, 1, 1, 4, 65535, "test", tuple_sz);
   REQUIRE(wfcm.average_absolute_error == 0);
   REQUIRE(wfcm.average_relative_error == 0);
 
   vector<TUPLE> tuple = generate_n_tuples(2, tuple_sz);
+  std::cout << tuple[0] << " and " << tuple[1] << std::endl;
 
   // Insert flows
   for (size_t i = 0; i < 260; i++) {

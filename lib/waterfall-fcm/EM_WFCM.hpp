@@ -27,6 +27,7 @@ private:
       thresholds; // depth, degree, count, < stage, total coll, local
                   // colll, min_value >
   vector<vector<vector<uint32_t>>> counters;
+  vector<vector<vector<uint32_t>>> sketch_degrees;
   vector<vector<vector<uint32_t>>> counter_dist; // initial counter values
   vector<double> dist_old, dist_new;             // for ratio \phi
   uint32_t w = W1;                               // width of counters
@@ -40,10 +41,12 @@ public:
   double n_sum;
   double card_init; // initial cardinality by MLE
   uint32_t iter = 0;
-  EM_WFCM(vector<vector<vector<vector<vector<uint32_t>>>>> &thresh,
+  EM_WFCM(vector<vector<vector<vector<vector<uint32_t>>>>> &_thresh,
           uint32_t in_max_value, vector<uint32_t> max_degree,
-          vector<vector<vector<uint32_t>>> &counters)
-      : thresholds(thresh), counters(counters), counter_dist(DEPTH),
+          vector<vector<vector<uint32_t>>> &_counters,
+          vector<vector<vector<uint32_t>>> &_sketch_degrees)
+      : thresholds(_thresh), counters(_counters),
+        sketch_degrees(_sketch_degrees), counter_dist(DEPTH),
         max_counter_value(in_max_value), max_degree(max_degree) {
 
     std::cout << "[EM_WFCM] Init EMFSD" << std::endl;

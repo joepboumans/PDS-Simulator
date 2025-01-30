@@ -163,11 +163,6 @@ private:
       now_flow_num = 0;
       max_small = sum;
 
-      /*printf("Setup gen with sum:%d, in_degree:%d, in_sketch_degree:%d, "*/
-      /*       "flow_num_limit:%d\n",*/
-      /*       sum, in_degree, in_sketch_degree, flow_num_limit);*/
-      /*print_thresholds();*/
-
       // Simplify higher sketch degree vc's
       if (in_sketch_degree > 1) {
         if (sum > 1100)
@@ -196,6 +191,10 @@ private:
           flow_num_limit = 2;
           in_degree = 2;
         }
+        printf("Setup gen with sum:%d, in_degree:%d, in_sketch_degree:%d, "
+               "flow_num_limit:%d\n",
+               sum, in_degree, in_sketch_degree, flow_num_limit);
+        print_thresholds();
       } else if (sum > 100) {
         max_small = 2;
       }
@@ -249,7 +248,10 @@ private:
               return true;
             }
             if (check_condition()) {
-              /*print_now_result();*/
+              if (in_degree > 2) {
+                print_now_result();
+                exit(1);
+              }
               total_combi++;
               return true;
             }
@@ -307,7 +309,7 @@ private:
       }
 
       for (auto &t : thresh) {
-        uint32_t colls = t[0];
+        uint32_t colls = t[2];
 
         if (colls <= 1) {
           continue;
@@ -319,7 +321,7 @@ private:
         /*print_thresholds();*/
         /*print_now_result();*/
 
-        uint32_t min_val = t[1];
+        uint32_t min_val = t[3];
         uint32_t last_group_sz = 1;
         uint32_t passes = 0;
 

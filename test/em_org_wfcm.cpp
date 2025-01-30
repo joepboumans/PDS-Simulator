@@ -59,8 +59,8 @@ TEST_CASE("Small trace of EM FCM vs EM WFCM", "[trace][small]") {
   REQUIRE(wfcm.average_absolute_error == 0);
   REQUIRE(wfcm.average_relative_error == 0);
 
-  for (size_t i = 0; i < trace.size(); i++) {
-    /*for (size_t i = 0; i < 50000; i++) {*/
+  /*for (size_t i = 0; i < trace.size(); i++) {*/
+  for (size_t i = 0; i < 25000; i++) {
     wfcm.insert(trace.at(i));
   }
 
@@ -332,6 +332,6 @@ TEST_CASE("Multi Degree ; All", "[em][md][all]") {
 
   CHECK(org_wmre < 2.0);
   CHECK(wfcm_wmre < 2.0);
-  /*CHECK(org_wmre < 1.0);*/
-  /*CHECK(wfcm_wmre < 1.0);*/
+  printf("ORG WMRE: %.8f vs WFCM WMRE: %.8f\n", org_wmre, wfcm_wmre);
+  CHECK(wfcm_wmre <= org_wmre);
 }

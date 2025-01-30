@@ -677,19 +677,20 @@ public:
         sum_p += get_p_from_beta_fcm(bts1, lambda, dist_old, n_old, xi, d);
         sum_iter += 1;
       }
-      std::cout << "Val " << newsk[d][xi][i] << " found sum_p " << sum_p
-                << " with " << bts1.total_combi << " combinations" << std::endl;
-      for (auto &t : newsk_thres[d][xi][i]) {
-        std::cout << "<";
-        for (auto &x : t) {
-          std::cout << x;
-          if (&x != &t.back()) {
-            std::cout << ", ";
-          }
-        }
-        std::cout << "> ";
-      }
-      std::cout << std::endl;
+      /*std::cout << "Val " << newsk[d][xi][i] << " found sum_p " << sum_p*/
+      /*          << " with " << bts1.total_combi << " combinations" <<
+       * std::endl;*/
+      /*for (auto &t : newsk_thres[d][xi][i]) {*/
+      /*  std::cout << "<";*/
+      /*  for (auto &x : t) {*/
+      /*    std::cout << x;*/
+      /*    if (&x != &t.back()) {*/
+      /*      std::cout << ", ";*/
+      /*    }*/
+      /*  }*/
+      /*  std::cout << "> ";*/
+      /*}*/
+      /*std::cout << std::endl;*/
 
       if (sum_p == 0) {                   // for debug
         if (sum_iter > 0) {               // adjust the value

@@ -454,10 +454,8 @@ double WaterfallFCM::get_distribution(set<TUPLE> &tuples,
           if (degree == 1) {
             init_fsd[d][count]++;
           } else if (degree == count) {
-            std::cout << "Degree == count > " << count << std::endl;
             init_fsd[d][1] += count;
           } else if (degree + 1 == count) {
-            std::cout << "Degree + 1 == count > " << count << std::endl;
             init_fsd[d][1] += (count - 1);
             init_fsd[d][2] += 1;
           } else {
@@ -487,7 +485,7 @@ double WaterfallFCM::get_distribution(set<TUPLE> &tuples,
 
   std::cout << "[EM_WFCM] ...done!" << std::endl;
 
-  if (1) {
+  if (0) {
     // Print vc with thresholds
     for (size_t d = 0; d < DEPTH; d++) {
       for (size_t st = 0; st < virtual_counters[d].size(); st++) {

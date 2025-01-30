@@ -195,11 +195,16 @@ private:
         /*       "flow_num_limit:%d\n",*/
         /*       sum, in_degree, in_sketch_degree, flow_num_limit);*/
         /*print_thresholds();*/
-      } else if (sum > 100) {
-        max_small = 2;
+      } else {
+        now_flow_num = in_degree;
+        now_result.resize(now_flow_num);
+        now_result[0] = 1;
+        if (sum > 100) {
+          max_small = 2;
+        } else if (sum > 50) {
+          max_small = 4;
+        }
       }
-      /*now_result.resize(now_flow_num);*/
-      /*now_result[0] = 1;*/
     }
 
     bool get_new_comb() {
@@ -244,16 +249,7 @@ private:
         default:
           now_result.resize(now_flow_num);
           if (get_new_comb()) {
-            if (in_sketch_degree == 1) {
-              /*print_now_result();*/
-              total_combi++;
-              return true;
-            }
             if (check_condition()) {
-              /*if (in_degree > 2) {*/
-              /*  print_now_result();*/
-              /*  exit(1);*/
-              /*}*/
               total_combi++;
               return true;
             }
@@ -551,7 +547,7 @@ public:
     }
     std::fill(this->ns.begin(), this->ns.end(), 0);
 
-    if (0) {
+    if (1) {
       std::cout << "[EM_WFCM] Init first degree" << std::endl;
       // Simple Multi thread
       vector<vector<std::thread>> threads(DEPTH);

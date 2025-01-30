@@ -368,6 +368,7 @@ double WaterfallFCM::get_distribution(set<TUPLE> &tuples,
   vector<vector<vector<uint32_t>>> virtual_counters;
   // Base for EM
   vector<vector<vector<uint32_t>>> sketch_degrees;
+  vector<vector<uint32_t>> init_fsd(DEPTH);
   // depth, stage, idx, layer, vector<stage, local degree, total degree, min
   // value>
   vector<vector<vector<vector<vector<uint32_t>>>>> overflow_paths(
@@ -422,7 +423,7 @@ double WaterfallFCM::get_distribution(set<TUPLE> &tuples,
           for (size_t k = 0; k < K; k++) {
             uint32_t child_idx = i * K + k;
 
-            // Add childs count, degree and min_value to current counter
+            // Add childs count, total and sketch degree to current counter
             if (this->fcm_sketches.stages[d][stage - 1][child_idx].overflow) {
               summary[d][stage][i][0] += summary[d][stage - 1][child_idx][0];
               summary[d][stage][i][1] += summary[d][stage - 1][child_idx][1];
@@ -443,19 +444,36 @@ double WaterfallFCM::get_distribution(set<TUPLE> &tuples,
           uint32_t count = summary[d][stage][i][0];
           uint32_t sketch_degree = summary[d][stage][i][1];
           uint32_t degree = summary[d][stage][i][2];
-
-          if (degree >= virtual_counters[d].size()) {
-            virtual_counters[d].resize(degree + 1);
-            thresholds[d].resize(degree + 1);
-            sketch_degrees[d].resize(degree + 1);
-          }
-          // Add entry to VC with its degree [1] and count [0]
-          virtual_counters[d][degree].push_back(count);
-          sketch_degrees[d][degree].push_back(sketch_degree);
-
           max_counter_value = std::max(max_counter_value, count);
           max_degree[d] = std::max(max_degree[d], degree);
-          thresholds[d][degree].push_back(overflow_paths[d][stage][i]);
+
+          if (max_counter_value >= init_fsd[d].size()) {
+            std::cout << "Resize init fsd" << init_fsd[d].size() << " "
+                      << max_counter_value << std::endl;
+            init_fsd[d].resize(max_counter_value + 2);
+          }
+
+          if (degree == count) {
+            std::cout << "Degree == count > " << count << " "
+                      << max_counter_value << std::endl;
+            init_fsd[d][1] += count;
+          } else if (degree + 1 == count) {
+            std::cout << "Degree + 1 == count > " << count << std::endl;
+            init_fsd[d][1] += (count - 1);
+            init_fsd[d][2] += 1;
+          } else {
+            if (degree >= virtual_counters[d].size()) {
+              virtual_counters[d].resize(degree + 1);
+              thresholds[d].resize(degree + 1);
+              sketch_degrees[d].resize(degree + 1);
+            }
+            // Add entry to VC with its degree [1] and count [0]
+            virtual_counters[d][degree].push_back(count);
+            sketch_degrees[d][degree].push_back(sketch_degree);
+
+            thresholds[d][degree].push_back(overflow_paths[d][stage][i]);
+          }
+
         } else {
           uint32_t max_val = summary[d][stage][i][0];
           uint32_t local_degree = summary[d][stage][i][1];
@@ -507,7 +525,7 @@ double WaterfallFCM::get_distribution(set<TUPLE> &tuples,
 
   std::cout << "[EMS_FSD] Initializing EMS_FSD..." << std::endl;
   EM_WFCM EM(thresholds, max_counter_value, max_degree, virtual_counters,
-             sketch_degrees);
+             sketch_degrees, init_fsd);
   std::cout << "[EMS_FSD] ...done!" << std::endl;
   auto total_start = std::chrono::high_resolution_clock::now();
 

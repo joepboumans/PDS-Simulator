@@ -19,7 +19,7 @@
 
 vector<TUPLE> generate_n_tuples(uint32_t n, TupleSize sz) {
   std::srand(Catch::rngSeed());
-  static uint32_t c = 0;
+  static uint32_t c = 1;
   vector<TUPLE> tuple(n);
   for (size_t i = 0; i < n; i++) {
     tuple[i].sz = sz;
@@ -78,8 +78,8 @@ TEST_CASE("Small trace of EM FCM vs EM WFCM", "[trace][small]") {
   REQUIRE(wfcm.average_absolute_error == 0);
   REQUIRE(wfcm.average_relative_error == 0);
 
-  for (size_t i = 0; i < trace.size(); i++) {
-    /*for (size_t i = 0; i < 1000; i++) {*/
+  /*for (size_t i = 0; i < trace.size(); i++) {*/
+  for (size_t i = 0; i < 10000; i++) {
     wfcm.insert(trace.at(i));
   }
 
@@ -102,6 +102,73 @@ TEST_CASE("Small trace of EM FCM vs EM WFCM", "[trace][small]") {
   CHECK(wfcm_wmre <= org_wmre);
   /*compare_fsd(ns_org, ns_wfcm);*/
   /*CHECK_THAT(ns_org, Catch::Matchers::Approx(ns_wfcm).margin(0.0001));*/
+}
+
+TEST_CASE("Degree 1 - 3 ; l1", "[em][l1]") {
+  TupleSize tuple_sz = SrcTuple;
+  WaterfallFCM wfcm(4, NUM_STAGES, K, 1, 1, 4, 65535, "test", tuple_sz);
+  REQUIRE(wfcm.average_absolute_error == 0);
+  REQUIRE(wfcm.average_relative_error == 0);
+
+  // Insert flows
+  vector<TUPLE> tuple = generate_n_tuples(4, tuple_sz);
+  for (size_t j = 0; j < 3; j++) {
+    wfcm.insert(tuple.at(j), 0);
+  }
+
+  wfcm.insert(tuple.at(3), 1);
+  wfcm.fcm_sketches.print_sketch();
+
+  wfcm.analyze(0);
+  vector<double> ns_wfcm = wfcm.fcm_sketches.ns;
+  double wfcm_wmre = wfcm.wmre;
+
+  wfcm.fcm_sketches.estimate_fsd = true;
+  wfcm.estimate_fsd = false;
+  wfcm.analyze(0);
+
+  vector<double> ns_org = wfcm.fcm_sketches.ns;
+  double org_wmre = wfcm.wmre;
+
+  printf("ORG WMRE: %.8f vs WFCM WMRE: %.8f\n", org_wmre, wfcm_wmre);
+  CHECK(wfcm_wmre <= org_wmre);
+  /*compare_fsd(ns_org, ns_wfcm);*/
+}
+
+TEST_CASE("Degree 1 - 3 ; l2", "[em][l1][l2]") {
+  TupleSize tuple_sz = SrcTuple;
+  WaterfallFCM wfcm(4, NUM_STAGES, K, 1, 1, 4, 65535, "test", tuple_sz);
+  REQUIRE(wfcm.average_absolute_error == 0);
+  REQUIRE(wfcm.average_relative_error == 0);
+
+  // Insert flows for sketch degree 2
+  vector<TUPLE> tuple = generate_n_tuples(4, tuple_sz);
+  for (size_t j = 0; j < 2; j++) {
+    for (size_t i = 0; i < 4; i++) {
+      wfcm.insert(tuple.at(j), 0);
+    }
+  }
+  for (size_t i = 0; i < 260; i++) {
+    wfcm.insert(tuple.at(2), 0);
+  }
+
+  wfcm.insert(tuple.at(3), 1);
+  wfcm.fcm_sketches.print_sketch();
+
+  wfcm.analyze(0);
+  vector<double> ns_wfcm = wfcm.fcm_sketches.ns;
+  double wfcm_wmre = wfcm.wmre;
+
+  wfcm.fcm_sketches.estimate_fsd = true;
+  wfcm.estimate_fsd = false;
+  wfcm.analyze(0);
+
+  vector<double> ns_org = wfcm.fcm_sketches.ns;
+  double org_wmre = wfcm.wmre;
+
+  printf("ORG WMRE: %.8f vs WFCM WMRE: %.8f\n", org_wmre, wfcm_wmre);
+  CHECK(wfcm_wmre <= org_wmre);
+  /*compare_fsd(ns_org, ns_wfcm);*/
 }
 
 TEST_CASE("Degree 2 ; l2", "[em][l2]") {

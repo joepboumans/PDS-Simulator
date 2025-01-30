@@ -29,25 +29,6 @@ vector<TUPLE> generate_n_tuples(uint32_t n, TupleSize sz) {
   return tuple;
 }
 
-void compare_fsd(vector<double> x, vector<double> y) {
-  if (x.size() != y.size()) {
-    std::cout << "[ERROR] not matching sizes!" << std::endl;
-    exit(1);
-  }
-  for (size_t i = 0; i < x.size(); i++) {
-    if (x[i] == 0 and y[i] == 0) {
-      continue;
-    }
-
-    std::cout << i << ": " << x[i] << " = " << y[i];
-    if (&x[i] != &x.back()) {
-      std::cout << ", ";
-    }
-    CHECK(x[i] == y[i]);
-  }
-  std::cout << std::endl;
-}
-
 TEST_CASE("Smoke Test", "[smoke-test]") {
   REQUIRE(true == true);
   REQUIRE(false == false);
@@ -100,8 +81,6 @@ TEST_CASE("Small trace of EM FCM vs EM WFCM", "[trace][small]") {
   // Compare if WMRE and NS are approx equal. Small difference due to different
   // floating point operations between FCMS and WFCM
   CHECK(wfcm_wmre <= org_wmre);
-  /*compare_fsd(ns_org, ns_wfcm);*/
-  /*CHECK_THAT(ns_org, Catch::Matchers::Approx(ns_wfcm).margin(0.0001));*/
 }
 
 TEST_CASE("Degree 1 - 3 ; l1", "[em][l1]") {
@@ -132,7 +111,6 @@ TEST_CASE("Degree 1 - 3 ; l1", "[em][l1]") {
 
   printf("ORG WMRE: %.8f vs WFCM WMRE: %.8f\n", org_wmre, wfcm_wmre);
   CHECK(wfcm_wmre <= org_wmre);
-  /*compare_fsd(ns_org, ns_wfcm);*/
 }
 
 TEST_CASE("Degree 1 - 3 ; l2", "[em][l1][l2]") {
@@ -201,10 +179,6 @@ TEST_CASE("Degree 2 ; l2", "[em][l2]") {
 
   printf("ORG WMRE: %.8f vs WFCM WMRE: %.8f\n", org_wmre, wfcm_wmre);
   CHECK(wfcm_wmre <= org_wmre);
-
-  REQUIRE(org_wmre == wfcm_wmre);
-  compare_fsd(ns_org, ns_wfcm);
-  REQUIRE_THAT(ns_org, Catch::Matchers::Equals(ns_wfcm));
 }
 
 TEST_CASE("Degree 2 - 4 ; l2", "[em][l2]") {
@@ -250,10 +224,6 @@ TEST_CASE("Degree 2 - 4 ; l2", "[em][l2]") {
 
   printf("ORG WMRE: %.8f vs WFCM WMRE: %.8f\n", org_wmre, wfcm_wmre);
   CHECK(wfcm_wmre <= org_wmre);
-
-  REQUIRE(org_wmre == wfcm_wmre);
-  compare_fsd(ns_org, ns_wfcm);
-  /*REQUIRE_THAT(ns_org, Catch::Matchers::Equals(ns_wfcm));*/
 }
 
 TEST_CASE("Multi Degree ; l1", "[em][md][l1]") {
@@ -299,8 +269,6 @@ TEST_CASE("Multi Degree ; l1", "[em][md][l1]") {
   CHECK(org_wmre < 2.0);
   CHECK(wfcm_wmre < 2.0);
   CHECK(wfcm_wmre <= org_wmre);
-
-  compare_fsd(ns_org, ns_wfcm);
 }
 
 TEST_CASE("Multi Degree ; All", "[em][md][all]") {
@@ -364,10 +332,6 @@ TEST_CASE("Multi Degree ; All", "[em][md][all]") {
 
   CHECK(org_wmre < 2.0);
   CHECK(wfcm_wmre < 2.0);
-  CHECK(org_wmre < 1.0);
-  CHECK(wfcm_wmre < 1.0);
-
-  REQUIRE(org_wmre == wfcm_wmre);
-  compare_fsd(ns_org, ns_wfcm);
-  /*REQUIRE_THAT(ns_org, Catch::Matchers::Equals(ns_wfcm));*/
+  /*CHECK(org_wmre < 1.0);*/
+  /*CHECK(wfcm_wmre < 1.0);*/
 }

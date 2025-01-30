@@ -74,7 +74,7 @@ TEST_CASE("Small trace of EM FCM vs EM WFCM", "[trace][small]") {
       filenames[0].erase(filenames[0].find("data/"), sizeof("data/") - 1);
   file = file.erase(file.find(".dat"), sizeof(".dat") - 1);
 
-  WaterfallFCM wfcm(W3, NUM_STAGES, K, 1, 1, 4, 65535, file, tuple_sz);
+  WaterfallFCM wfcm(W3, NUM_STAGES, K, 1, 5, 4, 65535, file, tuple_sz);
   REQUIRE(wfcm.average_absolute_error == 0);
   REQUIRE(wfcm.average_relative_error == 0);
 

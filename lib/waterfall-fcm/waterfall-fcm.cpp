@@ -448,14 +448,13 @@ double WaterfallFCM::get_distribution(set<TUPLE> &tuples,
           max_degree[d] = std::max(max_degree[d], degree);
 
           if (max_counter_value >= init_fsd[d].size()) {
-            std::cout << "Resize init fsd" << init_fsd[d].size() << " "
-                      << max_counter_value << std::endl;
             init_fsd[d].resize(max_counter_value + 2);
           }
 
-          if (degree == count) {
-            std::cout << "Degree == count > " << count << " "
-                      << max_counter_value << std::endl;
+          if (degree == 1) {
+            init_fsd[d][count]++;
+          } else if (degree == count) {
+            std::cout << "Degree == count > " << count << std::endl;
             init_fsd[d][1] += count;
           } else if (degree + 1 == count) {
             std::cout << "Degree + 1 == count > " << count << std::endl;

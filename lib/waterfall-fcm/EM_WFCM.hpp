@@ -82,7 +82,8 @@ public:
 
       // Add inital fsd
       for (size_t i = 0; i < this->init_fsd.size(); i++) {
-        this->n_new += init_fsd[d][i];
+        this->n_new += this->init_fsd[d][i];
+        /*this->counter_dist[d][1][i] += this->init_fsd[d][i];*/
       }
     }
 
@@ -159,8 +160,13 @@ private:
           thresh(_thresh) {
 
       flow_num_limit = in_degree;
-      now_flow_num = in_degree;
+      now_flow_num = 0;
       max_small = sum;
+
+      /*printf("Setup gen with sum:%d, in_degree:%d, in_sketch_degree:%d, "*/
+      /*       "flow_num_limit:%d\n",*/
+      /*       sum, in_degree, in_sketch_degree, flow_num_limit);*/
+      /*print_thresholds();*/
 
       // Simplify higher sketch degree vc's
       if (in_sketch_degree > 1) {
@@ -190,26 +196,21 @@ private:
           flow_num_limit = 2;
           in_degree = 2;
         }
-        /*} else if (sum > 100) {*/
-        /*  max_small = sum;*/
+      } else if (sum > 100) {
+        max_small = 2;
       }
-      now_result.resize(now_flow_num);
-      now_result[0] = 1;
-
-      /*printf("Setup gen with sum:%d, in_degree:%d, in_sketch_degree:%d, "*/
-      /*       "flow_num_limit:%d\n",*/
-      /*       sum, in_degree, in_sketch_degree, flow_num_limit);*/
-      /*print_thresholds();*/
+      /*now_result.resize(now_flow_num);*/
+      /*now_result[0] = 1;*/
     }
 
     bool get_new_comb() {
       for (int j = now_flow_num - 2; j >= 0; --j) {
-        now_result[j] = std::min(now_result[j] + 1, max_small);
-        for (int k = j + 1; k < now_flow_num - 1; ++k) {
-          now_result[k] = 1;
-        }
-        if (now_result[j] >= max_small) {
+        int t = now_result[j]++;
+        if (t > max_small) {
           continue;
+        }
+        for (int k = j + 1; k < now_flow_num - 1; ++k) {
+          now_result[k] = t;
         }
         int partial_sum = 0;
         for (int k = 0; k < now_flow_num - 1; ++k) {
@@ -227,24 +228,38 @@ private:
 
     bool get_next() {
       while (now_flow_num <= flow_num_limit) {
-        now_result.resize(now_flow_num);
-        if (get_new_comb()) {
-          if (in_degree == 1) {
-            /*print_now_result();*/
-            total_combi++;
+        switch (now_flow_num) {
+        case 0:
+          now_flow_num = 1;
+          now_result.resize(1);
+          now_result[0] = sum;
+          if (in_sketch_degree == 1) {
             return true;
           }
-          if (check_condition()) {
-            /*print_now_result();*/
-            total_combi++;
-            return true;
+        case 1:
+          now_flow_num = 2;
+          now_result[0] = 0;
+          // fallthrough
+        default:
+          now_result.resize(now_flow_num);
+          if (get_new_comb()) {
+            if (in_sketch_degree == 1) {
+              /*print_now_result();*/
+              total_combi++;
+              return true;
+            }
+            if (check_condition()) {
+              /*print_now_result();*/
+              total_combi++;
+              return true;
+            }
+          } else { // no more combination -> go to next flow number
+            now_flow_num++;
+            for (int i = 0; i < now_flow_num - 2; ++i) {
+              now_result[i] = 1;
+            }
+            now_result[now_flow_num - 2] = 0;
           }
-        } else { // no more combination -> go to next flow number
-          now_flow_num++;
-          for (int i = 0; i < now_flow_num - 2; ++i) {
-            now_result[i] = 1;
-          }
-          now_result[now_flow_num - 2] = 0;
         }
       }
       return false;
@@ -430,6 +445,7 @@ private:
       if (this->counters[d][xi][i] == 0) {
         continue;
       }
+      /*std::cout << "Found val " << this->counters[d][xi][i] << std::endl;*/
 
       uint32_t sum = this->counters[d][xi][i];
       uint32_t sketch_xi = this->sketch_degrees[d][xi][i];
@@ -441,7 +457,6 @@ private:
       uint32_t it = 0;
 
       // Sum over first combinations
-      /*std::cout << "Found val " << this->counters[d][xi][i] << std::endl;*/
       while (alpha.get_next()) {
         double p =
             get_p_from_beta(alpha, lambda, this->dist_old, this->n_old, xi);
@@ -616,7 +631,7 @@ public:
            iter, this->n_new);
     iter++;
 
-    print_stats();
+    /*print_stats();*/
   }
 
   void print_stats() {

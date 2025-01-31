@@ -589,12 +589,12 @@ public:
     }
 
     printf("[EM_FCM] Initial Flow Size Distribution guess\n");
-    for (size_t i = 0; i < this->dist_new.size(); i++) {
-      if (this->dist_new[i] != 0) {
-        std::cout << i << ":" << this->dist_new[i] << " ";
-      }
-    }
-    std::cout << std::endl;
+    /*for (size_t i = 0; i < this->dist_new.size(); i++) {*/
+    /*  if (this->dist_new[i] != 0) {*/
+    /*    std::cout << i << ":" << this->dist_new[i] << " ";*/
+    /*  }*/
+    /*}*/
+    /*std::cout << std::endl;*/
     // normalizing the above ones
     for (int j = 0; j < dist_new.size(); ++j) {
       dist_new[j] /=
@@ -602,12 +602,12 @@ public:
       ns[j] /= static_cast<double>(FCM_DEPTH);
     }
     std::cout << "[EM_FCM] Normalize guesses" << std::endl;
-    for (size_t i = 0; i < this->dist_new.size(); i++) {
-      if (this->dist_new[i] != 0) {
-        std::cout << i << ":" << this->dist_new[i] << " ";
-      }
-    }
-    std::cout << std::endl;
+    /*for (size_t i = 0; i < this->dist_new.size(); i++) {*/
+    /*  if (this->dist_new[i] != 0) {*/
+    /*    std::cout << i << ":" << this->dist_new[i] << " ";*/
+    /*  }*/
+    /*}*/
+    /*std::cout << std::endl;*/
     printf("[EM_FCM] Counter Setting is finished...\n");
   }
 
@@ -782,7 +782,7 @@ public:
     printf("[EM] Start multi-threading...\n");
     std::thread thrd[total_num_thread];
     int iter_thread = 0;
-    if (0) {
+    if (1) {
       for (int d = 0; d < FCM_DEPTH; ++d) {
         for (int xi = 1; xi <= num_thread[d]; ++xi) { // degree (xi)
           // parallelization

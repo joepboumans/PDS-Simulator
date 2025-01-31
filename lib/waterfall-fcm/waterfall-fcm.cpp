@@ -464,6 +464,13 @@ double WaterfallFCM::get_distribution(set<TUPLE> &tuples,
               thresholds[d].resize(degree + 1);
               sketch_degrees[d].resize(degree + 1);
             }
+
+            // Separate L1 VC's as these do not require thresholds to solve.
+            // Store L1 VC in degree 0
+            /*if (sketch_degree == 1) {*/
+            /*  sketch_degree = degree;*/
+            /*  degree = 0;*/
+            /*}*/
             // Add entry to VC with its degree [1] and count [0]
             virtual_counters[d][degree].push_back(count);
             sketch_degrees[d][degree].push_back(sketch_degree);
@@ -511,6 +518,11 @@ double WaterfallFCM::get_distribution(set<TUPLE> &tuples,
             }
           }
           std::cout << std::endl;
+        }
+      }
+      for (size_t i = 0; i < init_fsd[d].size(); i++) {
+        if (init_fsd[d][i] != 0) {
+          printf("Depth %zu, Index %zu ]= Val %d\n", d, i, init_fsd[d][i]);
         }
       }
     }
@@ -589,6 +601,15 @@ double WaterfallFCM::get_distribution(set<TUPLE> &tuples,
             total_time.count(), wmre, EM.n_new);
     this->fcsv_em << csv << std::endl;
   }
+
+  std::cout << "True FSD: " << std::endl;
+  for (int i = 0; i < true_fsd.size(); ++i) {
+    if (true_fsd[i] != 0) {
+      std::cout << i << ":" << true_fsd[i] << " ";
+    }
+  }
+  std::cout << std::endl;
+
   return wmre;
 }
 

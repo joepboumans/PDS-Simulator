@@ -60,7 +60,7 @@ TEST_CASE("Small trace of EM FCM vs EM WFCM", "[trace][small]") {
   REQUIRE(wfcm.average_relative_error == 0);
 
   /*for (size_t i = 0; i < trace.size(); i++) {*/
-  for (size_t i = 0; i < 25000; i++) {
+  for (size_t i = 0; i < 500000; i++) {
     wfcm.insert(trace.at(i));
   }
 

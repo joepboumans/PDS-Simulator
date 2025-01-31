@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <functional>
 #include <iostream>
+#include <limits>
 #include <numeric>
 #include <ostream>
 #include <sys/types.h>
@@ -152,6 +153,7 @@ private:
     uint32_t total_combi = 0;
     vector<int> now_result;
     vector<vector<uint32_t>> thresh;
+    vector<vector<uint32_t>> sum_thresh;
 
     explicit BetaGenerator(uint32_t _sum, uint32_t _in_degree,
                            uint32_t _in_sketch_degree,
@@ -163,7 +165,7 @@ private:
       now_flow_num = 0;
       max_small = sum;
 
-      // Simplify higher sketch degree vc's
+      // Setup limit for degree 1
       if (in_sketch_degree > 1) {
         if (sum > 1100)
           flow_num_limit = in_sketch_degree;
@@ -181,30 +183,46 @@ private:
 
         // "simplified" keeps the original in_degree
         // 15k, 15k, 7k
-        if (in_degree >= 4 and sum < 10000) {
+        if (in_sketch_degree >= 4 and sum < 10000) {
           flow_num_limit = 3;
           in_degree = 3;
-        } else if (in_degree >= 4 and sum >= 10000) {
+        } else if (in_sketch_degree >= 4 and sum >= 10000) {
           flow_num_limit = 2;
           in_degree = 2;
-        } else if (in_degree == 3 and sum > 5000) {
+        } else if (in_sketch_degree == 3 and sum > 5000) {
           flow_num_limit = 2;
           in_degree = 2;
         }
-        /*printf("Setup gen with sum:%d, in_degree:%d, in_sketch_degree:%d, "*/
-        /*       "flow_num_limit:%d\n",*/
-        /*       sum, in_degree, in_sketch_degree, flow_num_limit);*/
-        /*print_thresholds();*/
-      } else {
-        now_flow_num = in_degree;
-        now_result.resize(now_flow_num);
-        now_result[0] = 1;
-        if (sum > 100) {
-          max_small = 2;
-        } else if (sum > 50) {
-          max_small = 4;
+        uint32_t min_val = -1;
+        uint32_t max_val = 0;
+        sum_thresh.resize(2);
+        sum_thresh[0] = {0, 0};
+        sum_thresh[1] = {0, 0};
+        for (auto &t : thresh) {
+          if (t[3] == max_val) {
+            sum_thresh[0][0]++;
+          } else if (t[3] > max_val) {
+            sum_thresh[0][0] = 1;
+            sum_thresh[0][1] = t[3];
+          }
+          if (t[3] == min_val) {
+            sum_thresh[1][0]++;
+          } else if (t[3] < min_val) {
+            sum_thresh[1][0] = 1;
+            sum_thresh[1][1] = t[3];
+          }
         }
+        std::cout << "Min val " << sum_thresh[1][1] << " with count "
+                  << sum_thresh[1][0] << std::endl;
+        std::cout << "Max val " << sum_thresh[0][1] << " with count "
+                  << sum_thresh[0][0] << std::endl;
       }
+      now_flow_num = in_degree;
+      now_result.resize(now_flow_num);
+      printf("Setup gen with sum:%d, in_degree:%d, in_sketch_degree:%d, "
+             "flow_num_limit:%d\n",
+             sum, in_degree, in_sketch_degree, flow_num_limit);
+      print_thresholds();
     }
 
     bool get_new_comb() {
@@ -250,6 +268,7 @@ private:
           now_result.resize(now_flow_num);
           if (get_new_comb()) {
             if (check_condition()) {
+              print_now_result();
               total_combi++;
               return true;
             }
@@ -306,8 +325,8 @@ private:
         return true;
       }
 
-      for (auto &t : thresh) {
-        uint32_t colls = t[1];
+      for (auto &t : sum_thresh) {
+        uint32_t colls = t[0];
 
         if (colls <= 1) {
           continue;
@@ -316,8 +335,7 @@ private:
         /*print_thresholds();*/
         /*print_now_result();*/
 
-        uint32_t min_val = t[3];
-        uint32_t last_group_sz = 1;
+        uint32_t min_val = t[1];
         uint32_t passes = 0;
 
         uint32_t n_spread = 1;
@@ -479,7 +497,7 @@ private:
       // not found in measured data. We
       if (sum_p == 0.0) {
         if (sketch_xi <= 1) {
-          nt[sum] += 1;
+          /*nt[sum] += 1;*/
           continue;
         }
         if (it > 0) {

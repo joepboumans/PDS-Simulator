@@ -360,171 +360,216 @@ double WaterfallFCM::get_distribution(set<TUPLE> &tuples,
   vector<vector<uint32_t>> init_degree = get_initial_degrees(tuples);
   uint32_t max_counter_value = 0;
   vector<uint32_t> max_degree = {0, 0};
-  // Summarize sketch and find collisions
-  // depth, stage, idx, (count, total degree, sketch degree)
-  vector<vector<vector<vector<uint32_t>>>> summary(this->n_stages);
-  // Create virtual counters based on degree and count
-  // depth, degree, count, value, collisions
-  vector<vector<vector<uint32_t>>> virtual_counters;
-  // Base for EM
-  vector<vector<vector<uint32_t>>> sketch_degrees;
+  /* Making summary note for conversion algorithm (4-tuple summary)
+                 Each dimension is for (tree, layer, width, tuple)
+                 */
+  vector<vector<vector<vector<uint32_t>>>> summary(DEPTH);
   vector<vector<uint32_t>> init_fsd(DEPTH);
-  // depth, stage, idx, layer, vector<stage, local degree, total degree, min
-  // value>
-  vector<vector<vector<vector<vector<uint32_t>>>>> overflow_paths(
-      this->n_stages);
-  // depth, degree, count, value, vector<stage, local collisions, total
-  // collisions, min value>
-  vector<vector<vector<vector<vector<uint32_t>>>>> thresholds;
 
-  std::cout << "[EM_WFCM] Setting up summary and overflow paths..."
-            << std::endl;
-  // Setup sizes for summary and overflow_paths
-  for (size_t d = 0; d < DEPTH; d++) {
-    summary[d].resize(this->n_stages);
-    overflow_paths[d].resize(this->n_stages);
-    for (size_t stage = 0; stage < this->n_stages; stage++) {
-      summary[d][stage].resize(this->fcm_sketches.stages_sz[stage],
-                               vector<uint32_t>(3, 0));
-      overflow_paths[d][stage].resize(this->fcm_sketches.stages_sz[stage]);
-    }
-  }
-  std::cout << "[EM_WFCM] ...done!" << std::endl;
-  std::cout << "[EM_WFCM] Setting up virtual counters and thresholds..."
-            << std::endl;
+  /* To track how paths are merged along the layers */
+  vector<vector<vector<vector<vector<uint32_t>>>>> track_thres(DEPTH);
 
-  virtual_counters.resize(DEPTH);
-  sketch_degrees.resize(DEPTH);
-  thresholds.resize(DEPTH);
+  /*
+          When tracking paths, save <a,b,c> in track_thres, where
+          a : layer (where paths have met)
+          b : number of path that have met (always less or equal than degree of
+     virtual counter) c : accumulated max-count value of overflowed registers
+     (e.g., 254, 65534+254, 65534+254+254, etc)
+          */
 
-  std::cout << "[EM_WFCM] ...done!" << std::endl;
-  std::cout << "[EM_WFCM] Load count from sketches into virtual counters and "
-               "thresholds..."
-            << std::endl;
-  for (size_t d = 0; d < DEPTH; d++) {
-    for (size_t stage = 0; stage < this->n_stages; stage++) {
-      for (size_t i = 0; i < this->fcm_sketches.stages_sz[stage]; i++) {
-        if (this->fcm_sketches.stages[d][stage][i].count <= 0) {
-          continue;
-        }
+  std::cout << "[FCMS] Start setting up summary and thresholds" << std::endl;
+  for (int d = 0; d < DEPTH; ++d) {
+    summary[d].resize(NUM_STAGES);
+    track_thres[d].resize(NUM_STAGES);
+    for (uint32_t i = 0; i < NUM_STAGES; ++i) {
+      summary[d][i].resize(
+          this->fcm_sketches.stages_sz[i],
+          vector<uint32_t>(5, 0)); // { Total Degree, Previous Degrees, Local
+                                   // Degree , count, init_degrees}
+      track_thres[d][i].resize(this->fcm_sketches.stages_sz[i]); // initialize
+      for (int w = 0; w < this->fcm_sketches.stages_sz[i]; ++w) {
+        if (i == 0) { // stage 1
+          summary[d][i][w][2] = 1;
+          summary[d][i][w][3] =
+              std::min(this->fcm_sketches.stages[d][0][w].count,
+                       (uint32_t)OVERFLOW_LEVEL1); // depth 0
+          summary[d][i][w][4] = init_degree[d][i];
 
-        // If overflown increase the minimal value for the collisions
-        summary[d][stage][i][0] = this->fcm_sketches.stages[d][stage][i].count;
-        if (this->fcm_sketches.stages[d][stage][i].overflow) {
-          summary[d][stage][i][0] =
-              this->fcm_sketches.stages[d][stage][i].max_count;
-        }
+          if (!this->fcm_sketches.stages[d][i][w].overflow) { // not overflow
+            summary[d][i][w][0] = 1;
 
-        // Store local and initial degree
-        if (stage == 0) {
-          summary[d][stage][i][1] = 1;
-          summary[d][stage][i][2] = init_degree[d][i];
-        } else if (stage > 0) { // Start checking childeren from stage 1 and up
-          for (size_t k = 0; k < K; k++) {
-            uint32_t child_idx = i * K + k;
+          } else { // if counter is overflow
+            track_thres[d][i][w].push_back(
+                vector<uint32_t>{0, 1, summary[d][i][w][3]});
+          }
+        } else if (i == 1) { // stage 2
+          summary[d][i][w][2] = std::pow(K, i);
+          for (int t = 0; t < K; ++t) {
+            summary[d][i][w][1] += summary[d][i - 1][K * w + t][0] +
+                                   summary[d][i - 1][K * w + t][1];
+          }
 
-            // Add childs count, total and sketch degree to current counter
-            if (this->fcm_sketches.stages[d][stage - 1][child_idx].overflow) {
-              summary[d][stage][i][0] += summary[d][stage - 1][child_idx][0];
-              summary[d][stage][i][1] += summary[d][stage - 1][child_idx][1];
-              summary[d][stage][i][2] += summary[d][stage - 1][child_idx][2];
+          summary[d][i][w][3] =
+              std::min(this->fcm_sketches.stages[d][i][w].count,
+                       (uint32_t)OVERFLOW_LEVEL2);
 
-              // Add overflow path of child to my own path
-              for (auto &path : overflow_paths[d][stage - 1][child_idx]) {
-                overflow_paths[d][stage][i].push_back(path);
-              }
+          for (int t = 0; t < K; ++t) {
+            // if child is overflow, then accumulate both "value" and
+            // "threshold"
+            if (!this->fcm_sketches.stages[d][i - 1][K * w + t]
+                     .overflow) { // if child is overflow
+              continue;
             }
-          }
-        }
-
-        // If not overflown and non-zero, we are at the end of the path
-        if (!this->fcm_sketches.stages[d][stage][i].overflow &&
-            summary[d][stage][i][0] > 0) {
-
-          uint32_t count = summary[d][stage][i][0];
-          uint32_t sketch_degree = summary[d][stage][i][1];
-          uint32_t degree = summary[d][stage][i][2];
-          max_counter_value = std::max(max_counter_value, count);
-          max_degree[d] = std::max(max_degree[d], degree);
-
-          if (max_counter_value >= init_fsd[d].size()) {
-            init_fsd[d].resize(max_counter_value + 2);
+            summary[d][i][w][3] += summary[d][i - 1][K * w + t][3];
+            summary[d][i][w][4] += summary[d][i - 1][K * w + t][4];
+            track_thres[d][i][w].insert(
+                track_thres[d][i][w].end(),
+                track_thres[d][i - 1][K * w + t].begin(),
+                track_thres[d][i - 1][K * w + t].end());
           }
 
-          if (degree == 1) {
-            init_fsd[d][count]++;
-          } else if (degree == count) {
-            init_fsd[d][1] += count;
-          } else if (degree + 1 == count) {
-            init_fsd[d][1] += (count - 1);
-            init_fsd[d][2] += 1;
+          if (!this->fcm_sketches.stages[d][i][w]
+                   .overflow) // non-overflow, end of path
+          {
+            summary[d][i][w][0] = summary[d][i][w][2] - summary[d][i][w][1];
           } else {
-            if (degree >= virtual_counters[d].size()) {
-              virtual_counters[d].resize(degree + 1);
-              thresholds[d].resize(degree + 1);
-              sketch_degrees[d].resize(degree + 1);
+            // if overflow, then push new threshold <layer, #path, value>
+            track_thres[d][i][w].push_back(
+                vector<uint32_t>{i, summary[d][i][w][2] - summary[d][i][w][1],
+                                 summary[d][i][w][3]});
+          }
+        } else if (i == 2) { // stage 3
+          summary[d][i][w][3] = this->fcm_sketches.stages[d][i][w].count;
+          summary[d][i][w][2] = std::pow(K, i);
+          for (int t = 0; t < K; ++t) {
+            summary[d][i][w][1] += summary[d][i - 1][K * w + t][0] +
+                                   summary[d][i - 1][K * w + t][1];
+          }
+
+          for (int t = 0; t < K; ++t) {
+            // if child is overflow, then accumulate both "value" and
+            // "threshold"
+            if (!this->fcm_sketches.stages[d][i - 1][K * w + t]
+                     .overflow) { // if child is overflow
+              continue;
             }
+            summary[d][i][w][3] += summary[d][i - 1][K * w + t][3];
+            summary[d][i][w][4] += summary[d][i - 1][K * w + t][4];
+            track_thres[d][i][w].insert(
+                track_thres[d][i][w].end(),
+                track_thres[d][i - 1][K * w + t].begin(),
+                track_thres[d][i - 1][K * w + t].end());
+          }
 
-            // Separate L1 VC's as these do not require thresholds to solve.
-            // Store L1 VC in degree 0
-            /*if (sketch_degree == 1) {*/
-            /*  sketch_degree = 1;*/
-            /*  degree = 0;*/
-            /*}*/
-            // Add entry to VC with its degree [1] and count [0]
-            virtual_counters[d][degree].push_back(count);
-            sketch_degrees[d][degree].push_back(sketch_degree);
-
-            thresholds[d][degree].push_back(overflow_paths[d][stage][i]);
+          if (!this->fcm_sketches.stages[d][i][w]
+                   .overflow) // non-overflow, end of path
+          {
+            summary[d][i][w][0] = summary[d][i][w][2] - summary[d][i][w][1];
+          } else {
+            // if overflow, then push new threshold <layer, #path, value>
+            track_thres[d][i][w].push_back(
+                vector<uint32_t>{i, summary[d][i][w][2] - summary[d][i][w][1],
+                                 summary[d][i][w][3]});
+            std::cerr << "[ERROR] Overflowing at L3 at " << i << std::endl;
           }
 
         } else {
-          uint32_t max_val = summary[d][stage][i][0];
-          uint32_t local_degree = summary[d][stage][i][1];
-          uint32_t total_degree = summary[d][stage][i][2];
-          vector<uint32_t> local = {static_cast<uint32_t>(stage), local_degree,
-                                    total_degree, max_val};
-          overflow_paths[d][stage][i].push_back(local);
+          printf("[ERROR] DEPTH(%d) is not mathcing with allocated counter "
+                 "arrays...\n",
+                 DEPTH);
+          return -1;
         }
       }
     }
   }
 
-  std::cout << "[EM_WFCM] ...done!" << std::endl;
+  // make new sketch with specific degree, (depth, degree, value)
+  vector<vector<vector<uint32_t>>> newsk(DEPTH);
 
-  if (1) {
-    // Print vc with thresholds
-    for (size_t d = 0; d < DEPTH; d++) {
-      for (size_t st = 0; st < virtual_counters[d].size(); st++) {
-        if (virtual_counters[d][st].size() == 0) {
-          continue;
-        }
-        for (size_t i = 0; i < virtual_counters[d][st].size(); i++) {
-          printf("Depth %zu, Degree %zu, Sketch Degree %u, Index %zu ]= Val "
-                 "%d \tThresholds: ",
-                 d, st, sketch_degrees[d][st][i], i,
-                 virtual_counters[d][st][i]);
-          for (auto &t : thresholds[d][st][i]) {
-            std::cout << "<";
-            for (auto &x : t) {
-              std::cout << x;
-              if (&x != &t.back()) {
-                std::cout << ", ";
-              }
+  // (depth, degree, vector(layer)<vector(#.paths)<threshold>>>)
+  vector<vector<vector<vector<vector<uint32_t>>>>> newsk_thres(DEPTH);
+
+  std::cout << "[FCMS] Transform summary and thresh into newsk and "
+               "newsk_thresh"
+            << std::endl;
+
+  for (int d = 0; d < DEPTH; ++d) {
+    // size = all possible degree
+    newsk[d].resize(std::pow(K, NUM_STAGES - 1) +
+                    1); // maximum degree : k^(L-1) + 1 (except 0 index)
+    newsk_thres[d].resize(std::pow(K, NUM_STAGES - 1) +
+                          1); // maximum degree : k^(L-1) + 1 (except 0 index)
+    for (int i = 0; i < NUM_STAGES; ++i) {
+      for (int w = 0; w < this->fcm_sketches.stages_sz[i]; ++w) {
+        if (i == 0) { // lowest level, degree 1
+          if (summary[d][i][w][0] > 0 and
+              summary[d][i][w][3] > 0) { // not full and nonzero
+
+            if (summary[d][i][w][3] >= init_degree[d].size()) {
+              init_degree[d].resize(summary[d][i][w][3] + 2);
             }
-            std::cout << ">";
-            if (&t != &thresholds[d][st][i].back()) {
-              std::cout << ", ";
+
+            if (summary[d][i][w][4] == 1) {
+              init_degree[d][summary[d][i][w][3]] += 1;
+            } else if (summary[d][i][w][4] == summary[d][i][w][3]) {
+              init_degree[d][1] += summary[d][i][w][3];
+            } else {
+              newsk[d][summary[d][i][w][0]].push_back(summary[d][i][w][3]);
+              newsk_thres[d][summary[d][i][w][0]].push_back(
+                  track_thres[d][i][w]);
             }
           }
-          std::cout << std::endl;
+        } else { // upper level
+          if (summary[d][i][w][0] >
+              0) { // the highest node that paths could reach
+
+            if (summary[d][i][w][3] >= init_degree[d].size()) {
+              init_degree[d].resize(summary[d][i][w][3] + 2);
+            }
+
+            if (summary[d][i][w][4] == 1) {
+              init_degree[d][summary[d][i][w][3]] += 1;
+            } else if (summary[d][i][w][4] == summary[d][i][w][3]) {
+              init_degree[d][1] += summary[d][i][w][3];
+            } else {
+              newsk[d][summary[d][i][w][0]].push_back(summary[d][i][w][3]);
+              newsk_thres[d][summary[d][i][w][0]].push_back(
+                  track_thres[d][i][w]);
+            }
+          }
         }
       }
-      for (size_t i = 0; i < init_fsd[d].size(); i++) {
-        if (init_fsd[d][i] != 0) {
-          printf("Depth %zu, Index %zu ]= Val %d\n", d, i, init_fsd[d][i]);
+    }
+  }
+
+  std::cout << "[FCMS] Finished setting up newsk and "
+               "newsk_thresh"
+            << std::endl;
+  // just for debugging, 1 for print, 0 for not print.
+  if (0) {
+    int maximum_val = 0;
+    for (int d = 0; d < DEPTH; ++d) {
+      for (int i = 0; i < newsk[d].size(); ++i) {
+        if (newsk[d][i].size() > 0) {
+          printf("degree : %d - %lu\n", i, newsk[d][i].size());
+          if (newsk_thres[d][i].size() != newsk[d][i].size()) {
+            printf("[Error] newsk and newsk_thres sizes are different!!!\n\n");
+            return -1;
+          }
+          for (int j = 0; j < newsk[d][i].size(); ++j) {
+            printf("[Depth:%d, Degree:%d, index:%d] ==> ", d, i, j);
+            printf("val:%d //", newsk[d][i][j]);
+            for (int k = 0; k < newsk_thres[d][i][j].size(); ++k) {
+              printf("<%d, %d, %d>, ", newsk_thres[d][i][j][k][0],
+                     newsk_thres[d][i][j][k][1], newsk_thres[d][i][j][k][2]);
+            }
+            maximum_val =
+                (maximum_val < newsk[d][i][j] ? newsk[d][i][j] : maximum_val);
+            printf("\n");
+          }
         }
       }
+      printf("[Depth : %d] Maximum counter value : %d\n\n\n", d, maximum_val);
     }
   }
 
@@ -533,20 +578,21 @@ double WaterfallFCM::get_distribution(set<TUPLE> &tuples,
   std::cout << "Maximum counter value is: " << max_counter_value << std::endl;
 
   std::cout << "[EMS_FSD] Initializing EMS_FSD..." << std::endl;
-  EM_WFCM EM(thresholds, max_counter_value, max_degree, virtual_counters,
-             sketch_degrees, init_fsd);
+  EM_WFCM<DEPTH, W1, OVERFLOW_LEVEL1, OVERFLOW_LEVEL2> em_fsd_algo; // new
+  em_fsd_algo.set_counters(newsk, newsk_thres, init_fsd);           // new
   std::cout << "[EMS_FSD] ...done!" << std::endl;
   auto total_start = std::chrono::high_resolution_clock::now();
-
+  std::cout << "Initialized EM_FSD, starting estimation..." << std::endl;
   double d_wmre = 0.0;
   for (size_t i = 0; i < this->em_iters; i++) {
     auto start = std::chrono::high_resolution_clock::now();
-    EM.next_epoch();
-    this->fcm_sketches.ns = EM.ns;
+    em_fsd_algo.next_epoch();
     auto stop = std::chrono::high_resolution_clock::now();
-    auto time = std::chrono::duration_cast<chrono::milliseconds>(stop - start);
+    auto time = chrono::duration_cast<chrono::milliseconds>(stop - start);
     auto total_time =
-        std::chrono::duration_cast<chrono::milliseconds>(stop - total_start);
+        chrono::duration_cast<chrono::milliseconds>(stop - total_start);
+
+    this->fcm_sketches.ns = em_fsd_algo.ns;
     uint32_t max_len = std::max(true_fsd.size(), this->fcm_sketches.ns.size());
     true_fsd.resize(max_len);
     this->fcm_sketches.ns.resize(max_len);
@@ -559,56 +605,55 @@ double WaterfallFCM::get_distribution(set<TUPLE> &tuples,
           double((double(true_fsd[i]) + this->fcm_sketches.ns[i]) / 2);
     }
     wmre = wmre_nom / wmre_denom;
-    std::cout << "[FCMS - EM WFCM iter " << i << "] intermediary wmre " << wmre
+    std::cout << "[FCMS - EM FSD iter " << i << "] intermediary wmre " << wmre
               << " delta: " << wmre - d_wmre << std::endl;
     d_wmre = wmre;
-    // entropy initialization
-    double entropy_err = 0;
-    double entropy_est = 0;
-
-    double tot_est = 0;
-    double entr_est = 0;
-
-    for (int i = 1; i < this->fcm_sketches.ns.size(); ++i) {
-      if (this->fcm_sketches.ns[i] == 0)
-        continue;
-      tot_est += i * this->fcm_sketches.ns[i];
-      entr_est += i * this->fcm_sketches.ns[i] * log2(i);
-    }
-    entropy_est = -entr_est / tot_est + log2(tot_est);
-
-    double entropy_true = 0;
-    double tot_true = 0;
-    double entr_true = 0;
-    for (int i = 0; i < true_fsd.size(); ++i) {
-      if (true_fsd[i] == 0)
-        continue;
-      tot_true += i * true_fsd[i];
-      entr_true += i * true_fsd[i] * log2(i);
-    }
-    entropy_true = -entr_true / tot_true + log2(tot_true);
-
-    entropy_err = std::abs(entropy_est - entropy_true) / entropy_true;
-    printf("Entropy Relative Error (RE) = %f (true : %f, est : %f)\n",
-           entropy_err, entropy_true, entropy_est);
-
-    if (!this->store_results) {
-      continue;
-    }
-
+    // Save data into csv
     char csv[300];
-    sprintf(csv, "%u,%.3ld,%.3ld,%.3f,%.3f", this->em_iters, time.count(),
-            total_time.count(), wmre, EM.n_new);
+    sprintf(csv, "%zu,%.3ld,%.3ld,%.3f,%.3f", i, time.count(),
+            total_time.count(), wmre, em_fsd_algo.n_new);
     this->fcsv_em << csv << std::endl;
-  }
 
-  std::cout << "True FSD: " << std::endl;
-  for (int i = 0; i < true_fsd.size(); ++i) {
-    if (true_fsd[i] != 0) {
-      std::cout << i << ":" << true_fsd[i] << " ";
+    // Write NS FSD size and then the FSD as uint64_t
+    uint32_t ns_size = this->fcm_sketches.ns.size();
+    this->fcsv_ns.write((char *)&ns_size, sizeof(ns_size));
+    for (uint32_t i = 0; i < this->fcm_sketches.ns.size(); i++) {
+      if (this->fcm_sketches.ns[i] != 0) {
+        this->fcsv_ns.write((char *)&i, sizeof(i));
+        this->fcsv_ns.write((char *)&this->fcm_sketches.ns[i],
+                            sizeof(this->fcm_sketches.ns[i]));
+      }
     }
   }
-  std::cout << std::endl;
+  // entropy initialization
+  double entropy_err = 0;
+  double entropy_est = 0;
+
+  double tot_est = 0;
+  double entr_est = 0;
+
+  for (int i = 1; i < this->fcm_sketches.ns.size(); ++i) {
+    if (this->fcm_sketches.ns[i] == 0)
+      continue;
+    tot_est += i * this->fcm_sketches.ns[i];
+    entr_est += i * this->fcm_sketches.ns[i] * log2(i);
+  }
+  entropy_est = -entr_est / tot_est + log2(tot_est);
+
+  double entropy_true = 0;
+  double tot_true = 0;
+  double entr_true = 0;
+  for (int i = 0; i < true_fsd.size(); ++i) {
+    if (true_fsd[i] == 0)
+      continue;
+    tot_true += i * true_fsd[i];
+    entr_true += i * true_fsd[i] * log2(i);
+  }
+  entropy_true = -entr_true / tot_true + log2(tot_true);
+
+  entropy_err = std::abs(entropy_est - entropy_true) / entropy_true;
+  printf("Entropy Relative Error (RE) = %f (true : %f, est : %f)\n",
+         entropy_err, entropy_true, entropy_est);
 
   return wmre;
 }

@@ -492,7 +492,7 @@ double WaterfallFCM::get_distribution(set<TUPLE> &tuples,
 
   std::cout << "[EM_WFCM] ...done!" << std::endl;
 
-  if (0) {
+  if (1) {
     // Print vc with thresholds
     for (size_t d = 0; d < DEPTH; d++) {
       for (size_t st = 0; st < virtual_counters[d].size(); st++) {

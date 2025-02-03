@@ -216,16 +216,25 @@ private:
         /*std::cout << "Max val " << sum_thresh[0][1] << " with count "*/
         /*          << sum_thresh[0][0] << std::endl;*/
       }
-      /*if (in_degree > 4) {*/
-      /*  max_small = 4;*/
-      /*} else if (sum > 100) {*/
-      /*  max_small = 8;*/
-      /*}*/
+      if (in_degree >= 10) {
+        max_small = 2;
+      }
+      if (in_degree >= 8) {
+        max_small = 3;
+      }
+      if (in_degree >= 6) {
+        max_small = 4;
+      }
+      if (in_degree >= 4) {
+        max_small = 5;
+      } else if (sum >= 100) {
+        max_small = 8;
+      }
+      printf("Setup gen with sum:%d, in_degree:%d, in_sketch_degree:%d, "
+             "flow_num_limit:%d\n",
+             sum, in_degree, in_sketch_degree, flow_num_limit);
       now_flow_num = in_degree;
       now_result.resize(now_flow_num);
-      /*printf("Setup gen with sum:%d, in_degree:%d, in_sketch_degree:%d, "*/
-      /*       "flow_num_limit:%d\n",*/
-      /*       sum, in_degree, in_sketch_degree, flow_num_limit);*/
     }
 
     bool get_new_comb() {
@@ -441,28 +450,11 @@ private:
       if (this->counters[d][xi][i] == 0) {
         continue;
       }
-      std::cout << "Found val " << this->counters[d][xi][i] << std::endl;
 
       uint32_t sum = this->counters[d][xi][i];
       uint32_t sketch_xi = this->sketch_degrees[d][xi][i];
+      std::cout << "Found val " << this->counters[d][xi][i] << std::endl;
       vector<vector<uint32_t>> thresh = this->thresholds[d][xi][i];
-      double lambda = this->n_old * sketch_xi / static_cast<double>(w);
-
-      BetaGenerator alpha(sum, xi, sketch_xi, thresh),
-          beta(sum, xi, sketch_xi, thresh);
-      double sum_p = 0.0;
-      uint32_t it = 0;
-
-      // Sum over first combinations
-      while (alpha.get_next()) {
-        double p = get_p_from_beta(alpha, lambda, this->dist_old, this->n_old,
-                                   sketch_xi);
-        sum_p += p;
-        it++;
-      }
-
-      std::cout << "Val " << sum << " found sum_p " << sum_p << " with "
-                << alpha.total_combi << " combinations" << std::endl;
       for (auto &t : thresh) {
         std::cout << "<";
         for (auto &x : t) {
@@ -474,6 +466,23 @@ private:
         std::cout << "> ";
       }
       std::cout << std::endl;
+      double lambda = this->n_old * xi / static_cast<double>(w);
+
+      BetaGenerator alpha(sum, xi, sketch_xi, thresh),
+          beta(sum, xi, sketch_xi, thresh);
+      double sum_p = 0.0;
+      uint32_t it = 0;
+
+      // Sum over first combinations
+      while (alpha.get_next()) {
+        double p =
+            get_p_from_beta(alpha, lambda, this->dist_old, this->n_old, xi);
+        sum_p += p;
+        it++;
+      }
+
+      std::cout << "Val " << sum << " found sum_p " << sum_p << " with "
+                << alpha.total_combi << " combinations" << std::endl;
 
       // If there where valid combinations, but value of combinations where
       // not found in measured data. We
@@ -499,8 +508,8 @@ private:
         }
       } else {
         while (beta.get_next()) {
-          double p = get_p_from_beta(beta, lambda, this->dist_old, this->n_old,
-                                     sketch_xi);
+          double p =
+              get_p_from_beta(beta, lambda, this->dist_old, this->n_old, xi);
           for (size_t j = 0; j < beta.now_flow_num; ++j) {
             nt[beta.now_result[j]] += p / sum_p;
           }
@@ -517,10 +526,10 @@ private:
       }
       std::cout << std::endl;
     }
-    if (this->counters[d][xi].size() != 0)
-      printf("[EM_WFCM] ******** depth %d degree %2d is "
-             "finished...(accum:%10.1f #val:%8d)\t**********\n",
-             d, xi, accum, (int)this->counters[d][xi].size());
+    /*if (this->counters[d][xi].size() != 0)*/
+    printf("[EM_WFCM] ******** depth %d degree %2d is "
+           "finished...(accum:%10.1f #val:%8d)\t**********\n",
+           d, xi, accum, (int)this->counters[d][xi].size());
   }
 
 public:
@@ -541,7 +550,7 @@ public:
     }
     std::fill(this->ns.begin(), this->ns.end(), 0);
 
-    if (0) {
+    if (1) {
       std::cout << "[EM_WFCM] Init first degree" << std::endl;
       // Simple Multi thread
       vector<vector<std::thread>> threads(DEPTH);
@@ -558,17 +567,18 @@ public:
                     << std::endl;
           threads[d][t] = std::thread(&EM_WFCM::calculate_degree, *this,
                                       std::ref(nt[d][t]), d, t);
+          threads[d][t].join();
         }
       }
 
       std::cout << "[EM_WFCM] Started all threads, wait for them to finish..."
                 << std::endl;
 
-      for (size_t d = 0; d < DEPTH; d++) {
-        for (size_t t = 1; t < threads[d].size(); t++) {
-          threads[d][t].join();
-        }
-      }
+      /*for (size_t d = 0; d < DEPTH; d++) {*/
+      /*  for (size_t t = 1; t < threads[d].size(); t++) {*/
+      /*    threads[d][t].join();*/
+      /*  }*/
+      /*}*/
     } else {
       // Single threaded
       for (size_t d = 0; d < DEPTH; d++) {

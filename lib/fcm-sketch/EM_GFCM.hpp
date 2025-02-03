@@ -579,7 +579,7 @@ public:
     std::cout << "[EM_GFCM] Created " << total_degree << " threads"
               << std::endl;
 
-    if (0) {
+    if (1) {
       for (size_t d = 0; d < DEPTH; d++) {
         for (size_t t = 1; t < threads[d].size(); t++) {
           std::cout << "[EM_GFCM] Start thread " << t << " at depth " << d

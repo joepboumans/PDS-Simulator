@@ -836,7 +836,7 @@ public:
 
     printf("[EM_FCM - iter %2d] Intermediate cardianlity : %9.1f\n\n", iter,
            n_new);
-    /*print_stats();*/
+    print_stats();
   }
 
   void print_stats() {

@@ -468,7 +468,7 @@ double WaterfallFCM::get_distribution(set<TUPLE> &tuples,
             // Separate L1 VC's as these do not require thresholds to solve.
             // Store L1 VC in degree 0
             /*if (sketch_degree == 1) {*/
-            /*  sketch_degree = degree;*/
+            /*  sketch_degree = 1;*/
             /*  degree = 0;*/
             /*}*/
             // Add entry to VC with its degree [1] and count [0]

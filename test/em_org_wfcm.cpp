@@ -60,7 +60,7 @@ TEST_CASE("Small trace of EM FCM vs EM WFCM", "[trace][small]") {
   REQUIRE(wfcm.average_relative_error == 0);
 
   for (size_t i = 0; i < trace.size(); i++) {
-    /*for (size_t i = 0; i < 500000; i++) {*/
+    /*for (size_t i = 0; i < 1000000; i++) {*/
     wfcm.insert(trace.at(i));
   }
 
@@ -273,13 +273,13 @@ TEST_CASE("Multi Degree ; l1", "[em][md][l1]") {
 
 TEST_CASE("Multi Degree ; All", "[em][md][all]") {
   TupleSize tuple_sz = SrcTuple;
-  WaterfallFCM wfcm(4, NUM_STAGES, K, 1, 1, 4, 65535, "test", tuple_sz);
+  WaterfallFCM wfcm(4, NUM_STAGES, K, 1, 5, 4, 65535, "test", tuple_sz);
   size_t l1_sz = wfcm.fcm_sketches.stages_sz[0];
   REQUIRE(wfcm.average_absolute_error == 0);
   REQUIRE(wfcm.average_relative_error == 0);
 
   auto l1_flows = GENERATE(512, 1024);
-  auto l2_flows = GENERATE(2, 4);
+  auto l2_flows = GENERATE(128, 256);
   auto l3_flows = GENERATE(64);
   vector<TUPLE> tuple =
       generate_n_tuples(l1_flows + l2_flows + l3_flows, tuple_sz);

@@ -320,7 +320,7 @@ private:
         // First group takes whole spread
         uint32_t first_val = std::accumulate(now_result.begin(),
                                              now_result.begin() + n_spread, 0);
-        if (first_val < min_val) {
+        if (first_val < min_val * min_count) {
           return false;
         }
 

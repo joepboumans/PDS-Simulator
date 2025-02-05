@@ -130,6 +130,10 @@ private:
     uint32_t total_combi = 0;
     vector<int> now_result;
     vector<vector<uint32_t>> thresh;
+    uint32_t min_val = -1;
+    uint32_t min_count = 0;
+    uint32_t max_val = 0;
+    uint32_t max_count = 0;
 
     explicit BetaGenerator(uint32_t _sum, uint32_t _in_degree,
                            vector<vector<uint32_t>> _thresh)
@@ -180,6 +184,21 @@ private:
           in_degree = 2;
         } else if (in_degree == 2 and sum > ADD_LEVEL2) {
           thresh[1][1] = 1;
+        }
+        // Setup limits for thresholds
+        for (auto &t : thresh) {
+          if (t[3] == max_val) {
+            max_count++;
+          } else if (t[3] > max_val) {
+            max_count = 1;
+            max_val = t[3];
+          }
+          if (t[3] == min_val) {
+            min_count++;
+          } else if (t[3] < min_val) {
+            min_count = 1;
+            min_val = t[3];
+          }
         }
       }
 
@@ -413,8 +432,8 @@ private:
            "**********\n",
            xi, this->counters[d][xi].size());
 
-    // FCM 1 degree does not care about thresholds and thus can be calculated on
-    // distribution instead of individual counters
+    // FCM 1 degree does not care about thresholds and thus can be calculated
+    // on distribution instead of individual counters
     if (xi == 1) {
       for (uint32_t i = 0; i < this->counter_dist[d][xi].size(); i++) {
         if (this->counter_dist[d][xi][i] == 0) {
@@ -465,7 +484,8 @@ private:
         uint32_t it = 0;
 
         // Sum over first combinations
-        /*std::cout << "Found val " << this->counters[d][xi][i] << std::endl;*/
+        /*std::cout << "Found val " << this->counters[d][xi][i] <<
+         * std::endl;*/
         while (alpha.get_next()) {
           double p =
               get_p_from_beta(alpha, lambda, this->dist_old, this->n_old, xi);
@@ -495,7 +515,8 @@ private:
             uint32_t temp_val = this->counters[d][xi][i];
             vector<vector<uint32_t>> temp_thresh = this->thresholds[d][xi][i];
 
-            /*std::cout << "adjust value at " << i << " with val " << temp_val*/
+            /*std::cout << "adjust value at " << i << " with val " <<
+             * temp_val*/
             /*          << std::endl;*/
             /*for (auto &t : temp_thresh) {*/
             /*  std::cout << "<";*/

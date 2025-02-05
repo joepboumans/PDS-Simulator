@@ -59,12 +59,10 @@ public:
     // Setup counters and counters_distribution for estimation, counter_dist is
     // Depth, Degree, Count
     for (size_t d = 0; d < DEPTH; d++) {
-      /*this->thresholds[d].resize(this->max_degree[d] + 1);*/
       this->counter_dist[d].resize(this->max_degree[d] + 1);
 
       for (size_t xi = 0; xi < this->counter_dist[d].size(); xi++) {
         this->counter_dist[d][xi].resize(this->max_counter_value + 1);
-        /*this->thresholds[d][xi].resize(this->max_counter_value + 1);*/
       }
     }
     std::cout << "[EM_WFCM] Finished setting up counter_dist and "
@@ -152,7 +150,10 @@ private:
     uint32_t total_combi = 0;
     vector<int> now_result;
     vector<vector<uint32_t>> thresh;
-    vector<vector<uint32_t>> sum_thresh;
+    uint32_t min_val = -1;
+    uint32_t min_count = 0;
+    uint32_t max_val = 0;
+    uint32_t max_count = 0;
 
     explicit BetaGenerator(uint32_t _sum, uint32_t _in_degree,
                            uint32_t _in_sketch_degree,
@@ -165,12 +166,7 @@ private:
 
       // Setup limit for degree 1
       if (in_sketch_degree > 1) {
-        if (sum > 1100)
-          flow_num_limit = in_sketch_degree;
-        else if (sum > 550)
-          flow_num_limit = std::max(in_sketch_degree, (uint32_t)3);
-        else
-          flow_num_limit = std::max(in_sketch_degree, (uint32_t)4);
+        flow_num_limit = in_sketch_degree;
 
         // Note that the counters of degree D (> 1) includes at least D flows.
         // But, the combinatorial complexity also increases to O(N^D), which
@@ -185,27 +181,22 @@ private:
           flow_num_limit = 3;
         } else if (in_sketch_degree >= 4 and sum >= 10000) {
           flow_num_limit = 2;
-        } else if (in_sketch_degree == 3 and sum > 5000) {
+        } else if (in_sketch_degree == 3 and sum >= 5000) {
           flow_num_limit = 2;
         }
         // Limit to the in_degree
-        uint32_t min_val = -1;
-        uint32_t max_val = 0;
-        sum_thresh.resize(2);
-        sum_thresh[0] = {0, 0};
-        sum_thresh[1] = {0, 0};
         for (auto &t : thresh) {
           if (t[3] == max_val) {
-            sum_thresh[0][0]++;
+            max_count++;
           } else if (t[3] > max_val) {
-            sum_thresh[0][0] = 1;
-            sum_thresh[0][1] = t[3];
+            max_count = 1;
+            max_val = t[3];
           }
           if (t[3] == min_val) {
-            sum_thresh[1][0]++;
+            min_count++;
           } else if (t[3] < min_val) {
-            sum_thresh[1][0] = 1;
-            sum_thresh[1][1] = t[3];
+            min_count = 1;
+            min_val = t[3];
           }
         }
         /*std::cout << "Min val " << sum_thresh[1][1] << " with count "*/
@@ -218,11 +209,21 @@ private:
         } else if (sum > 250) // 500 for large data, 250 for small data
           flow_num_limit = 3;
         else if (sum > 100)
-          flow_num_limit = 4;
+          flow_num_limit = 3;
         else if (sum > 50)
-          flow_num_limit = 5;
+          flow_num_limit = 3;
         else
-          flow_num_limit = 6;
+          flow_num_limit = 3;
+        /*if (sum > 600) { // 1000 for large data, 600 for small data*/
+        /*  flow_num_limit = 2;*/
+        /*} else if (sum > 100) // 500 for large data, 250 for small data*/
+        /*{*/
+        /*  flow_num_limit = 3;*/
+        /*} else if (sum > 50) {*/
+        /*  flow_num_limit = 4;*/
+        /*} else {*/
+        /*  flow_num_limit = in_degree;*/
+        /*}*/
       }
       flow_num_limit = std::min((int)in_degree, flow_num_limit);
       /*printf("Setup gen with sum:%d, in_degree:%d, in_sketch_degree:%d, "*/
@@ -310,90 +311,59 @@ private:
         return true;
       }
 
-      for (auto &t : sum_thresh) {
-        uint32_t colls = t[0];
-
-        if (colls <= 1) {
-          continue;
+      uint32_t last_val = now_result.back();
+      if (last_val >= max_val) {
+        uint32_t n_spread = 1;
+        if (now_flow_num > in_sketch_degree) {
+          n_spread = now_flow_num - in_sketch_degree;
+        }
+        // First group takes whole spread
+        uint32_t first_val = std::accumulate(now_result.begin(),
+                                             now_result.begin() + n_spread, 0);
+        if (first_val < min_val) {
+          return false;
         }
 
-        /*print_thresholds();*/
-        /*print_now_result();*/
+        // Combination passes minimal requiremnt of 2 flows
+        if (now_flow_num <= 2) {
+          return true;
+        }
 
-        uint32_t min_val = t[1];
-        uint32_t passes = 0;
+        // Check inner numbers in combination
+        for (size_t i = n_spread; i < now_flow_num - 1; i++) {
+          if (now_result[i] < min_val) {
+            return false;
+          }
+        }
+        return true;
+      } else {
+        last_val += now_result[0];
+        if (last_val < max_val) {
+          return false;
+        }
 
         uint32_t n_spread = 1;
-        if (now_flow_num > in_degree) {
-          n_spread = now_flow_num - in_degree;
+        if (now_flow_num > in_sketch_degree) {
+          n_spread = now_flow_num - in_sketch_degree - 1;
         }
-
-        uint32_t last_val = now_result.back();
-        /*std::cout << "n spread " << n_spread << " last val " << last_val*/
-        /*          << " min val " << min_val << std::endl;*/
-
-        if (now_flow_num == in_degree and last_val <= min_val) {
+        uint32_t first_val = std::accumulate(
+            now_result.begin() + 1, now_result.begin() + 1 + n_spread, 0);
+        if (first_val < min_val) {
           return false;
         }
 
-        if (last_val > min_val) {
-          passes++;
-          // First group takes whole spread
-          uint32_t first_val = std::accumulate(
-              now_result.begin(), now_result.begin() + n_spread, 0);
-          if (first_val <= min_val) {
+        // Combination passes minimal requiremnt of 2 flows
+        if (now_flow_num <= 2) {
+          return true;
+        }
+
+        // Check inner numbers in combination
+        for (size_t i = 1 + n_spread; i < now_flow_num - 1; i++) {
+          if (now_result[i] < min_val) {
             return false;
           }
-          passes++;
-          // Next groups are singles
-          for (size_t i = 0; i < in_degree - 2; i++) {
-            if (now_result[i + n_spread] > min_val) {
-              passes++;
-            }
-          }
-        } else {
-          // Shift group to include first entry
-          last_val += now_result[0];
-
-          /*std::cout << "Shifting group" << std::endl;*/
-          /*std::cout << "n spread " << n_spread << " last_group_sz "*/
-          /*          << last_group_sz << " last group val " << last_val*/
-          /*          << " min val " << min_val << std::endl;*/
-
-          if (last_val <= min_val) {
-            return false;
-          }
-          passes++;
-
-          if (n_spread > 1) {
-            // First group takes whole spread
-            uint32_t first_val = std::accumulate(
-                now_result.begin() + 1, now_result.begin() + 1 + n_spread, 0);
-            if (first_val <= min_val) {
-              return false;
-            }
-            passes++;
-            // Next groups are singles
-            for (size_t i = 0; i < in_degree - 2; i++) {
-              if (now_result[i + 1 + n_spread] > min_val) {
-                passes++;
-              }
-            }
-          } else {
-            // Next groups are singles
-            for (size_t i = 0; i < in_degree - 1; i++) {
-              if (now_result[i + 1] > min_val) {
-                passes++;
-              }
-            }
-          }
         }
-        // Combination has not large enough values to meet all conditions
-        // E.g. it needs have 2 values large than the L2 threshold +
-        // predecessor (min_value)
-        if (passes < colls and passes < flow_num_limit) {
-          return false;
-        }
+        return true;
       }
       return true;
     }
@@ -445,6 +415,10 @@ private:
 
       uint32_t sum = this->counters[d][xi][i];
       uint32_t sketch_xi = this->sketch_degrees[d][xi][i];
+      uint32_t est_xi = sketch_xi;
+      if (sketch_xi == 1) {
+        est_xi = 1;
+      }
       vector<vector<uint32_t>> &thresh = this->thresholds[d][xi][i];
       /*std::cout << "Found val " << this->counters[d][xi][i] << std::endl;*/
       /*if (this->thresholds[d][xi].size() <= i) {*/
@@ -468,13 +442,13 @@ private:
       double sum_p = 0.0;
       uint32_t it = 0;
 
-      // Sum over first combinations
       while (alpha.get_next()) {
         double p =
-            get_p_from_beta(alpha, lambda, this->dist_old, this->n_old, xi);
+            get_p_from_beta(alpha, lambda, this->dist_old, this->n_old, est_xi);
         sum_p += p;
         it++;
       }
+      // Sum over first combinations
 
       /*std::cout << "Val " << sum << " found sum_p " << sum_p << " with "*/
       /*          << alpha.total_combi << " combinations" << std::endl;*/
@@ -503,8 +477,8 @@ private:
         }
       } else {
         while (beta.get_next()) {
-          double p =
-              get_p_from_beta(beta, lambda, this->dist_old, this->n_old, xi);
+          double p = get_p_from_beta(beta, lambda, this->dist_old, this->n_old,
+                                     est_xi);
           for (size_t j = 0; j < beta.now_flow_num; ++j) {
             nt[beta.now_result[j]] += p / sum_p;
           }

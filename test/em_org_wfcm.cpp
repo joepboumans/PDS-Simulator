@@ -60,7 +60,6 @@ TEST_CASE("Small trace of EM FCM vs EM WFCM", "[trace][small]") {
   REQUIRE(wfcm.average_relative_error == 0);
 
   for (size_t i = 0; i < trace.size(); i++) {
-    /*for (size_t i = 0; i < 1000000; i++) {*/
     wfcm.insert(trace.at(i));
   }
 
@@ -81,6 +80,55 @@ TEST_CASE("Small trace of EM FCM vs EM WFCM", "[trace][small]") {
   // Compare if WMRE and NS are approx equal. Small difference due to different
   // floating point operations between FCMS and WFCM
   CHECK(wfcm_wmre <= org_wmre);
+}
+
+TEST_CASE("Total traces of EM FCM vs EM WFCM", "[trace][total]") {
+  glob_t *glob_res = new glob_t;
+  if (memset(glob_res, 0, sizeof(glob_t)) == NULL) {
+    std::cout << "Glob init failed" << std::endl;
+    exit(1);
+  }
+  glob("data/*.dat", GLOB_TILDE, NULL, glob_res);
+  vector<string> filenames(glob_res->gl_pathc);
+  for (size_t i = 0; i < glob_res->gl_pathc; ++i) {
+    filenames[i] = string(glob_res->gl_pathv[i]);
+  }
+  globfree(glob_res);
+
+  TupleSize tuple_sz = SrcTuple;
+  for (string &f : filenames) {
+    dataParser data_parser;
+    TRACE trace = data_parser.get_trace(f.data(), tuple_sz);
+    std::cout << "[DataParser] Finished parsing data" << std::endl;
+    string file = f.erase(f.find("data/"), sizeof("data/") - 1);
+    file = file.erase(file.find(".dat"), sizeof(".dat") - 1);
+
+    WaterfallFCM wfcm(W3, NUM_STAGES, K, 1, 2, 4, 65535, file, tuple_sz);
+    REQUIRE(wfcm.average_absolute_error == 0);
+    REQUIRE(wfcm.average_relative_error == 0);
+
+    for (size_t i = 0; i < trace.size(); i++) {
+      wfcm.insert(trace.at(i));
+    }
+
+    wfcm.fcm_sketches.print_sketch();
+
+    wfcm.analyze(0);
+    vector<double> ns_wfcm = wfcm.fcm_sketches.ns;
+    double wfcm_wmre = wfcm.wmre;
+
+    wfcm.fcm_sketches.estimate_fsd = true;
+    wfcm.estimate_fsd = false;
+    wfcm.analyze(0);
+
+    vector<double> ns_org = wfcm.fcm_sketches.ns;
+    double org_wmre = wfcm.wmre;
+
+    printf("ORG WMRE: %.8f vs WFCM WMRE: %.8f\n", org_wmre, wfcm_wmre);
+    // Compare if WMRE and NS are approx equal. Small difference due to
+    // different floating point operations between FCMS and WFCM
+    CHECK(wfcm_wmre <= org_wmre);
+  }
 }
 
 TEST_CASE("Degree 1 - 3 ; l1", "[em][l1]") {

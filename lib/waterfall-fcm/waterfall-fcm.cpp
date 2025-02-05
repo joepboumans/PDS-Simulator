@@ -529,8 +529,8 @@ double WaterfallFCM::get_distribution(set<TUPLE> &tuples,
 
             if (summary[d][i][w][4] == 1) {
               init_degree[d][summary[d][i][w][3]] += 1;
-            } else if (summary[d][i][w][4] == summary[d][i][w][3]) {
-              init_degree[d][1] += summary[d][i][w][3];
+              /*} else if (summary[d][i][w][4] == summary[d][i][w][3]) {*/
+              /*  init_degree[d][1] += summary[d][i][w][3];*/
             } else {
               newsk[d][summary[d][i][w][0]].push_back(summary[d][i][w][3]);
               newsk_thres[d][summary[d][i][w][0]].push_back(

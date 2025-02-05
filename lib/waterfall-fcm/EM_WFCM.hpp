@@ -572,7 +572,7 @@ public:
                [i]; // total number of counters, for initializing distribution
         //
         for (size_t i = 0; i < init_fsd[d].size(); i++) {
-          n_new += init_fsd[d][i];
+          /*n_new += init_fsd[d][i];*/
         }
       }
     }
@@ -593,10 +593,10 @@ public:
           ns[j] += counter_dist[d][i][j];
         }
       }
-      for (size_t i = 0; i < init_fsd[d].size(); i++) {
-        dist_new[i] += init_fsd[d][i];
-        ns[i] += init_fsd[d][i];
-      }
+      /*for (size_t i = 0; i < init_fsd[d].size(); i++) {*/
+      /*  dist_new[i] += init_fsd[d][i];*/
+      /*  ns[i] += init_fsd[d][i];*/
+      /*}*/
     }
 
     printf("[EM_FCM] Initial Flow Size Distribution guess\n");

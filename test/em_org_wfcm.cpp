@@ -47,7 +47,7 @@ TEST_CASE("Small trace of EM FCM vs EM WFCM", "[trace][small]") {
   }
   globfree(glob_res);
 
-  TupleSize tuple_sz = SrcTuple;
+  TupleSize tuple_sz = FlowTuple;
   dataParser data_parser;
   TRACE trace = data_parser.get_trace(filenames[0].data(), tuple_sz);
   std::cout << "[DataParser] Finished parsing data" << std::endl;
@@ -95,7 +95,7 @@ TEST_CASE("Total traces of EM FCM vs EM WFCM", "[trace][total]") {
   }
   globfree(glob_res);
 
-  TupleSize tuple_sz = SrcTuple;
+  TupleSize tuple_sz = FlowTuple;
   for (string &f : filenames) {
     dataParser data_parser;
     TRACE trace = data_parser.get_trace(f.data(), tuple_sz);

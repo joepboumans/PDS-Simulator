@@ -415,10 +415,8 @@ private:
 
       uint32_t sum = this->counters[d][xi][i];
       uint32_t sketch_xi = this->sketch_degrees[d][xi][i];
-      uint32_t est_xi = sketch_xi;
-      if (sketch_xi == 1) {
-        est_xi = 1;
-      }
+      uint32_t est_xi = sketch_xi; // Est_xi is sketch_xi as for each input
+                                   // counter a VC should be calculated
       vector<vector<uint32_t>> &thresh = this->thresholds[d][xi][i];
       /*std::cout << "Found val " << this->counters[d][xi][i] << std::endl;*/
       /*if (this->thresholds[d][xi].size() <= i) {*/

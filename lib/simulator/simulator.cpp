@@ -35,7 +35,8 @@ int Simulator::run(const TRACE &trace, unsigned int iters) {
   auto stop = std::chrono::high_resolution_clock::now();
   auto time = duration_cast<std::chrono::milliseconds>(stop - start);
   std::cout << std::endl;
-  std::cout << "[Simulator] Finished data set with time: " << time << std::endl;
+  std::cout << "[Simulator] Finished data set with time: " << time.count()
+            << std::endl;
 
   return 0;
 }

@@ -572,7 +572,7 @@ double FCM_Sketches::get_distribution(vector<uint32_t> &true_fsd) {
     }
     wmre = wmre_nom / wmre_denom;
     std::cout << "[FCMS - EM FSD iter " << i << "] intermediary wmre " << wmre
-              << " delta: " << wmre - d_wmre << std::endl;
+              << " delta: " << wmre - d_wmre << " time : " << time << std::endl;
     d_wmre = wmre;
     // Save data into csv
     char csv[300];

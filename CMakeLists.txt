@@ -25,6 +25,7 @@ add_subdirectory(lib/waterfall)
 add_subdirectory(lib/waterfall-fcm)
 add_subdirectory(lib/qwaterfall)
 add_subdirectory(lib/qwaterfall-fcm)
+add_subdirectory(lib/catch2)
 include_directories(${CMAKE_SOURCE_DIR})
 
 # Added custom hash, not ideal setup like this TODO: Integrate with design
@@ -41,13 +42,12 @@ target_link_libraries(
          lib-waterfall-fcm
         lib-qwaterfall
         lib-qwaterfall-fcm
-        # xxHash::xxhash
 )
 target_include_directories(main PUBLIC ${CMAKE_SOURCE_DIR}
                                        ${CMAKE_HOME_DIRECTORY})
 
 # https://github.com/catchorg/Catch2/blob/devel/docs/cmake-integration.md#installing-catch2-from-git-repository
-find_package(Catch2 3 REQUIRED)
+# find_package(Catch2 3 REQUIRED)
 
 # Find all tests
 file(
@@ -61,7 +61,7 @@ foreach(name ${tests})
   string(REPLACE ".cpp" "" basename "${name}")
   message("Adding ${name} with as ${basename}")
   add_executable("${basename}" test/${name} ${deps})
-  target_link_libraries(${basename} PRIVATE Catch2::Catch2WithMain)
+  target_link_libraries(${basename} PRIVATE lib-catch2)
   target_link_libraries(
     ${basename} PUBLIC  
         lib-count-min 
@@ -74,7 +74,6 @@ foreach(name ${tests})
         lib-qwaterfall-fcm)
   target_include_directories(${basename} PUBLIC ${CMAKE_SOURCE_DIR}
                                                 ${CMAKE_HOME_DIRECTORY})
-  include(CTest)
-  include(Catch)
-  catch_discover_tests(${basename})
+  # include(Catch)
+  # catch_discover_tests(${basename})
 endforeach()

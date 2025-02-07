@@ -1,6 +1,7 @@
+#include "catch_amalgamated.hpp"
 #include "common.h"
 #include "fcm-sketches.hpp"
-#include <catch2/catch_test_macros.hpp>
+/*#include <catch2/catch_test_macros.hpp>*/
 #include <typeinfo>
 
 TEST_CASE("Smoke Test", "[smoke-test]") {

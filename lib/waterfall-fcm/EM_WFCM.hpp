@@ -3,7 +3,6 @@
 
 #include "common.h"
 #include <algorithm>
-#include <catch2/internal/catch_stdstreams.hpp>
 #include <chrono>
 #include <cmath>
 #include <cstdint>

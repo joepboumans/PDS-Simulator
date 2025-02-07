@@ -597,18 +597,18 @@ double WaterfallFCM::get_distribution(set<TUPLE> &tuples,
     }
 
     char csv[300];
-    sprintf(csv, "%u,%.3ld,%.3ld,%.3f,%.3f", this->em_iters, time.count(),
+    sprintf(csv, "%u,%.6ld,%.6ld,%.6f,%.6f", this->em_iters, time.count(),
             total_time.count(), wmre, EM.n_new);
     this->fcsv_em << csv << std::endl;
   }
 
-  std::cout << "True FSD: " << std::endl;
-  for (int i = 0; i < true_fsd.size(); ++i) {
-    if (true_fsd[i] != 0) {
-      std::cout << i << ":" << true_fsd[i] << " ";
-    }
-  }
-  std::cout << std::endl;
+  /*std::cout << "True FSD: " << std::endl;*/
+  /*for (int i = 0; i < true_fsd.size(); ++i) {*/
+  /*  if (true_fsd[i] != 0) {*/
+  /*    std::cout << i << ":" << true_fsd[i] << " ";*/
+  /*  }*/
+  /*}*/
+  /*std::cout << std::endl;*/
 
   return wmre;
 }

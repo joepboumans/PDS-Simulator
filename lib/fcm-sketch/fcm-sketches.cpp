@@ -173,12 +173,6 @@ uint32_t FCM_Sketches::subtract(TUPLE tuple, uint32_t count) {
   for (size_t d = 0; d < this->depth; d++) {
     uint32_t c = count;
     uint32_t hash_idx = this->hashing(tuple, d);
-    if (hash_idx == 88705 && d == 0) {
-      Counter *curr_counter = &this->stages[d][0][hash_idx];
-      std::cout << "Found 88705 in subtracting " << count
-                << " with tuple: " << tuple << std::endl;
-      std::cout << 0 << " Has a value of " << curr_counter->count << std::endl;
-    }
     vector<uint32_t> hash_idxes = {hash_idx, 0, 0};
     hash_idxes[1] = uint32_t(hash_idx / this->k);
     hash_idxes[2] = uint32_t(hash_idxes[1] / this->k);
@@ -187,30 +181,14 @@ uint32_t FCM_Sketches::subtract(TUPLE tuple, uint32_t count) {
       Counter *curr_counter = &this->stages[d][s][hash_idxes[s]];
       if (!curr_counter->overflow) {
         // Subtract count and exit if no remainder
-        if (hash_idxes[s] == uint32_t(88705 / this->k) && d == 0) {
-          std::cout << s << " Has a value of " << curr_counter->count
-                    << std::endl;
-        }
         uint32_t remain = curr_counter->decrement(c);
-        if (hash_idxes[s] == uint32_t(88705 / this->k) && d == 0) {
-          std::cout << s << " Has a value of " << curr_counter->count
-                    << std::endl;
-        }
         if (remain == 0 || s == 0) {
           break;
         } else {
           for (int i = s - 1; i >= 0; i--) {
             c = remain;
             Counter *counter = &this->stages[d][i][hash_idxes[i]];
-            if (hash_idxes[i] == uint32_t(88705 / this->k) && d == 0) {
-              std::cout << i << " Has a value of " << counter->count
-                        << std::endl;
-            }
             remain = counter->decrement(c);
-            if (hash_idxes[i] == uint32_t(88705 / this->k) && d == 0) {
-              std::cout << i << " Has a value of " << counter->count
-                        << std::endl;
-            }
             if (remain == 0) {
               break;
             }
@@ -352,7 +330,7 @@ void FCM_Sketches::analyze(int epoch) {
   }
   // Save data into csv
   char csv[300];
-  sprintf(csv, "%.3f,%.3f,%.3f,%.3f,%.3f", this->average_relative_error,
+  sprintf(csv, "%.5f,%.5f,%.4f,%.4f,%.4f", this->average_relative_error,
           this->average_absolute_error, this->recall, this->precision,
           this->f1);
   this->fcsv << csv << std::endl;
@@ -576,7 +554,7 @@ double FCM_Sketches::get_distribution(vector<uint32_t> &true_fsd) {
     d_wmre = wmre;
     // Save data into csv
     char csv[300];
-    sprintf(csv, "%zu,%.3ld,%.3ld,%.3f,%.3f", i, time.count(),
+    sprintf(csv, "%zu,%.6ld,%.6ld,%.6f,%.1f", i, time.count(),
             total_time.count(), wmre, em_fsd_algo.n_new);
     this->fcsv_em << csv << std::endl;
 
@@ -838,7 +816,7 @@ double FCM_Sketches::get_distribution_Waterfall(vector<uint32_t> &true_fsd) {
     }
 
     char csv[300];
-    sprintf(csv, "%u,%.3ld,%.3ld,%.3f,%.3f", this->em_iters, time.count(),
+    sprintf(csv, "%u,%.6ld,%.6ld,%.6f,%.1f", this->em_iters, time.count(),
             total_time.count(), wmre, EM.n_new);
     this->fcsv_em << csv << std::endl;
   }

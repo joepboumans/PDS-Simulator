@@ -38,6 +38,7 @@
 *.pcap
 *.csv
 *.dat
+*.gz
 
 # Figures
 *.png

@@ -171,7 +171,7 @@ if __name__ == "__main__":
     # Get results
     csv_results = glob.glob("results/*/*/*/*.csv")
 
-    tuple_lists = {"FlowTuple" : [], "FiveTuple" : [], "ScrTuple" : []}
+    tuple_lists = {"FlowTuple" : [], "FiveTuple" : [], "SrcTuple" : []}
     for k, l in tuple_lists.items():
         for csv in csv_results:
             if k in csv and not "em" in csv:
@@ -180,7 +180,7 @@ if __name__ == "__main__":
     # for t, l in tuple_lists.items():
     #     plotMetricsByTupleType(t, l)
 
-    tuple_lists = {"FlowTuple" : [], "FiveTuple" : [], "ScrTuple" : []}
+    tuple_lists = {"FlowTuple" : [], "FiveTuple" : [], "SrcTuple" : []}
     for k, l in tuple_lists.items():
         for csv in csv_results:
             if k in csv and "em" in csv:

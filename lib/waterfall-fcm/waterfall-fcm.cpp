@@ -54,6 +54,33 @@ void WaterfallFCM::print_sketch() {
   this->fcm_sketches.print_sketch();
 }
 
+void WaterfallFCM::write2csv() {
+  if (!this->store_results) {
+    return;
+  }
+  // Save data into csv
+  char csv[300];
+  this->insertions = this->waterfall.insertions;
+  this->f1_member = this->waterfall.f1;
+  this->average_absolute_error = this->fcm_sketches.average_absolute_error;
+  this->average_relative_error = this->fcm_sketches.average_relative_error;
+  this->f1_hh = this->fcm_sketches.f1;
+  sprintf(csv, "%.3f,%.3f,%.3f,%.3f,%i,%.3f", this->average_relative_error,
+          this->average_absolute_error, this->wmre, this->f1_hh,
+          this->waterfall.insertions, this->waterfall.f1);
+  this->fcsv << csv << std::endl;
+}
+
+void WaterfallFCM::write2csv_em(uint32_t iter, size_t time, size_t total_time,
+                                double card) {
+  if (not this->store_results) {
+    return;
+  }
+  char csv[300];
+  sprintf(csv, "%u,%ld,%ld,%.6f,%.1f", iter, time, total_time, wmre, card);
+  this->fcsv_em << csv << std::endl;
+}
+
 void WaterfallFCM::set_estimate_fsd(bool onoff) {
   this->fcm_sketches.estimate_fsd = onoff;
 }
@@ -85,51 +112,15 @@ void WaterfallFCM::analyze(int epoch) {
     this->wmre = 0.0;
     auto start = std::chrono::high_resolution_clock::now();
     this->wmre = this->get_distribution(this->waterfall.tuples, true_fsd);
-
-    /*uint32_t max_len = std::max(true_fsd.size(), em_fsd.size());*/
-    /*true_fsd.resize(max_len);*/
-    /*em_fsd.resize(max_len);*/
-    // std::cout << "[EM_FSD] True FSD : ";
-    // for (size_t i = 0; i < true_fsd.size(); i++) {
-    //   if (true_fsd[i] != 0) {
-    //
-    //     std::cout << i << " = " << true_fsd[i] << "\t";
-    //   }
-    // }
-    // std::cout << std::endl;
-    // std::cout << "[EM_FSD] Estimated FSD : ";
-    // for (size_t i = 0; i < em_fsd.size(); i++) {
-    //   if (em_fsd[i] != 0) {
-    //     std::cout << i << " = " << em_fsd[i] << "\t";
-    //   }
-    // }
-    // std::cout << std::endl;
-
-    /*for (size_t i = 0; i < max_len; i++) {*/
-    /*  wmre_nom += std::abs(double(true_fsd[i]) - em_fsd[i]);*/
-    /*  wmre_denom += double((double(true_fsd[i]) + em_fsd[i]) / 2);*/
-    /*}*/
-    /*this->wmre = wmre_nom / wmre_denom;*/
     auto stop = std::chrono::high_resolution_clock::now();
     auto time = duration_cast<std::chrono::milliseconds>(stop - start);
+
     em_time = time.count();
     printf("[EM_FSD] WMRE : %f\n", this->wmre);
     printf("[EM_FSD] Total time %li ms\n", em_time);
   } else {
     this->wmre = this->fcm_sketches.wmre;
   }
-  // Save data into c  // Save data into csv
-  char csv[300];
-  this->insertions = this->waterfall.insertions;
-  this->f1_member = this->waterfall.f1;
-  this->average_absolute_error = this->fcm_sketches.average_absolute_error;
-  this->average_relative_error = this->fcm_sketches.average_relative_error;
-  this->f1_hh = this->fcm_sketches.f1;
-  sprintf(csv, "%i,%.3f,%.3f,%.3f,%.3f,%li,%i,%i,%.3f", epoch,
-          this->average_relative_error, this->average_absolute_error,
-          this->wmre, this->f1_hh, em_time, this->em_iters,
-          this->waterfall.insertions, this->waterfall.f1);
-  this->fcsv << csv << std::endl;
   return;
 }
 
@@ -538,8 +529,24 @@ double WaterfallFCM::get_distribution(set<TUPLE> &tuples,
   std::cout << "[EMS_FSD] ...done!" << std::endl;
   auto total_start = std::chrono::high_resolution_clock::now();
 
+  uint32_t max_len = std::max(true_fsd.size(), EM.ns.size());
+  true_fsd.resize(max_len);
+  EM.ns.resize(max_len);
+
   double d_wmre = 0.0;
-  for (size_t i = 0; i < this->em_iters; i++) {
+  double wmre_nom = 0.0;
+  double wmre_denom = 0.0;
+  for (size_t i = 0; i < max_len; i++) {
+    wmre_nom += std::abs(double(true_fsd[i]) - EM.ns[i]);
+    wmre_denom += double((double(true_fsd[i]) + EM.ns[i]) / 2);
+  }
+  wmre = wmre_nom / wmre_denom;
+  std::cout << "[EM WFCM - Initial WMRE] wmre " << wmre
+            << " delta: " << wmre - d_wmre << std::endl;
+  d_wmre = wmre;
+  this->write2csv_em(0, 0, 0, EM.n_new);
+
+  for (size_t iter = 1; iter < this->em_iters; iter++) {
     auto start = std::chrono::high_resolution_clock::now();
     EM.next_epoch();
     this->fcm_sketches.ns = EM.ns;
@@ -547,19 +554,20 @@ double WaterfallFCM::get_distribution(set<TUPLE> &tuples,
     auto time = std::chrono::duration_cast<chrono::milliseconds>(stop - start);
     auto total_time =
         std::chrono::duration_cast<chrono::milliseconds>(stop - total_start);
-    uint32_t max_len = std::max(true_fsd.size(), this->fcm_sketches.ns.size());
+
+    max_len = std::max(true_fsd.size(), this->fcm_sketches.ns.size());
     true_fsd.resize(max_len);
     this->fcm_sketches.ns.resize(max_len);
 
-    double wmre_nom = 0.0;
-    double wmre_denom = 0.0;
+    wmre_nom = 0.0;
+    wmre_denom = 0.0;
     for (size_t i = 0; i < max_len; i++) {
       wmre_nom += std::abs(double(true_fsd[i]) - this->fcm_sketches.ns[i]);
       wmre_denom +=
           double((double(true_fsd[i]) + this->fcm_sketches.ns[i]) / 2);
     }
     wmre = wmre_nom / wmre_denom;
-    std::cout << "[FCMS - EM WFCM iter " << i << "] intermediary wmre " << wmre
+    std::cout << "[EM WFCM - iter " << iter << "] intermediary wmre " << wmre
               << " delta: " << wmre - d_wmre << std::endl;
     d_wmre = wmre;
     // entropy initialization
@@ -592,14 +600,7 @@ double WaterfallFCM::get_distribution(set<TUPLE> &tuples,
     printf("Entropy Relative Error (RE) = %f (true : %f, est : %f)\n",
            entropy_err, entropy_true, entropy_est);
 
-    if (!this->store_results) {
-      continue;
-    }
-
-    char csv[300];
-    sprintf(csv, "%u,%.6ld,%.6ld,%.6f,%.6f", this->em_iters, time.count(),
-            total_time.count(), wmre, EM.n_new);
-    this->fcsv_em << csv << std::endl;
+    this->write2csv_em(iter, time.count(), total_time.count(), EM.n_new);
   }
 
   /*std::cout << "True FSD: " << std::endl;*/

@@ -40,10 +40,9 @@ public:
     this->csv_header_em =
         "Epoch,Estimation Time,Total Time,Weighted Mean Relative Error,"
         "Cardinality";
-    this->csv_header = "Epoch,Average Relative Error,Average Absolute "
+    this->csv_header = "Average Relative Error,Average Absolute "
                        "Error,Weighted Mean Relative "
-                       "Error,F1 Heavy Hitter,Estimation "
-                       "Time,Iterations,Insertions,F1 Member";
+                       "Error,F1 Heavy Hitter,Insertions,F1 Member";
     this->name = "FC_AMQ/WaterfallFCM";
     this->trace_name = trace;
     this->rows = n_stages;
@@ -68,6 +67,8 @@ public:
 
   void store_data();
   void print_sketch();
+  void write2csv();
+  void write2csv_em(uint32_t iter, size_t time, size_t total_time, double card);
   vector<uint32_t> peel_sketches(set<TUPLE> &tuples);
   vector<vector<uint32_t>> get_initial_degrees(set<TUPLE> tuples);
   double get_distribution(set<TUPLE> &tuples, vector<uint32_t> &true_fsd);

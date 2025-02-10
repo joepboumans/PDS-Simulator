@@ -232,7 +232,7 @@ void FCM_Sketches::write2csv() {
 
 void FCM_Sketches::write2csv_em(uint32_t iter, size_t time, size_t total_time,
                                 double card) {
-  if (not this->store_results) {
+  if (!this->store_results) {
     return;
   }
   char csv[300];
@@ -544,9 +544,26 @@ double FCM_Sketches::get_distribution(vector<uint32_t> &true_fsd) {
 
   auto total_start = std::chrono::high_resolution_clock::now();
   std::cout << "Initialized EM_FSD, starting estimation..." << std::endl;
+
   double d_wmre = 0.0;
-  this->wmre = 0.0;
-  for (size_t iter = 0; iter < this->em_iters; iter++) {
+  this->ns = em_fsd_algo.ns;
+  uint32_t max_len = std::max(true_fsd.size(), this->ns.size());
+  true_fsd.resize(max_len);
+  this->ns.resize(max_len);
+
+  double wmre_nom = 0.0;
+  double wmre_denom = 0.0;
+  for (size_t i = 0; i < max_len; i++) {
+    wmre_nom += std::abs(double(true_fsd[i]) - this->ns[i]);
+    wmre_denom += double((double(true_fsd[i]) + this->ns[i]) / 2);
+  }
+  wmre = wmre_nom / wmre_denom;
+  std::cout << "[EM WFCM - Initial WMRE] wmre " << wmre
+            << " delta: " << wmre - d_wmre << std::endl;
+  d_wmre = wmre;
+  this->write2csv_em(0, 0, 0, em_fsd_algo.n_new);
+
+  for (size_t iter = 1; iter < this->em_iters; iter++) {
     auto start = std::chrono::high_resolution_clock::now();
     em_fsd_algo.next_epoch();
     auto stop = std::chrono::high_resolution_clock::now();
@@ -773,7 +790,24 @@ double FCM_Sketches::get_distribution_Waterfall(vector<uint32_t> &true_fsd) {
   auto total_start = std::chrono::high_resolution_clock::now();
 
   double d_wmre = 0.0;
-  for (size_t iter = 0; iter < this->em_iters; iter++) {
+  this->ns = EM.ns;
+  uint32_t max_len = std::max(true_fsd.size(), this->ns.size());
+  true_fsd.resize(max_len);
+  this->ns.resize(max_len);
+
+  double wmre_nom = 0.0;
+  double wmre_denom = 0.0;
+  for (size_t i = 0; i < max_len; i++) {
+    wmre_nom += std::abs(double(true_fsd[i]) - this->ns[i]);
+    wmre_denom += double((double(true_fsd[i]) + this->ns[i]) / 2);
+  }
+  wmre = wmre_nom / wmre_denom;
+  std::cout << "[EM WFCM - Initial WMRE] wmre " << wmre
+            << " delta: " << wmre - d_wmre << std::endl;
+  d_wmre = wmre;
+  this->write2csv_em(0, 0, 0, EM.n_new);
+
+  for (size_t iter = 1; iter < this->em_iters; iter++) {
     auto start = std::chrono::high_resolution_clock::now();
     EM.next_epoch();
     this->ns = EM.ns;

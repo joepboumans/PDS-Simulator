@@ -46,10 +46,10 @@ int main() {
     /*qWaterfall_Fcm qwaterfall_fcm(4, 5, file, tuple_sz);*/
     /*stages.push_back(&qwaterfall_fcm);*/
 
-    FCM_Sketches fcm_sketches(W3, NUM_STAGES, K, DEPTH, 100000, 5, file,
+    FCM_Sketches fcm_sketches(W3, NUM_STAGES, K, DEPTH, 100000, 15, file,
                               tuple_sz);
     stages.push_back(&fcm_sketches);
-    /*WaterfallFCM wfcm(W3, NUM_STAGES, K, 1, 2, 4, 65535, file, tuple_sz);*/
+    /*WaterfallFCM wfcm(W3, NUM_STAGES, K, 1, 15, 4, 65535, file, tuple_sz);*/
     /*stages.push_back(&wfcm);*/
 
     std::cout << "[PDS] Added " << stages.size() << " stages" << std::endl;

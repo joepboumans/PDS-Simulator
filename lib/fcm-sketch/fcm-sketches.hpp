@@ -69,7 +69,7 @@ public:
     this->trace_name = trace;
     this->rows = n_stages;
     this->mem_sz = depth * mem / 8;
-    /*this->store_results = false;*/
+    this->store_results = true;
     // std::cout << "Total memory used: " << this->mem_sz << std::endl;
     this->setupLogging();
 

@@ -2,15 +2,6 @@
 #include "common.h"
 #include "data-parser.h"
 #include "waterfall-fcm.hpp"
-/*#include <catch2/catch_all.hpp>*/
-/*#include <catch2/catch_approx.hpp>*/
-/*#include <catch2/catch_test_macros.hpp>*/
-/*#include <catch2/generators/catch_generators.hpp>*/
-/*#include <catch2/internal/catch_run_context.hpp>*/
-/*#include <catch2/internal/catch_stdstreams.hpp>*/
-/*#include <catch2/matchers/catch_matchers.hpp>*/
-/*#include <catch2/matchers/catch_matchers_string.hpp>*/
-/*#include <catch2/matchers/catch_matchers_vector.hpp>*/
 #include <cmath>
 #include <cstddef>
 #include <cstdint>

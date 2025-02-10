@@ -14,6 +14,7 @@ if __name__ == "__main__":
     parser.add_argument('-u', '--user', dest="user", help='<user:password> for CAIDA', required=True)
     parser.add_argument('-i', '--input', dest="input", help='Input file with datasets', required=True)
     parser.add_argument('-d', '--download', dest="download", help='Only download the pcap files', action='store_true')
+    parser.add_argument('-k', '--keep-zip', dest="keep_zip", help='Keep the dataset zipped', action='store_true')
     args = parser.parse_args()
     
     # Read and parse input datasets
@@ -42,7 +43,7 @@ if __name__ == "__main__":
 
 
             #gzip dataset
-            if (not os.path.isfile(file_name)):
+            if (not os.path.isfile(file_name) and not args.keep_zip):
                 proc = subprocess.Popen(["gzip",  "-d", download_file], stdout=subprocess.PIPE)
                 outs, errs = proc.communicate()
                 print(outs)

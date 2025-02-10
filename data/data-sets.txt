@@ -1,4 +1,9 @@
 passive-2016/equinix-chicago/20160121-130000.UTC
 passive-2016/equinix-chicago/20160218-133000.UTC
 passive-2016/equinix-chicago/20160317-140000.UTC
+passive-2016/equinix-chicago/20160406-130000.UTC
+passive-2016/equinix-chicago/20160406-133000.UTC
+passive-2016/equinix-chicago/20160406-140000.UTC
+passive-2019/equinix-nyc/20190117-130000.UTC
+passive-2019/equinix-nyc/20190117-133000.UTC
 passive-2019/equinix-nyc/20190117-140000.UTC

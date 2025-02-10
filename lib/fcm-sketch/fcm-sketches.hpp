@@ -69,7 +69,7 @@ public:
     this->trace_name = trace;
     this->rows = n_stages;
     this->mem_sz = depth * mem / 8;
-    this->store_results = false;
+    /*this->store_results = false;*/
     // std::cout << "Total memory used: " << this->mem_sz << std::endl;
     this->setupLogging();
 
@@ -115,5 +115,7 @@ public:
 
   void store_data();
   void print_sketch();
+  void write2csv();
+  void write2csv_em(uint32_t iter, size_t time, size_t total_time, double card);
 };
 #endif // !_FCM_SKETCHES_HPP

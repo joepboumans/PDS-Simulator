@@ -218,6 +218,28 @@ void FCM_Sketches::print_sketch() {
   std::cout << "[FCM] ------------------" << std::endl;
 }
 
+void FCM_Sketches::write2csv() {
+  if (!this->store_results) {
+    return;
+  }
+  // Save data into csv
+  char csv[300];
+  sprintf(csv, "%.5f,%.5f,%.4f,%.4f,%.4f", this->average_relative_error,
+          this->average_absolute_error, this->recall, this->precision,
+          this->f1);
+  this->fcsv << csv << std::endl;
+}
+
+void FCM_Sketches::write2csv_em(uint32_t iter, size_t time, size_t total_time,
+                                double card) {
+  if (not this->store_results) {
+    return;
+  }
+  char csv[300];
+  sprintf(csv, "%u,%ld,%ld,%.6f,%.1f", iter, time, total_time, wmre, card);
+  this->fcsv_em << csv << std::endl;
+}
+
 void FCM_Sketches::reset() {
   this->true_data.clear();
   this->HH_candidates.clear();
@@ -323,17 +345,11 @@ void FCM_Sketches::analyze(int epoch) {
     } else {
       this->wmre = this->get_distribution_Waterfall(true_fsd);
     }
-    std::cout << "[FCM Sketches] WMRE : " << wmre << std::endl;
+    std::cout << "[FCM Sketches] WMRE : " << this->wmre << std::endl;
   }
-  if (!this->store_results) {
-    return;
-  }
-  // Save data into csv
-  char csv[300];
-  sprintf(csv, "%.5f,%.5f,%.4f,%.4f,%.4f", this->average_relative_error,
-          this->average_absolute_error, this->recall, this->precision,
-          this->f1);
-  this->fcsv << csv << std::endl;
+
+  this->write2csv();
+  return;
 }
 
 double FCM_Sketches::get_distribution(vector<uint32_t> &true_fsd) {
@@ -529,7 +545,8 @@ double FCM_Sketches::get_distribution(vector<uint32_t> &true_fsd) {
   auto total_start = std::chrono::high_resolution_clock::now();
   std::cout << "Initialized EM_FSD, starting estimation..." << std::endl;
   double d_wmre = 0.0;
-  for (size_t i = 0; i < this->em_iters; i++) {
+  this->wmre = 0.0;
+  for (size_t iter = 0; iter < this->em_iters; iter++) {
     auto start = std::chrono::high_resolution_clock::now();
     em_fsd_algo.next_epoch();
     auto stop = std::chrono::high_resolution_clock::now();
@@ -548,17 +565,11 @@ double FCM_Sketches::get_distribution(vector<uint32_t> &true_fsd) {
       wmre_nom += std::abs(double(true_fsd[i]) - this->ns[i]);
       wmre_denom += double((double(true_fsd[i]) + this->ns[i]) / 2);
     }
-    wmre = wmre_nom / wmre_denom;
-    std::cout << "[FCMS - EM FSD iter " << i << "] intermediary wmre " << wmre
-              << " delta: " << wmre - d_wmre << " time : " << time.count()
-              << std::endl;
-    d_wmre = wmre;
-    // Save data into csv
-    char csv[300];
-    sprintf(csv, "%zu,%.6ld,%.6ld,%.6f,%.1f", i, time.count(),
-            total_time.count(), wmre, em_fsd_algo.n_new);
-    this->fcsv_em << csv << std::endl;
-
+    this->wmre = wmre_nom / wmre_denom;
+    std::cout << "[FCMS - EM FSD iter " << iter << "] intermediary wmre "
+              << this->wmre << " delta: " << wmre - d_wmre
+              << " time : " << time.count() << std::endl;
+    d_wmre = this->wmre;
     // Write NS FSD size and then the FSD as uint64_t
     uint32_t ns_size = this->ns.size();
     this->fcsv_ns.write((char *)&ns_size, sizeof(ns_size));
@@ -568,36 +579,38 @@ double FCM_Sketches::get_distribution(vector<uint32_t> &true_fsd) {
         this->fcsv_ns.write((char *)&ns[i], sizeof(ns[i]));
       }
     }
+    // entropy initialization
+    double entropy_err = 0;
+    double entropy_est = 0;
+
+    double tot_est = 0;
+    double entr_est = 0;
+
+    for (int i = 1; i < ns.size(); ++i) {
+      if (ns[i] == 0)
+        continue;
+      tot_est += i * ns[i];
+      entr_est += i * ns[i] * log2(i);
+    }
+    entropy_est = -entr_est / tot_est + log2(tot_est);
+
+    double entropy_true = 0;
+    double tot_true = 0;
+    double entr_true = 0;
+    for (int i = 0; i < true_fsd.size(); ++i) {
+      if (true_fsd[i] == 0)
+        continue;
+      tot_true += i * true_fsd[i];
+      entr_true += i * true_fsd[i] * log2(i);
+    }
+    entropy_true = -entr_true / tot_true + log2(tot_true);
+
+    entropy_err = std::abs(entropy_est - entropy_true) / entropy_true;
+    printf("Entropy Relative Error (RE) = %f (true : %f, est : %f)\n",
+           entropy_err, entropy_true, entropy_est);
+    this->write2csv_em(iter, time.count(), total_time.count(),
+                       em_fsd_algo.n_new);
   }
-  // entropy initialization
-  double entropy_err = 0;
-  double entropy_est = 0;
-
-  double tot_est = 0;
-  double entr_est = 0;
-
-  for (int i = 1; i < ns.size(); ++i) {
-    if (ns[i] == 0)
-      continue;
-    tot_est += i * ns[i];
-    entr_est += i * ns[i] * log2(i);
-  }
-  entropy_est = -entr_est / tot_est + log2(tot_est);
-
-  double entropy_true = 0;
-  double tot_true = 0;
-  double entr_true = 0;
-  for (int i = 0; i < true_fsd.size(); ++i) {
-    if (true_fsd[i] == 0)
-      continue;
-    tot_true += i * true_fsd[i];
-    entr_true += i * true_fsd[i] * log2(i);
-  }
-  entropy_true = -entr_true / tot_true + log2(tot_true);
-
-  entropy_err = std::abs(entropy_est - entropy_true) / entropy_true;
-  printf("Entropy Relative Error (RE) = %f (true : %f, est : %f)\n",
-         entropy_err, entropy_true, entropy_est);
 
   return wmre;
 }
@@ -760,7 +773,7 @@ double FCM_Sketches::get_distribution_Waterfall(vector<uint32_t> &true_fsd) {
   auto total_start = std::chrono::high_resolution_clock::now();
 
   double d_wmre = 0.0;
-  for (size_t i = 0; i < this->em_iters; i++) {
+  for (size_t iter = 0; iter < this->em_iters; iter++) {
     auto start = std::chrono::high_resolution_clock::now();
     EM.next_epoch();
     this->ns = EM.ns;
@@ -779,8 +792,8 @@ double FCM_Sketches::get_distribution_Waterfall(vector<uint32_t> &true_fsd) {
       wmre_denom += double((double(true_fsd[i]) + this->ns[i]) / 2);
     }
     wmre = wmre_nom / wmre_denom;
-    std::cout << "[FCMS - EM GFCM iter " << i << "] intermediary wmre " << wmre
-              << " delta: " << wmre - d_wmre << std::endl;
+    std::cout << "[FCMS - EM GFCM iter " << iter << "] intermediary wmre "
+              << wmre << " delta: " << wmre - d_wmre << std::endl;
     d_wmre = wmre;
     // entropy initialization
     double entropy_err = 0;
@@ -812,14 +825,7 @@ double FCM_Sketches::get_distribution_Waterfall(vector<uint32_t> &true_fsd) {
     printf("Entropy Relative Error (RE) = %f (true : %f, est : %f)\n",
            entropy_err, entropy_true, entropy_est);
 
-    if (!this->store_results) {
-      continue;
-    }
-
-    char csv[300];
-    sprintf(csv, "%u,%.6ld,%.6ld,%.6f,%.1f", this->em_iters, time.count(),
-            total_time.count(), wmre, EM.n_new);
-    this->fcsv_em << csv << std::endl;
+    this->write2csv_em(iter, time.count(), total_time.count(), EM.n_new);
   }
   return wmre;
 }

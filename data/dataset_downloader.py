@@ -66,10 +66,10 @@ if __name__ == "__main__":
                 start = time.perf_counter_ns()
                 for packet in PcapReader(file_name):
                     try:
-                        if not UDP in packet and not TCP in packet or IPv6 in packet:
+                        if IPv6 in packet:
                             continue
-                        
-                        if packet.src == "0.0.0.0" or packet.dst == "0.0.0.0":
+
+                        if not UDP in packet and not TCP in packet:
                             continue
 
                         out = get_field_bytes(packet, "src")

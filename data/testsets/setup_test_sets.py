@@ -14,14 +14,15 @@ def write2pcap(pkt, test_name):
 
 def setup_dataset(data_name, test_name):
     print(f"[Dataset Loader] Get data from {data_name}")
+    count = 0
     with open(f"{test_name}.dat", 'wb') as fout:
         start = time.perf_counter_ns()
         for packet in PcapReader(data_name):
             try:
-                if not UDP in packet and not TCP in packet or IPv6 in packet:
+                if IPv6 in packet:
                     continue
 
-                if packet.src == "0.0.0.0" or packet.dst == "0.0.0.0":
+                if not UDP in packet and not TCP in packet:
                     continue
 
                 out = get_field_bytes(packet, "src")
@@ -30,12 +31,15 @@ def setup_dataset(data_name, test_name):
                 out += packet.dport.to_bytes(2, byteorder='big')
                 out += packet.proto.to_bytes(1, byteorder='big')
                 fout.write(out)
+                if count % 10000 == 0:
+                    print(count, end='\r')
+                count += 1
             except:
                 packet.show()
                 exit(1)
 
         stop = time.perf_counter_ns()
-        print(f"Parsed data set in {stop - start} ns")
+        print(f"\nParsed data set in {stop - start} ns")
     print("Finished parsing %s"% data_name)
 
 def setup_dataset_length(data_name, test_name, length):
@@ -47,10 +51,10 @@ def setup_dataset_length(data_name, test_name, length):
         count = 0
         for packet in PcapReader(data_name):
             try:
-                if not UDP in packet and not TCP in packet or IPv6 in packet:
+                if IPv6 in packet:
                     continue
 
-                if packet.src == "0.0.0.0" or packet.dst == "0.0.0.0":
+                if not UDP in packet and not TCP in packet:
                     continue
 
                 out = get_field_bytes(packet, "src")
@@ -60,7 +64,7 @@ def setup_dataset_length(data_name, test_name, length):
                 out += packet.proto.to_bytes(1, byteorder='big')
                 fout.write(out)
                 write2pcap(packet, test_name)
-                count +=1
+                count += 1
                 if length <= 64:
                     print(out)
             except:
@@ -83,10 +87,10 @@ def setup_dataset_bursty(data_name, test_name, length, burst_length):
         count = 0
         for packet in PcapReader(data_name):
             try:
-                if not UDP in packet and not TCP in packet or IPv6 in packet:
+                if IPv6 in packet:
                     continue
 
-                if packet.src == "0.0.0.0" or packet.dst == "0.0.0.0":
+                if not UDP in packet and not TCP in packet:
                     continue
 
                 out = get_field_bytes(packet, "src")

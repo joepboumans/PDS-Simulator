@@ -46,11 +46,11 @@ int main() {
     /*qWaterfall_Fcm qwaterfall_fcm(4, 5, file, tuple_sz);*/
     /*stages.push_back(&qwaterfall_fcm);*/
 
-    FCM_Sketches fcm_sketches(W3, NUM_STAGES, K, DEPTH, 100000, 15, file,
-                              tuple_sz);
-    stages.push_back(&fcm_sketches);
-    /*WaterfallFCM wfcm(W3, NUM_STAGES, K, 1, 15, 4, 65535, file, tuple_sz);*/
-    /*stages.push_back(&wfcm);*/
+    /*FCM_Sketches fcm_sketches(W3, NUM_STAGES, K, DEPTH, 10000, 5, file,*/
+    /*                          tuple_sz);*/
+    /*stages.push_back(&fcm_sketches);*/
+    WaterfallFCM wfcm(W3, NUM_STAGES, K, 1, 5, 4, 65535, file, tuple_sz);
+    stages.push_back(&wfcm);
 
     std::cout << "[PDS] Added " << stages.size() << " stages" << std::endl;
     Simulator sim(stages, stages.size(), sim_length);
@@ -60,6 +60,7 @@ int main() {
     std::cout << std::endl << std::endl;
 
     curr_file++;
+    break;
   }
 
   std::cout << "------" << std::endl;

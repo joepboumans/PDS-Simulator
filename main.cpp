@@ -27,7 +27,7 @@ int main() {
   }
   globfree(glob_res);
 
-  uint32_t sim_length = 1;
+  uint32_t sim_length = 4;
   uint32_t iter = 1;
 
   uint32_t curr_file = 0;

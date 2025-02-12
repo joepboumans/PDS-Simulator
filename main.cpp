@@ -44,13 +44,12 @@ int main() {
 
     vector<PDS *> stages;
 
-    /*WaterfallFCM wfcm(W3, NUM_STAGES, K, 10000, 5, 4, 65535, file,
-     * tuple_sz);*/
-    /*stages.push_back(&wfcm);*/
-
     FCM_Sketches fcm_sketches(W3, NUM_STAGES, K, DEPTH, 10000, 5, file,
                               tuple_sz);
     stages.push_back(&fcm_sketches);
+
+    WaterfallFCM wfcm(W3, NUM_STAGES, K, 10000, 5, 4, 65535, file, tuple_sz);
+    stages.push_back(&wfcm);
 
     std::cout << "[PDS] Added " << stages.size() << " stages" << std::endl;
     Simulator sim(stages, stages.size(), sim_length);

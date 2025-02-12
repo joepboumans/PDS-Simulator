@@ -58,21 +58,6 @@ public:
       max_bits /= 2;
       max_count = max_count >> max_bits;
     }
-
-    // Setup logging
-    this->csv_header = "Average Relative Error,Average Absolute "
-                       "Error,Recall,Precision,F1";
-    this->csv_header_em =
-        "Epoch,Estimation Time,Total Time,Weighted Mean Relative Error,"
-        "Cardinality,Entropy";
-    this->name = "FC/FCM-Sketches";
-    this->trace_name = trace;
-    this->rows = n_stages;
-    this->mem_sz = depth * mem / 8;
-    this->store_results = true;
-    // std::cout << "Total memory used: " << this->mem_sz << std::endl;
-    this->setupLogging();
-
     // Setup stages accoording to k * n_roots over the stages
     std::cout << "[FCM Sketches] Setting up counters" << std::endl;
     for (size_t d = 0; d < depth; d++) {
@@ -87,6 +72,23 @@ public:
         }
       }
     }
+
+    if (trace.empty()) {
+      return;
+    }
+    // Setup logging
+    this->csv_header = "Average Relative Error,Average Absolute "
+                       "Error,Recall,Precision,F1";
+    this->csv_header_em =
+        "Epoch,Estimation Time,Total Time,Weighted Mean Relative Error,"
+        "Cardinality,Entropy";
+    this->name = "FC/FCM-Sketches";
+    this->trace_name = trace;
+    this->rows = n_stages;
+    this->mem_sz = depth * mem / 8;
+    this->store_results = true;
+    // std::cout << "Total memory used: " << this->mem_sz << std::endl;
+    this->setupLogging();
   }
 
   uint32_t insert(TUPLE tuple);

@@ -447,9 +447,9 @@ double WaterfallFCM::get_distribution(set<TUPLE> &tuples,
             init_fsd[d][count]++;
           } else if (degree == count) {
             init_fsd[d][1] += count;
-          } else if (degree + 1 == count) {
-            init_fsd[d][1] += (count - 1);
-            init_fsd[d][2] += 1;
+            /*} else if (degree + 1 == count) {*/
+            /*  init_fsd[d][1] += (count - 1);*/
+            /*  init_fsd[d][2] += 1;*/
           } else {
             if (degree >= virtual_counters[d].size()) {
               virtual_counters[d].resize(degree + 1);
@@ -552,11 +552,11 @@ double WaterfallFCM::get_distribution(set<TUPLE> &tuples,
   double tot_est = 0;
   double entr_est = 0;
 
-  for (int i = 1; i < this->fcm_sketches.ns.size(); ++i) {
-    if (this->fcm_sketches.ns[i] == 0)
+  for (int i = 1; i < EM.ns.size(); ++i) {
+    if (EM.ns[i] == 0)
       continue;
-    tot_est += i * this->fcm_sketches.ns[i];
-    entr_est += i * this->fcm_sketches.ns[i] * log2(i);
+    tot_est += i * EM.ns[i];
+    entr_est += i * EM.ns[i] * log2(i);
   }
   entropy_est = -entr_est / tot_est + log2(tot_est);
 

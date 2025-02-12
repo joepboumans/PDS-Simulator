@@ -31,7 +31,7 @@ public:
                uint32_t length, string trace, uint8_t tuple_sz)
       : PDS(trace, tuple_sz), waterfall(n_tables, length, trace, tuple_sz),
         n_stages(n_stages), em_iters(em_iters), hh_threshold(hh_threshold),
-        fcm_sketches(n_roots, n_stages, k, DEPTH, hh_threshold, em_iters, trace,
+        fcm_sketches(n_roots, n_stages, k, DEPTH, hh_threshold, em_iters, "",
                      tuple_sz) {
 
     this->fcm_sketches.estimate_fsd = false;

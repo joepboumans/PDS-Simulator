@@ -27,7 +27,7 @@ int main() {
   }
   globfree(glob_res);
 
-  uint32_t sim_length = 1;
+  uint32_t sim_length = 4;
   uint32_t iter = 1;
 
   uint32_t curr_file = 0;
@@ -43,14 +43,14 @@ int main() {
     file = file.erase(file.find(".dat"), sizeof(".dat") - 1);
 
     vector<PDS *> stages;
-    /*qWaterfall_Fcm qwaterfall_fcm(4, 5, file, tuple_sz);*/
-    /*stages.push_back(&qwaterfall_fcm);*/
 
-    /*FCM_Sketches fcm_sketches(W3, NUM_STAGES, K, DEPTH, 10000, 5, file,*/
-    /*                          tuple_sz);*/
-    /*stages.push_back(&fcm_sketches);*/
-    WaterfallFCM wfcm(W3, NUM_STAGES, K, 1, 5, 4, 65535, file, tuple_sz);
-    stages.push_back(&wfcm);
+    /*WaterfallFCM wfcm(W3, NUM_STAGES, K, 10000, 5, 4, 65535, file,
+     * tuple_sz);*/
+    /*stages.push_back(&wfcm);*/
+
+    FCM_Sketches fcm_sketches(W3, NUM_STAGES, K, DEPTH, 10000, 5, file,
+                              tuple_sz);
+    stages.push_back(&fcm_sketches);
 
     std::cout << "[PDS] Added " << stages.size() << " stages" << std::endl;
     Simulator sim(stages, stages.size(), sim_length);

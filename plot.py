@@ -51,6 +51,27 @@ def plotAvgWMRE(data):
     plt.tight_layout()
     plt.savefig('plots/avg_weighted_error.png', dpi=300, bbox_inches='tight')
 
+def plotEntropy(data):
+    # Set the figure size
+    plt.figure(figsize=(10, 6))
+
+    # Create a line plot for Epoch vs Weighted Mean Relative Error
+    sns.lineplot(
+        x='Epoch',                          # X-axis: Epoch
+        y='Entropy',      # Y-axis: Weighted Mean Relative Error
+        hue='DataStructName',               # Group by DataStructType
+        style='TupleType',                  # Distinguish by TupleType
+        data=data               # Data to plot
+    )
+
+    # Add labels and title
+    plt.xlabel('Epoch')
+    plt.ylabel('Entropy')
+    plt.title('Entropy')
+    plt.legend(title='Data Structure Type')
+    plt.tight_layout()
+    plt.savefig('plots/entropy.png', dpi=300, bbox_inches='tight')
+
 def plotEstimationTime(data):
     filtered_data = data[data['Epoch'] != 0]
     print("Filtered data:")
@@ -166,6 +187,7 @@ def main():
 
     plotWMRE(combined_em_data)
     plotAvgWMRE(combined_em_data)
+    plotEntropy(combined_em_data)
     # plotEstimationTime(combined_em_data)
     plotTotalEstimationTime(combined_em_data)
 

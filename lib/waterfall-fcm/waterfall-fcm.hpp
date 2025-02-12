@@ -39,7 +39,7 @@ public:
     // Setup logging
     this->csv_header_em =
         "Epoch,Estimation Time,Total Time,Weighted Mean Relative Error,"
-        "Cardinality, Entropy";
+        "Cardinality,Entropy";
     this->csv_header = "Average Relative Error,Average Absolute "
                        "Error,Weighted Mean Relative "
                        "Error,F1 Heavy Hitter,Insertions,F1 Member";

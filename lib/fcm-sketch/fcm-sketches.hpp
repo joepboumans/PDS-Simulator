@@ -120,5 +120,6 @@ public:
   void write2csv();
   void write2csv_em(uint32_t iter, size_t time, size_t total_time, double card,
                     double etnropy);
+  void write2csv_ns(vector<double> ns);
 };
 #endif // !_FCM_SKETCHES_HPP

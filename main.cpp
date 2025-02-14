@@ -27,7 +27,7 @@ int main() {
   }
   globfree(glob_res);
 
-  uint32_t sim_length = 4;
+  uint32_t sim_length = 120;
   uint32_t iter = 1;
 
   uint32_t curr_file = 0;
@@ -44,9 +44,9 @@ int main() {
 
     vector<PDS *> stages;
 
-    FCM_Sketches fcm_sketches(W3, NUM_STAGES, K, DEPTH, 10000, 5, file,
-                              tuple_sz);
-    stages.push_back(&fcm_sketches);
+    /*FCM_Sketches fcm_sketches(W3, NUM_STAGES, K, DEPTH, 10000, 5, file,*/
+    /*                          tuple_sz);*/
+    /*stages.push_back(&fcm_sketches);*/
 
     WaterfallFCM wfcm(W3, NUM_STAGES, K, 10000, 5, 4, 65535, file, tuple_sz);
     stages.push_back(&wfcm);

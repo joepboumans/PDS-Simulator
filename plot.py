@@ -1,5 +1,7 @@
+import struct
 import os
 import pandas as pd
+from pandas.core.series import fmt
 import seaborn as sns
 import matplotlib.pyplot as plt
 from utils import *
@@ -153,6 +155,35 @@ def plotTotalEstimationTime(data):
 # Save the plots
     plt.savefig('plots/time_distribution_boxplot.png', dpi=300, bbox_inches='tight')
 
+def read_binary_file(filename):
+    flow_sizes = []
+    
+    with open(filename, 'rb') as f:
+        while True:
+            # Read the length of the flow size distribution (integer)
+            length_bytes = f.read(4)
+            if not length_bytes:
+                break  # End of file
+
+            length = struct.unpack('I', length_bytes)[0]
+            print(f"Found row with length of {length}")
+            
+            fmt_sz = struct.calcsize("=Id")
+            print(f"Format is of size {fmt_sz}")
+
+            # Read the flow size distribution (doubles)
+            flow_data = f.read(length * fmt_sz)  # Each double is 8 bytes
+            if len(flow_data) != length * fmt_sz:
+                print(f"Not enough data, was {len(flow_data)}")
+                continue
+
+            values_counts = tuple(struct.iter_unpack(f'=Id', flow_data))
+            print(values_counts)
+            flow_sizes.extend(values_counts)
+    
+    print(flow_sizes)
+    return flow_sizes
+
 def main():
     # set_test_rcs()
 # Root directory
@@ -217,4 +248,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    read_binary_file("results/SrcTuple/FC_AMQ/WaterfallFCM/ns_equinix-chicago.20160121-130000.UTC_3_0_1048560.dat")
+    # main()

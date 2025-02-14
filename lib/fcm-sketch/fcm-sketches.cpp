@@ -241,6 +241,27 @@ void FCM_Sketches::write2csv_em(uint32_t iter, size_t time, size_t total_time,
   this->fcsv_em << csv << std::endl;
 }
 
+void FCM_Sketches::write2csv_ns(vector<double> ns) {
+
+  if (!this->store_results) {
+    return;
+  }
+  uint32_t num_entries = 0;
+  for (uint32_t i = 0; i < this->ns.size(); i++) {
+    if (this->ns[i] != 0) {
+      num_entries++;
+    }
+  }
+  // Write NS FSD size and then the FSD as uint64_t
+  this->fcsv_ns.write((char *)&num_entries, sizeof(num_entries));
+  for (uint32_t i = 0; i < this->ns.size(); i++) {
+    if (this->ns[i] != 0) {
+      this->fcsv_ns.write((char *)&i, sizeof(i));
+      this->fcsv_ns.write((char *)&this->ns[i], sizeof(this->ns[i]));
+    }
+  }
+}
+
 void FCM_Sketches::reset() {
   this->true_data.clear();
   this->HH_candidates.clear();
@@ -603,6 +624,7 @@ double FCM_Sketches::get_distribution(vector<uint32_t> &true_fsd) {
         chrono::duration_cast<chrono::milliseconds>(stop - total_start);
 
     this->ns = em_fsd_algo.ns;
+    this->write2csv_ns(ns);
     uint32_t max_len = std::max(true_fsd.size(), ns.size());
     true_fsd.resize(max_len);
     this->ns.resize(max_len);
@@ -618,15 +640,7 @@ double FCM_Sketches::get_distribution(vector<uint32_t> &true_fsd) {
               << this->wmre << " delta: " << wmre - d_wmre
               << " time : " << time.count() << std::endl;
     d_wmre = this->wmre;
-    // Write NS FSD size and then the FSD as uint64_t
-    uint32_t ns_size = this->ns.size();
-    this->fcsv_ns.write((char *)&ns_size, sizeof(ns_size));
-    for (uint32_t i = 0; i < this->ns.size(); i++) {
-      if (this->ns[i] != 0) {
-        this->fcsv_ns.write((char *)&i, sizeof(i));
-        this->fcsv_ns.write((char *)&ns[i], sizeof(ns[i]));
-      }
-    }
+
     // entropy initialization
     double entropy_err = 0;
     double entropy_est = 0;
@@ -871,6 +885,7 @@ double FCM_Sketches::get_distribution_Waterfall(vector<uint32_t> &true_fsd) {
     auto start = std::chrono::high_resolution_clock::now();
     EM.next_epoch();
     this->ns = EM.ns;
+    this->write2csv_ns(ns);
     auto stop = std::chrono::high_resolution_clock::now();
     auto time = std::chrono::duration_cast<chrono::milliseconds>(stop - start);
     auto total_time =

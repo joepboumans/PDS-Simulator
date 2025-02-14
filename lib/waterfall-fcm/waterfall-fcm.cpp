@@ -82,6 +82,31 @@ void WaterfallFCM::write2csv_em(uint32_t iter, size_t time, size_t total_time,
   this->fcsv_em << csv << std::endl;
 }
 
+void WaterfallFCM::write2csv_ns() {
+  if (!this->store_results) {
+    return;
+  }
+  uint32_t num_entries = 0;
+  for (uint32_t i = 0; i < this->fcm_sketches.ns.size(); i++) {
+    if (this->fcm_sketches.ns[i] != 0) {
+      num_entries++;
+    }
+  }
+  // Write NS FSD size and then the FSD as uint64_t
+  this->fcsv_ns.write((char *)&num_entries, sizeof(num_entries));
+  std::cout << "Writing length of " << num_entries << " for ns" << std::endl;
+  for (uint32_t i = 0; i < this->fcm_sketches.ns.size(); i++) {
+    if (this->fcm_sketches.ns[i] != 0) {
+      std::cout << i << ":" << this->fcm_sketches.ns[i] << "\t";
+      std::cout << sizeof(i) << ":" << sizeof(this->fcm_sketches.ns[i]) << "\t";
+      this->fcsv_ns.write((char *)&i, sizeof(i));
+      this->fcsv_ns.write((char *)&this->fcm_sketches.ns[i],
+                          sizeof(this->fcm_sketches.ns[i]));
+    }
+  }
+  std::cout << std::endl;
+}
+
 void WaterfallFCM::set_estimate_fsd(bool onoff) {
   this->fcm_sketches.estimate_fsd = onoff;
 }
@@ -581,6 +606,7 @@ double WaterfallFCM::get_distribution(set<TUPLE> &tuples,
     auto start = std::chrono::high_resolution_clock::now();
     EM.next_epoch();
     this->fcm_sketches.ns = EM.ns;
+    this->write2csv_ns();
     auto stop = std::chrono::high_resolution_clock::now();
     auto time = std::chrono::duration_cast<chrono::milliseconds>(stop - start);
     auto total_time =

@@ -169,8 +169,6 @@ def read_binary_file(filename):
             print(f"Found row with length of {length}")
             
             fmt_sz = struct.calcsize("=Id")
-            print(f"Format is of size {fmt_sz}")
-
             # Read the flow size distribution (doubles)
             flow_data = f.read(length * fmt_sz)  # Each double is 8 bytes
             if len(flow_data) != length * fmt_sz:
@@ -178,10 +176,9 @@ def read_binary_file(filename):
                 continue
 
             values_counts = tuple(struct.iter_unpack(f'=Id', flow_data))
-            print(values_counts)
             flow_sizes.extend(values_counts)
     
-    print(flow_sizes)
+    # print(flow_sizes)
     return flow_sizes
 
 def main():

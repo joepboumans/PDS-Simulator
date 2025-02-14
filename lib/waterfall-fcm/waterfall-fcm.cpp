@@ -94,11 +94,8 @@ void WaterfallFCM::write2csv_ns() {
   }
   // Write NS FSD size and then the FSD as uint64_t
   this->fcsv_ns.write((char *)&num_entries, sizeof(num_entries));
-  std::cout << "Writing length of " << num_entries << " for ns" << std::endl;
   for (uint32_t i = 0; i < this->fcm_sketches.ns.size(); i++) {
     if (this->fcm_sketches.ns[i] != 0) {
-      std::cout << i << ":" << this->fcm_sketches.ns[i] << "\t";
-      std::cout << sizeof(i) << ":" << sizeof(this->fcm_sketches.ns[i]) << "\t";
       this->fcsv_ns.write((char *)&i, sizeof(i));
       this->fcsv_ns.write((char *)&this->fcm_sketches.ns[i],
                           sizeof(this->fcm_sketches.ns[i]));

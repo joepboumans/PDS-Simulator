@@ -155,6 +155,31 @@ def plotTotalEstimationTime(data):
 # Save the plots
     plt.savefig('plots/time_distribution_boxplot.png', dpi=300, bbox_inches='tight')
 
+def plotNS(data):
+    # Set the figure size
+    plt.figure(figsize=(10, 6))
+
+    # Create a line plot for Epoch vs Weighted Mean Relative Error
+    sns.lineplot(
+        x="Flow Size",
+        y="Frequency",
+        # hue="Epoch",
+        # style="DataStructName",
+        hue="DataStructName",
+        markers=True,
+        data=data
+    )
+
+    # Add labels and title
+    plt.legend(title='Data Structure Type')
+    plt.xscale("log")
+    plt.xlabel("Value")
+    plt.yscale("log")
+    plt.ylabel("Frequency")
+    plt.title("Frequency Plot")
+    plt.tight_layout()
+    plt.savefig('plots/entropy.png', dpi=300, bbox_inches='tight')
+
 def read_binary_file(filename):
     flow_sizes = []
     
@@ -172,11 +197,11 @@ def read_binary_file(filename):
             # Read the flow size distribution (doubles)
             flow_data = f.read(length * fmt_sz)  # Each double is 8 bytes
             if len(flow_data) != length * fmt_sz:
-                print(f"Not enough data, was {len(flow_data)}")
+                print(f"Not enough data in {filename}. Data length was {len(flow_data)}, needed {length * fmt_sz}")
                 continue
 
-            values_counts = tuple(struct.iter_unpack(f'=Id', flow_data))
-            flow_sizes.extend(values_counts)
+            values_counts = list(struct.iter_unpack(f'=Id', flow_data))
+            flow_sizes.append(values_counts)
     
     # print(flow_sizes)
     return flow_sizes
@@ -189,6 +214,7 @@ def main():
 # Lists to hold all dataframes
     dataframes = []  # For non-'em' CSV files
     em_dataframes = []  # For 'em' CSV files
+    ns_dataframes = []
 
 # Loop through all directories and files
     for tuple_type in os.listdir(root_dir):
@@ -217,10 +243,52 @@ def main():
                                         em_dataframes.append(data)
                                     else:
                                         dataframes.append(data)
+                                elif file_name.endswith(".dat"):
+                                    file_path = os.path.join(data_struct_name_dir, file_name)
+                                    data = read_binary_file(file_path)
+
+                                    data_pd = pd.DataFrame(
+                                                        data[-1],
+                                                        columns=["Flow Size", "Frequency"]
+                                    )
+
+                                    # data_pd = pd.DataFrame(
+                                    #                     [(value, freq, i) for i, dataset in enumerate(data) for value, freq in dataset],
+                                    #                     columns=["Flow Size", "Frequency", "Epoch"]
+                                    # )
+                                    # Add metadata columns for TupleType, DataStructType, and DataStructName
+                                    data_pd['TupleType'] = tuple_type
+                                    data_pd['DataStructType'] = data_struct_type
+                                    data_pd['DataStructName'] = data_struct_name
+                                    ns_dataframes.append(data_pd)
+
+                        else:
+                            file_path = data_struct_name_dir
+                            if file_path.endswith('.dat'):
+                                data = read_binary_file(file_path)
+
+                                data_pd = pd.DataFrame(
+                                                    data[0],
+                                                    columns=["Flow Size", "Frequency"]
+                                )
+
+                                # data_pd = pd.DataFrame(
+                                #                     [(value, freq, i) for i, dataset in enumerate(data) for value, freq in dataset],
+                                #                     columns=["Flow Size", "Frequency", "Epoch"]
+                                # )
+                                # Add metadata columns for TupleType, DataStructType, and DataStructName
+                                data_pd['TupleType'] = tuple_type
+                                data_pd['DataStructType'] = data_struct_type
+                                data_pd['DataStructName'] = "TrueData"
+                                ns_dataframes.append(data_pd)
+
+
+
 
 # Combine all dataframes into two separate DataFrames
     combined_data = pd.concat(dataframes, ignore_index=True)
     combined_em_data = pd.concat(em_dataframes, ignore_index=True)
+    combined_ns_data = pd.concat(ns_dataframes, ignore_index=True)
 
 # Display the combined data
     print("Non-Estimation Data:")
@@ -229,21 +297,24 @@ def main():
     print("\nEstimation Data:")
     print(combined_em_data.head())
 
+    print("\nFSD Data:")
+    print(combined_ns_data.head())
 # Group non-'em' data by TupleType, DataStructType, and DataStructName
     grouped_data = combined_data.groupby(['TupleType', 'DataStructType', 'DataStructName'])['F1 Member'].mean().reset_index()
     print("Grouped Non-'em' Data:")
     print(grouped_data)
 
     plotWMRE(combined_em_data)
-    plotAvgWMRE(combined_em_data)
+    # plotAvgWMRE(combined_em_data)
     plotEntropy(combined_em_data)
     plotCard(combined_em_data)
-    # plotEstimationTime(combined_em_data)
+    plotEstimationTime(combined_em_data)
     plotTotalEstimationTime(combined_em_data)
+    plotNS(combined_ns_data)
 
     plt.show()
 
 
 if __name__ == "__main__":
-    read_binary_file("results/SrcTuple/FC_AMQ/WaterfallFCM/ns_equinix-chicago.20160121-130000.UTC_3_0_1048560.dat")
-    # main()
+    # read_binary_file("results/SrcTuple/FC_AMQ/WaterfallFCM/ns_equinix-chicago.20160121-130000.UTC_3_0_1048560.dat")
+    main()

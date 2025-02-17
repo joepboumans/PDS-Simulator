@@ -213,7 +213,7 @@ private:
       /*printf("Setup gen with sum:%d, in_degree:%d, in_sketch_degree:%d, "*/
       /*       "flow_num_limit:%d\n",*/
       /*       sum, in_degree, in_sketch_degree, flow_num_limit);*/
-      now_flow_num = flow_num_limit;
+      now_flow_num = flow_num_limit - 1;
       now_result.resize(now_flow_num);
     }
 
@@ -239,14 +239,31 @@ private:
 
     bool get_next() {
       while (now_flow_num <= flow_num_limit) {
-        if (get_new_comb()) {
-          if (check_condition()) {
-            /*print_now_result();*/
-            total_combi++;
-            return true;
+        switch (now_flow_num) {
+        case 0:
+          now_flow_num = 1;
+          now_result.resize(1);
+          now_result[0] = sum;
+          return true;
+        case 1:
+          now_flow_num = 2;
+          now_result[0] = 0;
+          // fallthrough
+        default:
+          now_result.resize(now_flow_num);
+          if (get_new_comb()) {
+            if (check_condition()) {
+              /*print_now_result();*/
+              total_combi++;
+              return true;
+            }
+          } else { // no more combination -> go to next flow number
+            now_flow_num++;
+            for (int i = 0; i < now_flow_num - 2; ++i) {
+              now_result[i] = 1;
+            }
+            now_result[now_flow_num - 2] = 0;
           }
-        } else { // no more combination -> go to next flow number
-          now_flow_num++;
         }
       }
       return false;

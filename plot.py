@@ -284,22 +284,19 @@ def main():
 
 
 
-
-# Combine all dataframes into two separate DataFrames
-    combined_data = pd.concat(dataframes, ignore_index=True)
-    combined_em_data = pd.concat(em_dataframes, ignore_index=True)
-    combined_ns_data = pd.concat(ns_dataframes, ignore_index=True)
-
-# Display the combined data
+    # Display the combined data
     print("Non-Estimation Data:")
+    combined_data = pd.concat(dataframes, ignore_index=True)
     print(combined_data.head())
 
     print("\nEstimation Data:")
+    combined_em_data = pd.concat(em_dataframes, ignore_index=True)
     print(combined_em_data.head())
 
     print("\nFSD Data:")
+    combined_ns_data = pd.concat(ns_dataframes, ignore_index=True)
     print(combined_ns_data.head())
-# Group non-'em' data by TupleType, DataStructType, and DataStructName
+    # Group non-'em' data by TupleType, DataStructType, and DataStructName
     grouped_data = combined_data.groupby(['TupleType', 'DataStructType', 'DataStructName'])['F1 Member'].mean().reset_index()
     print("Grouped Non-'em' Data:")
     print(grouped_data)

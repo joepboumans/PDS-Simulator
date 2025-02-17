@@ -49,17 +49,17 @@ struct TUPLE {
             tuple.num_array[6], tuple.num_array[7]);
 
     if (tuple.sz == 4) {
-      return os << srcIp << "\tsz " << tuple.sz;
+      return os << srcIp << "\tsz " << int(tuple.sz);
     } else if (tuple.sz == 8) {
-      return os << srcIp << "|" << dstIp << "\tsz " << tuple.sz;
+      return os << srcIp << "|" << dstIp << "\tsz " << int(tuple.sz);
     }
     return os << srcIp << ":" << srcPort << "|" << dstIp << ":" << dstPort
-              << "|" << protocol << "\tsz " << tuple.sz;
+              << "|" << protocol << "\tsz " << int(tuple.sz);
   }
 
   operator string() {
-    char ftuple[this->sz];
-    memcpy(ftuple, this, this->sz);
+    char ftuple[MAX_TUPLE_SZ];
+    memcpy(ftuple, this->num_array, this->sz);
     return ftuple;
   }
   operator uint8_t *() { return this->num_array; }
@@ -121,7 +121,7 @@ struct TUPLE {
     return *this;
   }
 
-  auto operator<=>(const TUPLE &) const = default;
+  /*auto operator<=>(const TUPLE &) const = default;*/
   bool operator==(const TUPLE &rhs) const {
     for (size_t i = 0; i < this->sz; i++) {
       if (this->num_array[i] != rhs.num_array[i]) {
@@ -129,6 +129,14 @@ struct TUPLE {
       }
     }
     return true;
+  }
+
+  bool operator<(const TUPLE &rhs) const {
+    int cmp = std::memcmp(num_array, rhs.num_array, sz);
+    if (cmp != 0) {
+      return cmp < 0;
+    }
+    return false;
   }
 };
 

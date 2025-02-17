@@ -469,9 +469,9 @@ double WaterfallFCM::get_distribution(set<TUPLE> &tuples,
             init_fsd[d][count]++;
           } else if (degree == count) {
             init_fsd[d][1] += count;
-            /*} else if (degree + 1 == count) {*/
-            /*  init_fsd[d][1] += (count - 1);*/
-            /*  init_fsd[d][2] += 1;*/
+          } else if (degree + 1 == count) {
+            init_fsd[d][1] += (count - 1);
+            init_fsd[d][2] += 1;
           } else {
             if (degree >= virtual_counters[d].size()) {
               virtual_counters[d].resize(degree + 1);

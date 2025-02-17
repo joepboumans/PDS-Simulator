@@ -205,16 +205,21 @@ private:
       } else {
         if (sum > 600) { // 1000 for large data, 600 for small data
           flow_num_limit = 2;
-        } else {
+        } else if (sum > 100) {
           flow_num_limit = 3;
+        } else if (sum > 50) {
+          flow_num_limit = 4;
+        } else {
+          flow_num_limit = 5;
         }
       }
       flow_num_limit = std::min((int)in_degree, flow_num_limit);
+      now_flow_num = flow_num_limit - 1;
+      now_result.resize(now_flow_num);
+
       /*printf("Setup gen with sum:%d, in_degree:%d, in_sketch_degree:%d, "*/
       /*       "flow_num_limit:%d\n",*/
       /*       sum, in_degree, in_sketch_degree, flow_num_limit);*/
-      now_flow_num = flow_num_limit - 1;
-      now_result.resize(now_flow_num);
     }
 
     bool get_new_comb() {

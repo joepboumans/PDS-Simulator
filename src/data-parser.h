@@ -79,16 +79,18 @@ public:
     TRACE trace(sz / MAX_TUPLE_SZ);
     // Create 5-tuple and trace, dataset is always a 5 tuple set
     TUPLE tin;
+    tin.sz = tuple_sz;
     // Load trace with 5-tuple
     if (this->fin == NULL) {
       std::cout << "ERROR: Input file is NULL" << std::endl;
     }
     uint32_t i = 0;
     std::set<TUPLE> unique_tuples;
-    while (fread(&tin, 1, MAX_TUPLE_SZ, this->fin)) {
-      tin.sz = tuple_sz;
-      trace[i++] = tin;
-      unique_tuples.insert(tin);
+    while (fread(&tin.num_array, 1, MAX_TUPLE_SZ, this->fin)) {
+      trace[i] = tin;
+      trace[i].sz = tuple_sz;
+      unique_tuples.insert(trace[i]);
+      i++;
     }
 
     std::cout << "Total tuples " << trace.size()

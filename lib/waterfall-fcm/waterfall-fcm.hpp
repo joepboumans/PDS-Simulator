@@ -58,6 +58,7 @@ public:
   void reset();
 
   bool estimate_fsd = true;
+  bool use_peeling = true;
   double average_absolute_error = 0.0;
   double average_relative_error = 0.0;
   double wmre = 0.0;
@@ -73,7 +74,10 @@ public:
   void write2csv_ns();
   vector<uint32_t> peel_sketches(set<TUPLE> &tuples);
   vector<vector<uint32_t>> get_initial_degrees(set<TUPLE> tuples);
+  vector<vector<vector<TUPLE>>> get_initial_flows(set<TUPLE> &tuples);
   double get_distribution(set<TUPLE> &tuples, vector<uint32_t> &true_fsd);
+  double get_peeling_distribution(set<TUPLE> &tuples,
+                                  vector<uint32_t> &true_fsd);
   void set_estimate_fsd(bool onoff);
   void analyze(int epoch);
 };

@@ -478,7 +478,7 @@ private:
     }
 
     double accum = std::accumulate(nt.begin(), nt.end(), 0.0);
-    if (1) {
+    if (0) {
       for (size_t i = 0; i < nt.size(); i++) {
         if (nt[i] != 0) {
           std::cout << i << ":" << nt[i] << " ";

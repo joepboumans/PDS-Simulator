@@ -18,7 +18,8 @@
 #define NUM_STAGES 3
 #define DEPTH 2
 #define K 8
-#define W3 8192          // 32-bit, level 3
+#define W3 8192 // 32-bit, level 3
+/*#define W3 2357          // 32-bit, level 3*/
 #define W2 (K * W3)      // 16-bit, level 2
 #define W1 (K * W2)      // 8-bit, level 1
 #define ADD_LEVEL1 255   // 2^8 -2 + 1 (actual count is 254)

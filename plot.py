@@ -13,7 +13,7 @@ def plotWMRE(data):
 
     # Create a line plot for Epoch vs Weighted Mean Relative Error
     sns.lineplot(
-        x='Epoch',                          # X-axis: Epoch
+        x='Total Time',                          # X-axis: Epoch
         y='Weighted Mean Relative Error',      # Y-axis: Weighted Mean Relative Error
         hue='DataStructName',               # Group by DataStructType
         style='TupleType',                  # Distinguish by TupleType
@@ -21,7 +21,7 @@ def plotWMRE(data):
     )
 
     # Add labels and title
-    plt.xlabel('Epoch')
+    plt.xlabel('Estimation Time')
     plt.ylabel('Weighted Mean Relative Error')
     plt.title('Epoch vs Weighted Mean Relative Error (Estimation Data)')
     plt.legend(title='Data Structure Type')
@@ -122,13 +122,14 @@ def plotEstimationTime(data):
 def plotTotalEstimationTime(data):
 # Set up the figure and subplots
     fig, axes = plt.subplots(1, 2, figsize=(14, 6))  # 1 row, 2 columns
+    filtered_data = data[data['Epoch'] != 0]
 
 # Left Subplot: Total Time
     sns.boxplot(
         x='DataStructName',                 # X-axis: Data Structure Type
         y='Total Time',                      # Y-axis: Total Time
         hue='TupleType',                    # Group by TupleType
-        data=data,              # Data to plot
+        data=filtered_data,              # Data to plot
         ax=axes[0]                          # Assign to the left subplot
     )
     axes[0].set_xlabel('Data Structure Type')
@@ -141,7 +142,7 @@ def plotTotalEstimationTime(data):
         x='DataStructName',                 # X-axis: Data Structure Type
         y='Estimation Time',                 # Y-axis: Estimation Time
         hue='TupleType',                    # Group by TupleType
-        data=data,              # Data to plot
+        data=filtered_data,              # Data to plot
         ax=axes[1]                          # Assign to the right subplot
     )
     axes[1].set_xlabel('Data Structure Type')
@@ -237,12 +238,13 @@ def main():
                                     data['TupleType'] = tuple_type
                                     data['DataStructType'] = data_struct_type
                                     data['DataStructName'] = data_struct_name
-                                    
                                     # Separate 'em' files from the rest
                                     if file_name.startswith('em'):
                                         em_dataframes.append(data)
+                                        data['DataSetName'] = file_name.split("_")[1]
                                     else:
                                         dataframes.append(data)
+                                        data['DataSetName'] = file_name.split("_")[1]
                                 elif file_name.endswith(".dat"):
                                     file_path = os.path.join(data_struct_name_dir, file_name)
                                     data = read_binary_file(file_path)
@@ -307,11 +309,10 @@ def main():
     plotCard(combined_em_data)
     plotEstimationTime(combined_em_data)
     plotTotalEstimationTime(combined_em_data)
-    plotNS(combined_ns_data)
+    # plotNS(combined_ns_data)
 
     plt.show()
 
 
 if __name__ == "__main__":
-    # read_binary_file("results/SrcTuple/FC_AMQ/WaterfallFCM/ns_equinix-chicago.20160121-130000.UTC_3_0_1048560.dat")
     main()

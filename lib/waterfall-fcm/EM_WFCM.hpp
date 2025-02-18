@@ -205,16 +205,12 @@ private:
       } else {
         if (sum > 600) { // 1000 for large data, 600 for small data
           flow_num_limit = 2;
-        } else if (sum > 100) {
-          flow_num_limit = 3;
-        } else if (sum > 50) {
-          flow_num_limit = 4;
         } else {
-          flow_num_limit = 5;
+          flow_num_limit = 3;
         }
       }
       flow_num_limit = std::min((int)in_degree, flow_num_limit);
-      now_flow_num = flow_num_limit - 1;
+      now_flow_num = std::min(1, flow_num_limit - 1);
       now_result.resize(now_flow_num);
 
       /*printf("Setup gen with sum:%d, in_degree:%d, in_sketch_degree:%d, "*/
@@ -417,7 +413,6 @@ private:
       uint32_t est_xi = sketch_xi; // Est_xi is sketch_xi as for each input
                                    // counter a VC should be calculated
       vector<vector<uint32_t>> &thresh = this->thresholds[d][xi][i];
-      /*std::cout << "Found val " << this->counters[d][xi][i] << std::endl;*/
       /*if (this->thresholds[d][xi].size() <= i) {*/
       /*  std::cout << "ERROR out of threshold length" << std::endl;*/
       /*  exit(1);*/
@@ -446,10 +441,8 @@ private:
         it++;
       }
       // Sum over first combinations
-
       /*std::cout << "Val " << sum << " found sum_p " << sum_p << " with "*/
       /*          << alpha.total_combi << " combinations" << std::endl;*/
-      /**/
       // If there where valid combinations, but value of combinations where
       // not found in measured data. We
       if (sum_p == 0.0) {
@@ -464,7 +457,7 @@ private:
           /*alpha.print_thresholds();*/
 
           // Remove l1 collisions, keep one flow
-          temp_val -= thresh.back()[3] * (sketch_xi - 1);
+          temp_val -= thresh.back()[3];
           if (thresh.size() == 3) {
             temp_val -= thresh[1][3] * (thresh[1][1] - 1);
             nt[thresh[1][3]] += thresh[1][1] - 1;
@@ -485,7 +478,7 @@ private:
     }
 
     double accum = std::accumulate(nt.begin(), nt.end(), 0.0);
-    if (0) {
+    if (1) {
       for (size_t i = 0; i < nt.size(); i++) {
         if (nt[i] != 0) {
           std::cout << i << ":" << nt[i] << " ";
@@ -517,7 +510,7 @@ public:
     }
     std::fill(this->ns.begin(), this->ns.end(), 0);
 
-    if (1) {
+    if (0) {
       // Simple Multi thread
       vector<vector<std::thread>> threads(DEPTH);
       for (size_t d = 0; d < threads.size(); d++) {

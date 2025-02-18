@@ -50,7 +50,7 @@ private:
       else if (sum > 50)
         flow_num_limit = 5;
       else
-        flow_num_limit = 5;
+        flow_num_limit = 6;
     }
 
     bool get_new_comb() {

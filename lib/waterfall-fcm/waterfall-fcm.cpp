@@ -368,6 +368,62 @@ vector<vector<uint32_t>> WaterfallFCM::get_initial_degrees(set<TUPLE> tuples) {
   return init_degree;
 }
 
+double WaterfallFCM::calculate_wmre(vector<double> &ns,
+                                    vector<uint32_t> &true_fsd) {
+  static uint32_t iter = 1;
+  static double d_wmre = 0.0;
+  double wmre_nom = 0.0;
+  double wmre_denom = 0.0;
+  uint32_t max_len = std::max(true_fsd.size(), ns.size());
+  true_fsd.resize(max_len);
+  ns.resize(max_len);
+
+  for (size_t i = 0; i < max_len; i++) {
+    wmre_nom += std::abs(double(true_fsd[i]) - ns[i]);
+    wmre_denom += double((double(true_fsd[i]) + ns[i]) / 2);
+  }
+  wmre = wmre_nom / wmre_denom;
+  std::cout << "[EM WFCM - iter " << iter << "] intermediary wmre " << wmre
+            << " delta: " << wmre - d_wmre << std::endl;
+  d_wmre = wmre;
+  iter++;
+  return wmre;
+}
+
+double WaterfallFCM::calculate_entropy(vector<double> &ns,
+                                       vector<uint32_t> &true_fsd) {
+  // entropy initialization
+  double entropy_err = 0;
+  double entropy_est = 0;
+
+  double tot_est = 0;
+  double entr_est = 0;
+
+  for (int i = 1; i < ns.size(); ++i) {
+    if (ns[i] == 0)
+      continue;
+    tot_est += i * ns[i];
+    entr_est += i * ns[i] * log2(i);
+  }
+  entropy_est = -entr_est / tot_est + log2(tot_est);
+
+  double entropy_true = 0;
+  double tot_true = 0;
+  double entr_true = 0;
+  for (int i = 0; i < true_fsd.size(); ++i) {
+    if (true_fsd[i] == 0)
+      continue;
+    tot_true += i * true_fsd[i];
+    entr_true += i * true_fsd[i] * log2(i);
+  }
+  entropy_true = -entr_true / tot_true + log2(tot_true);
+
+  entropy_err = std::abs(entropy_est - entropy_true) / entropy_true;
+  printf("Entropy Relative Error (RE) = %f (true : %f, est : %f)\n",
+         entropy_err, entropy_true, entropy_est);
+  return entropy_err;
+}
+
 double WaterfallFCM::get_distribution(set<TUPLE> &tuples,
                                       vector<uint32_t> &true_fsd) {
 
@@ -552,51 +608,8 @@ double WaterfallFCM::get_distribution(set<TUPLE> &tuples,
   std::cout << "[EMS_FSD] ...done!" << std::endl;
   auto total_start = std::chrono::high_resolution_clock::now();
 
-  uint32_t max_len = std::max(true_fsd.size(), EM.ns.size());
-  true_fsd.resize(max_len);
-  EM.ns.resize(max_len);
-
-  double d_wmre = 0.0;
-  double wmre_nom = 0.0;
-  double wmre_denom = 0.0;
-  for (size_t i = 0; i < max_len; i++) {
-    wmre_nom += std::abs(double(true_fsd[i]) - EM.ns[i]);
-    wmre_denom += double((double(true_fsd[i]) + EM.ns[i]) / 2);
-  }
-  wmre = wmre_nom / wmre_denom;
-  std::cout << "[EM WFCM - Initial WMRE] wmre " << wmre
-            << " delta: " << wmre - d_wmre << std::endl;
-  d_wmre = wmre;
-  // entropy initialization
-  double entropy_err = 0;
-  double entropy_est = 0;
-
-  double tot_est = 0;
-  double entr_est = 0;
-
-  for (int i = 1; i < EM.ns.size(); ++i) {
-    if (EM.ns[i] == 0)
-      continue;
-    tot_est += i * EM.ns[i];
-    entr_est += i * EM.ns[i] * log2(i);
-  }
-  entropy_est = -entr_est / tot_est + log2(tot_est);
-
-  double entropy_true = 0;
-  double tot_true = 0;
-  double entr_true = 0;
-  for (int i = 0; i < true_fsd.size(); ++i) {
-    if (true_fsd[i] == 0)
-      continue;
-    tot_true += i * true_fsd[i];
-    entr_true += i * true_fsd[i] * log2(i);
-  }
-  entropy_true = -entr_true / tot_true + log2(tot_true);
-
-  entropy_err = std::abs(entropy_est - entropy_true) / entropy_true;
-  printf("Entropy Relative Error (RE) = %f (true : %f, est : %f)\n",
-         entropy_err, entropy_true, entropy_est);
-
+  this->wmre = calculate_wmre(EM.ns, true_fsd);
+  double entropy_err = calculate_entropy(EM.ns, true_fsd);
   this->write2csv_em(0, 0, 0, EM.n_new, entropy_err);
 
   for (size_t iter = 1; iter < this->em_iters + 1; iter++) {
@@ -609,51 +622,8 @@ double WaterfallFCM::get_distribution(set<TUPLE> &tuples,
     auto total_time =
         std::chrono::duration_cast<chrono::milliseconds>(stop - total_start);
 
-    max_len = std::max(true_fsd.size(), this->fcm_sketches.ns.size());
-    true_fsd.resize(max_len);
-    this->fcm_sketches.ns.resize(max_len);
-
-    wmre_nom = 0.0;
-    wmre_denom = 0.0;
-    for (size_t i = 0; i < max_len; i++) {
-      wmre_nom += std::abs(double(true_fsd[i]) - this->fcm_sketches.ns[i]);
-      wmre_denom +=
-          double((double(true_fsd[i]) + this->fcm_sketches.ns[i]) / 2);
-    }
-    this->wmre = wmre_nom / wmre_denom;
-    std::cout << "[EM WFCM - iter " << iter << "] intermediary wmre " << wmre
-              << " delta: " << wmre - d_wmre << std::endl;
-    d_wmre = wmre;
-    // entropy initialization
-    double entropy_err = 0;
-    double entropy_est = 0;
-
-    double tot_est = 0;
-    double entr_est = 0;
-
-    for (int i = 1; i < this->fcm_sketches.ns.size(); ++i) {
-      if (this->fcm_sketches.ns[i] == 0)
-        continue;
-      tot_est += i * this->fcm_sketches.ns[i];
-      entr_est += i * this->fcm_sketches.ns[i] * log2(i);
-    }
-    entropy_est = -entr_est / tot_est + log2(tot_est);
-
-    double entropy_true = 0;
-    double tot_true = 0;
-    double entr_true = 0;
-    for (int i = 0; i < true_fsd.size(); ++i) {
-      if (true_fsd[i] == 0)
-        continue;
-      tot_true += i * true_fsd[i];
-      entr_true += i * true_fsd[i] * log2(i);
-    }
-    entropy_true = -entr_true / tot_true + log2(tot_true);
-
-    entropy_err = std::abs(entropy_est - entropy_true) / entropy_true;
-    printf("Entropy Relative Error (RE) = %f (true : %f, est : %f)\n",
-           entropy_err, entropy_true, entropy_est);
-
+    this->wmre = calculate_wmre(EM.ns, true_fsd);
+    double entropy_err = calculate_entropy(EM.ns, true_fsd);
     this->write2csv_em(iter, time.count(), total_time.count(), EM.n_new,
                        entropy_err);
   }

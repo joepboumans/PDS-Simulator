@@ -74,6 +74,8 @@ public:
   vector<uint32_t> peel_sketches(set<TUPLE> &tuples);
   vector<vector<uint32_t>> get_initial_degrees(set<TUPLE> tuples);
   double get_distribution(set<TUPLE> &tuples, vector<uint32_t> &true_fsd);
+  double calculate_wmre(vector<double> &ns, vector<uint32_t> &true_fsd);
+  double calculate_entropy(vector<double> &ns, vector<uint32_t> &true_fsd);
   void set_estimate_fsd(bool onoff);
   void analyze(int epoch);
 };

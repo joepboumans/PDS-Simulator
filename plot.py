@@ -4,27 +4,84 @@ import pandas as pd
 from pandas.core.series import fmt
 import seaborn as sns
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 from utils import *
-
+from statsmodels.nonparametric.smoothers_lowess import lowess
 
 def plotWMRE(data):
     # Set the figure size
     plt.figure(figsize=(10, 6))
+    
+    # Create a consistent palette mapping for the unique DataStructName groups.
+    unique_names = data['DataSetName'].unique()
+    palette = sns.color_palette("deep", n_colors=len(unique_names))
+    color_map = dict(zip(unique_names, palette))
 
+    # Create a line style mapping for TupleType.
+    unique_tuple = sorted(data['TupleType'].unique())
+    styles = ['-', '--', '-.', ':']
+    line_style_map = {tt: styles[i % len(styles)] for i, tt in enumerate(unique_tuple)}
+
+    # dashes = {tt: (5,2) if line_style_map[tt] == '-' else (2,2) for tt in unique_tuple}
     # Create a line plot for Epoch vs Weighted Mean Relative Error
     sns.lineplot(
         x='Total Time',                          # X-axis: Epoch
         y='Weighted Mean Relative Error',      # Y-axis: Weighted Mean Relative Error
-        hue='DataStructName',               # Group by DataStructType
-        style='TupleType',                  # Distinguish by TupleType
-        data=data               # Data to plot
+        hue='DataSetName',               # Group by DataStructType
+        style='DataStructName',
+        data=data,               # Data to plot
+        palette=color_map,
     )
 
-    # Add labels and title
-    plt.xlabel('Estimation Time')
+    plt.xlabel('Estimation Time (ms)')
     plt.ylabel('Weighted Mean Relative Error')
-    plt.title('Epoch vs Weighted Mean Relative Error (Estimation Data)')
-    plt.legend(title='Data Structure Type')
+    plt.title('Weighted Mean Relative Error over time')
+    plt.legend(title='Data Structures')
+    plt.tight_layout()
+    plt.savefig('plots/epoch_vs_weighted_error.png', dpi=300, bbox_inches='tight')
+
+    plt.figure(figsize=(10, 6))
+    # # Create a consistent palette mapping for the unique DataStructName groups.
+    unique_names = data['DataStructName'].unique()
+    palette = sns.color_palette("deep", n_colors=len(unique_names))
+    color_map = dict(zip(unique_names, palette))
+
+    # Create a scatterplot plot for Epoch vs Weighted Mean Relative Error
+    sns.scatterplot(
+        x='Total Time',                          # X-axis: Epoch
+        y='Weighted Mean Relative Error',      # Y-axis: Weighted Mean Relative Error
+        hue='DataStructName',               # Group by DataStructType
+        style='TupleType',
+        data=data,               # Data to plot
+        palette=color_map,
+        s=10
+    )
+
+    # Loop over each combination of DataStructName and TupleType for LOWESS smoothing.
+    for (ds, tt), group in data.groupby(['DataStructName', 'TupleType']):
+        sorted_group = group.sort_values(by='Total Time')
+        if len(sorted_group) < 2:
+            continue  # Skip groups with insufficient data for smoothing.
+        smoothed = lowess(
+            sorted_group['Weighted Mean Relative Error'], 
+            sorted_group['Total Time'], 
+            frac=0.1
+        )
+        plt.plot(smoothed[:, 0], smoothed[:, 1], 
+                 label=f"{ds}, {tt} (smoothed)", 
+                 linewidth=2, 
+                 color=color_map[ds],
+                 linestyle=line_style_map[tt])
+
+    # Determine the maximum Total Time for the shortest dataset
+    shortest_max = data.groupby('DataStructName')['Total Time'].max().min()
+    # Set the x-axis limits: from the minimum Total Time to the shortest dataset's max
+    plt.xlim(data['Total Time'].min(), shortest_max)
+    # Add labels and title
+    plt.xlabel('Estimation Time (ms)')
+    plt.ylabel('Weighted Mean Relative Error')
+    plt.title('Weighted Mean Error over time')
+    plt.legend(title='Data Structures')
     plt.tight_layout()
     plt.savefig('plots/epoch_vs_weighted_error.png', dpi=300, bbox_inches='tight')
 
@@ -242,7 +299,7 @@ def main():
     em_dataframes = []  # For 'em' CSV files
     ns_dataframes = []
 
-# Loop through all directories and files
+    # Loop through all directories and files
     for tuple_type in os.listdir(root_dir):
         tuple_dir = os.path.join(root_dir, tuple_type)
         if os.path.isdir(tuple_dir):
@@ -263,13 +320,16 @@ def main():
                                     data['TupleType'] = tuple_type
                                     data['DataStructType'] = data_struct_type
                                     data['DataStructName'] = data_struct_name
+
+                                    # Extract dataset name from the filename
+                                    dataset_name = file_name.split("_")[1] if file_name.startswith('em_') else file_name.split("_")[0]
+                                    data['DataSetName'] = dataset_name.replace(".dat", "")
+                                    
                                     # Separate 'em' files from the rest
                                     if file_name.startswith('em'):
                                         em_dataframes.append(data)
-                                        data['DataSetName'] = file_name.split("_")[1]
                                     else:
                                         dataframes.append(data)
-                                        data['DataSetName'] = file_name.split("_")[1]
                                 elif file_name.endswith(".dat"):
                                     file_path = os.path.join(data_struct_name_dir, file_name)
                                     data = read_binary_file(file_path)
@@ -320,31 +380,43 @@ def main():
     combined_em_data = pd.concat(em_dataframes, ignore_index=True)
     print(combined_em_data.head())
 
-    print("\nFSD Data:")
-    combined_ns_data = pd.concat(ns_dataframes, ignore_index=True)
-    true_df = combined_ns_data[combined_ns_data["DataStructName"] == "TrueData"][["Flow Size", "Frequency"]].rename(
-        columns={"Frequency": "TrueFrequency"}
-    )
-    print(true_df.head())
-    combined_ns_data = combined_ns_data.merge(true_df, on="Flow Size", how="left")
-    combined_ns_data["Delta"] = combined_ns_data["Frequency"] - combined_ns_data["TrueFrequency"]
-    combined_ns_data.loc[combined_ns_data["DataStructName"] == "TrueData", "Delta"] = 0
-    print(combined_ns_data.head())
+    # print("\nFSD Data:")
+    # combined_ns_data = pd.concat(ns_dataframes, ignore_index=True)
+    # true_df = combined_ns_data[combined_ns_data["DataStructName"] == "TrueData"][["Flow Size", "Frequency"]].rename(
+    #     columns={"Frequency": "TrueFrequency"}
+    # )
+    # print(true_df.head())
+    # combined_ns_data = combined_ns_data.merge(true_df, on="Flow Size", how="left")
+    # combined_ns_data["Delta"] = combined_ns_data["Frequency"] - combined_ns_data["TrueFrequency"]
+    # combined_ns_data.loc[combined_ns_data["DataStructName"] == "TrueData", "Delta"] = 0
+    # print(combined_ns_data.head())
     # Group non-'em' data by TupleType, DataStructType, and DataStructName
     grouped_data = combined_data.groupby(['TupleType', 'DataStructType', 'DataStructName'])['F1 Member'].mean().reset_index()
     print("Grouped Non-'em' Data:")
     print(grouped_data)
 
-    plotWMRE(combined_em_data)
-    # plotAvgWMRE(combined_em_data)
-    plotEntropy(combined_em_data)
-    plotCard(combined_em_data)
-    # plotEstimationTime(combined_em_data)
-    plotTotalEstimationTime(combined_em_data)
-    plotNS(combined_ns_data)
-    plotNSdelta(combined_ns_data)
+    print(combined_em_data['DataStructName'].unique())
+    filtered_data = combined_em_data[combined_em_data['TupleType'] == "FlowTuple"]
+    test_data = filtered_data[filtered_data['DataStructName'] == "FCM-Sketches"]
+    print(test_data.head())
 
-    plt.show()
+    for dsName in filtered_data['DataSetName'].unique():
+        print(test_data[test_data['DataSetName'] == dsName])
+        print(dsName)
+        filteredDsData = filtered_data[filtered_data['DataSetName'] == dsName]
+        print(filteredDsData['DataStructName'].unique())
+        exit(1)
+        print(filteredDsData['DataStructName'].unique())
+        plotWMRE(filteredDsData)
+        plt.show()
+    # plotAvgWMRE(combined_em_data)
+    # plotEntropy(combined_em_data)
+    # plotCard(combined_em_data)
+    # plotEstimationTime(combined_em_data)
+    # plotTotalEstimationTime(combined_em_data)
+    # plotNS(combined_ns_data)
+    # plotNSdelta(combined_ns_data)
+
 
 
 if __name__ == "__main__":

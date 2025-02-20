@@ -79,7 +79,6 @@ public:
     TRACE trace(sz / MAX_TUPLE_SZ);
     // Create 5-tuple and trace, dataset is always a 5 tuple set
     TUPLE tin;
-    tin.sz = tuple_sz;
     // Load trace with 5-tuple
     if (this->fin == NULL) {
       std::cout << "ERROR: Input file is NULL" << std::endl;

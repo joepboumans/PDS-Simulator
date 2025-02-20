@@ -202,16 +202,31 @@ private:
         /*          << sum_thresh[1][0] << std::endl;*/
         /*std::cout << "Max val " << sum_thresh[0][1] << " with count "*/
         /*          << sum_thresh[0][0] << std::endl;*/
+        flow_num_limit = std::min((int)in_degree, flow_num_limit);
+        now_flow_num =
+            1; // flow_num_limit - 1; // std::max(1, flow_num_limit - 1);
       } else {
         if (sum > 600) { // 1000 for large data, 600 for small data
           flow_num_limit = 2;
-        } else {
+        } else if (sum > 250) {
           flow_num_limit = 3;
+        } else if (sum > 100) {
+          flow_num_limit = 4;
+        } else if (sum > 50) {
+          flow_num_limit = 5;
+        } else {
+          flow_num_limit = 6;
         }
+        now_flow_num = 1;
+        /*now_flow_num = 0;*/
       }
-      flow_num_limit = std::min((int)in_degree, flow_num_limit);
-      now_flow_num = std::min(1, flow_num_limit - 1);
       now_result.resize(now_flow_num);
+      if (now_flow_num > 1) {
+        for (int i = 0; i < now_flow_num - 2; ++i) {
+          now_result[i] = 1;
+        }
+        now_result[now_flow_num - 2] = 0;
+      }
 
       /*printf("Setup gen with sum:%d, in_degree:%d, in_sketch_degree:%d, "*/
       /*       "flow_num_limit:%d\n",*/
@@ -245,7 +260,9 @@ private:
           now_flow_num = 1;
           now_result.resize(1);
           now_result[0] = sum;
-          return true;
+          if (in_sketch_degree == 1) {
+            return true;
+          }
         case 1:
           now_flow_num = 2;
           now_result[0] = 0;
@@ -402,83 +419,101 @@ private:
 
     nt.resize(this->max_counter_value + 1);
     std::fill(nt.begin(), nt.end(), 0.0);
-    for (uint32_t i = 0; i < this->counters[d][xi].size(); i++) {
-      if (this->counters[d][xi][i] == 0) {
-        continue;
-      }
-      double lambda = this->n_old * xi / static_cast<double>(w);
-
-      uint32_t sum = this->counters[d][xi][i];
-      uint32_t sketch_xi = this->sketch_degrees[d][xi][i];
-      uint32_t est_xi = sketch_xi; // Est_xi is sketch_xi as for each input
-                                   // counter a VC should be calculated
-      vector<vector<uint32_t>> &thresh = this->thresholds[d][xi][i];
-      /*if (this->thresholds[d][xi].size() <= i) {*/
-      /*  std::cout << "ERROR out of threshold length" << std::endl;*/
-      /*  exit(1);*/
-      /*}*/
-      /*for (auto &t : thresh) {*/
-      /*  std::cout << "<";*/
-      /*  for (auto &x : t) {*/
-      /*    std::cout << x;*/
-      /*    if (&x != &t.back()) {*/
-      /*      std::cout << ", ";*/
-      /*    }*/
-      /*  }*/
-      /*  std::cout << "> ";*/
-      /*}*/
-      /*std::cout << std::endl;*/
-
-      BetaGenerator alpha(sum, xi, sketch_xi, thresh),
-          beta(sum, xi, sketch_xi, thresh);
-      double sum_p = 0.0;
-      uint32_t it = 0;
-
-      while (alpha.get_next()) {
-        double p =
-            get_p_from_beta(alpha, lambda, this->dist_old, this->n_old, est_xi);
-        sum_p += p;
-        it++;
-      }
-      // Sum over first combinations
-      /*std::cout << "Val " << sum << " found sum_p " << sum_p << " with "*/
-      /*          << alpha.total_combi << " combinations" << std::endl;*/
-      // If there where valid combinations, but value of combinations where
-      // not found in measured data. We
-      if (sum_p == 0.0) {
-        if (sketch_xi <= 1) {
+    double lambda = this->n_old * xi / static_cast<double>(w);
+    if (xi >= 2) {
+      for (uint32_t i = 0; i < this->counters[d][xi].size(); i++) {
+        if (this->counters[d][xi][i] == 0) {
           continue;
         }
-        if (it > 0) {
-          uint32_t temp_val = sum;
 
-          /*std::cout << "adjust value at " << i << " with val " << temp_val*/
-          /*          << std::endl;*/
-          /*alpha.print_thresholds();*/
+        uint32_t sum = this->counters[d][xi][i];
+        uint32_t sketch_xi = this->sketch_degrees[d][xi][i];
+        uint32_t est_xi = sketch_xi; // Est_xi is sketch_xi as for each input
+                                     // counter a VC should be calculated
+        vector<vector<uint32_t>> &thresh = this->thresholds[d][xi][i];
 
-          // Remove l1 collisions, keep one flow
-          temp_val -= thresh.back()[3];
-          if (thresh.size() == 3) {
-            temp_val -= thresh[1][3] * (thresh[1][1] - 1);
-            nt[thresh[1][3]] += thresh[1][1] - 1;
-          }
+        BetaGenerator alpha(sum, xi, sketch_xi, thresh),
+            beta(sum, xi, sketch_xi, thresh);
+        double sum_p = 0.0;
+        uint32_t it = 0;
 
-          /*std::cout << "Storing 1 at " << temp_val << std::endl;*/
-          nt[temp_val] += 1;
-        }
-      } else {
-        while (beta.get_next()) {
-          double p = get_p_from_beta(beta, lambda, this->dist_old, this->n_old,
+        while (alpha.get_next()) {
+          double p = get_p_from_beta(alpha, lambda, this->dist_old, this->n_old,
                                      est_xi);
-          for (size_t j = 0; j < beta.now_flow_num; ++j) {
-            nt[beta.now_result[j]] += p / sum_p;
+          sum_p += p;
+          it++;
+        }
+        // If there where valid combinations, but value of combinations where
+        // not found in measured data. We
+        if (sum_p == 0.0) {
+          if (sketch_xi <= 1) {
+            continue;
+          }
+          if (it > 0) {
+            uint32_t temp_val = sum;
+            // Remove l1 collisions, keep one flow
+            temp_val -= thresh.front()[3] * (sketch_xi - 1);
+            if (thresh.size() - sketch_xi > 0) {
+              temp_val -= thresh.back()[3] * (thresh.size() - sketch_xi - 1);
+            }
+            nt[temp_val] += 1;
+          }
+        } else {
+          while (beta.get_next()) {
+            double p = get_p_from_beta(beta, lambda, this->dist_old,
+                                       this->n_old, est_xi);
+            for (size_t j = 0; j < beta.now_flow_num; ++j) {
+              nt[beta.now_result[j]] += p / sum_p;
+            }
+          }
+        }
+      }
+    } else {
+      for (uint32_t i = 0; i < this->counter_dist[d][xi].size(); i++) {
+        if (this->counter_dist[d][xi][i] == 0) {
+          continue;
+        }
+
+        uint32_t sum = i;
+        uint32_t sketch_xi = 1;
+        uint32_t est_xi = sketch_xi; // Est_xi is sketch_xi as for each input
+                                     // counter a VC should be calculated
+        vector<vector<uint32_t>> thresh = {{0, 0, 0, 0}};
+
+        BetaGenerator alpha(sum, xi, sketch_xi, thresh),
+            beta(sum, xi, sketch_xi, thresh);
+        double sum_p = 0.0;
+        uint32_t it = 0;
+
+        while (alpha.get_next()) {
+          double p = get_p_from_beta(alpha, lambda, this->dist_old, this->n_old,
+                                     est_xi);
+          sum_p += p;
+          it++;
+        }
+        // If there where valid combinations, but value of combinations where
+        // not found in measured data. We
+        if (sum_p == 0.0) {
+          if (sketch_xi <= 1) {
+            continue;
+          }
+        } else {
+          /*std::cout << "Value " << sum << " with sum_p " << sum_p*/
+          /*          << " has maximum " << alpha.flow_num_limit << " numbers"*/
+          /*          << std::endl;*/
+          while (beta.get_next()) {
+            double p = get_p_from_beta(beta, lambda, this->dist_old,
+                                       this->n_old, est_xi);
+            for (size_t j = 0; j < beta.now_flow_num; ++j) {
+              nt[beta.now_result[j]] += counter_dist[d][xi][i] * p / sum_p;
+            }
           }
         }
       }
     }
 
     double accum = std::accumulate(nt.begin(), nt.end(), 0.0);
-    if (1) {
+    if (0) {
       for (size_t i = 0; i < nt.size(); i++) {
         if (nt[i] != 0) {
           std::cout << i << ":" << nt[i] << " ";
@@ -510,7 +545,7 @@ public:
     }
     std::fill(this->ns.begin(), this->ns.end(), 0);
 
-    if (0) {
+    if (1) {
       // Simple Multi thread
       vector<vector<std::thread>> threads(DEPTH);
       for (size_t d = 0; d < threads.size(); d++) {
@@ -521,7 +556,7 @@ public:
       std::cout << "[EM_WFCM] Created " << total_degree << " threads"
                 << std::endl;
       for (size_t d = 0; d < DEPTH; d++) {
-        for (size_t t = 2; t < threads[d].size(); t++) {
+        for (size_t t = 1; t < threads[d].size(); t++) {
           std::cout << "[EM_WFCM] Start thread " << t << " at depth " << d
                     << std::endl;
           threads[d][t] = std::thread(&EM_WFCM::calculate_degree, *this,
@@ -533,14 +568,14 @@ public:
                 << std::endl;
 
       for (size_t d = 0; d < DEPTH; d++) {
-        for (size_t t = 2; t < threads[d].size(); t++) {
+        for (size_t t = 1; t < threads[d].size(); t++) {
           threads[d][t].join();
         }
       }
     } else {
       // Single threaded
       for (size_t d = 0; d < DEPTH; d++) {
-        for (size_t xi = 0; xi <= this->max_degree[d]; xi++) {
+        for (size_t xi = 1; xi <= this->max_degree[d]; xi++) {
           if (this->counters[d][xi].size() == 0) {
             continue;
           }
@@ -559,8 +594,17 @@ public:
           this->ns[i] += nt[d][xi][i];
         }
       }
+      double lambda = this->n_old / static_cast<double>(w);
+      double ret = std::exp(-lambda);
       for (size_t i = 0; i < this->init_fsd[d].size(); i++) {
-        this->ns[i] += this->init_fsd[d][i];
+        /*this->ns[i] +=*/
+        /*    this->dist_old[i] * this->init_fsd[d][i] * this->n_old / W1;*/
+        this->ns[i] += std::pow(n_old * dist_old[i] / w, init_fsd[d][i]) /
+                       factorial(init_fsd[d][i]);
+
+        /*this->ns[i] += this->init_fsd[d][i] / (i + 1);*/
+        /*this->ns[i] += (this->n_old / W1) * this->init_fsd[d][i];*/
+        /*this->ns[i] += this->init_fsd[d][i];*/
       }
     }
 

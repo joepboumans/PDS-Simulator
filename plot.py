@@ -179,7 +179,32 @@ def plotNS(data):
     plt.ylabel("Frequency")
     plt.title("Frequency Plot")
     plt.tight_layout()
-    plt.savefig('plots/entropy.png', dpi=300, bbox_inches='tight')
+    plt.savefig('plots/fsd.png', dpi=300, bbox_inches='tight')
+
+def plotNSdelta(data):
+    # Set the figure size
+    plt.figure(figsize=(10, 6))
+
+    # Create a line plot for Epoch vs Weighted Mean Relative Error
+    sns.lineplot(
+        x="Flow Size",
+        y="Delta",
+        # hue="Epoch",
+        # style="DataStructName",
+        hue="DataStructName",
+        markers=True,
+        data=data
+    )
+
+    # Add labels and title
+    plt.legend(title='Data Structure Type')
+    plt.xscale("log")
+    plt.xlabel("Flow Size")
+    # plt.yscale("log")
+    plt.ylabel("Delta")
+    plt.title("Frequency Plot")
+    plt.tight_layout()
+    plt.savefig('plots/delta_fsd.png', dpi=300, bbox_inches='tight')
 
 def read_binary_file(filename):
     flow_sizes = []
@@ -297,6 +322,13 @@ def main():
 
     print("\nFSD Data:")
     combined_ns_data = pd.concat(ns_dataframes, ignore_index=True)
+    true_df = combined_ns_data[combined_ns_data["DataStructName"] == "TrueData"][["Flow Size", "Frequency"]].rename(
+        columns={"Frequency": "TrueFrequency"}
+    )
+    print(true_df.head())
+    combined_ns_data = combined_ns_data.merge(true_df, on="Flow Size", how="left")
+    combined_ns_data["Delta"] = combined_ns_data["Frequency"] - combined_ns_data["TrueFrequency"]
+    combined_ns_data.loc[combined_ns_data["DataStructName"] == "TrueData", "Delta"] = 0
     print(combined_ns_data.head())
     # Group non-'em' data by TupleType, DataStructType, and DataStructName
     grouped_data = combined_data.groupby(['TupleType', 'DataStructType', 'DataStructName'])['F1 Member'].mean().reset_index()
@@ -307,9 +339,10 @@ def main():
     # plotAvgWMRE(combined_em_data)
     plotEntropy(combined_em_data)
     plotCard(combined_em_data)
-    plotEstimationTime(combined_em_data)
+    # plotEstimationTime(combined_em_data)
     plotTotalEstimationTime(combined_em_data)
-    # plotNS(combined_ns_data)
+    plotNS(combined_ns_data)
+    plotNSdelta(combined_ns_data)
 
     plt.show()
 

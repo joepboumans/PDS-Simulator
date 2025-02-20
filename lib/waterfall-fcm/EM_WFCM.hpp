@@ -13,6 +13,7 @@
 #include <limits>
 #include <numeric>
 #include <ostream>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <thread>
 #include <unistd.h>
@@ -203,23 +204,15 @@ private:
         /*std::cout << "Max val " << sum_thresh[0][1] << " with count "*/
         /*          << sum_thresh[0][0] << std::endl;*/
         flow_num_limit = std::min((int)in_degree, flow_num_limit);
-        now_flow_num =
-            1; // flow_num_limit - 1; // std::max(1, flow_num_limit - 1);
       } else {
         if (sum > 600) { // 1000 for large data, 600 for small data
           flow_num_limit = 2;
-        } else if (sum > 250) {
-          flow_num_limit = 3;
-        } else if (sum > 100) {
-          flow_num_limit = 4;
-        } else if (sum > 50) {
-          flow_num_limit = 5;
         } else {
-          flow_num_limit = 6;
+          flow_num_limit = 3;
         }
-        now_flow_num = 1;
-        /*now_flow_num = 0;*/
+        flow_num_limit = std::min(flow_num_limit, sum - 2);
       }
+      now_flow_num = 1;
       now_result.resize(now_flow_num);
       if (now_flow_num > 1) {
         for (int i = 0; i < now_flow_num - 2; ++i) {
@@ -588,23 +581,15 @@ public:
 
     std::cout << "[EM_WFCM] Finished calculating nt per degree" << std::endl;
 
+    double lambda = n_old / static_cast<double>(w);
     for (size_t d = 0; d < DEPTH; d++) {
       for (size_t xi = 0; xi < nt[d].size(); xi++) {
         for (uint32_t i = 0; i < nt[d][xi].size(); i++) {
           this->ns[i] += nt[d][xi][i];
         }
       }
-      double lambda = this->n_old / static_cast<double>(w);
-      double ret = std::exp(-lambda);
-      for (size_t i = 0; i < this->init_fsd[d].size(); i++) {
-        /*this->ns[i] +=*/
-        /*    this->dist_old[i] * this->init_fsd[d][i] * this->n_old / W1;*/
-        this->ns[i] += std::pow(n_old * dist_old[i] / w, init_fsd[d][i]) /
-                       factorial(init_fsd[d][i]);
-
-        /*this->ns[i] += this->init_fsd[d][i] / (i + 1);*/
-        /*this->ns[i] += (this->n_old / W1) * this->init_fsd[d][i];*/
-        /*this->ns[i] += this->init_fsd[d][i];*/
+      for (size_t i = 1; i < this->init_fsd[d].size(); i++) {
+        this->ns[i] += this->init_fsd[d][i];
       }
     }
 

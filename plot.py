@@ -23,7 +23,7 @@ class Plotter():
 
         # Create a line style mapping for TupleType.
         unique_tuple = sorted(data['TupleType'].unique())
-        styles = ['--', '-', '-.', ':']
+        styles = ['-', '--', '-.', ':']
         self.line_style_map = {tt: styles[i % len(styles)] for i, tt in enumerate(unique_tuple)}
 
     def plotSmoothedOverTime(self, data, param, frac):
@@ -238,6 +238,29 @@ class Plotter():
         plt.tight_layout()
         plt.savefig('plots/delta_fsd.pdf', dpi=300, bbox_inches='tight')
 
+    def plotF1Membership(self):
+        # Remove FC's for F1 Membership
+        amqData = self.data[self.data['DataStructName'] != "FCM-Sketches"]
+        df_melted = amqData.melt(id_vars='DataStructName', var_name='Metric', value_name='Value', value_vars=['F1', 'Precision', 'Recall'])
+
+        # Create a scatterplot plot for Epoch vs Weighted Mean Relative Error
+        plt.figure(figsize=(10, 6))
+        sns.boxplot(
+            x='DataStructName',
+            y='Value',      
+            hue='Metric',
+            data=df_melted,               # Data to plot
+        )
+
+        # Add labels and title
+        plt.xlabel('Data Structurres')
+        plt.ylabel('F1 Score')
+        plt.title('Membership Scores')
+        plt.legend(title='Data Structures')
+        plt.tight_layout()
+
+        plt.savefig('plots/WMRE_over_time.pdf', dpi=300, bbox_inches='tight')
+
 def read_binary_file(filename):
     flow_sizes = []
     
@@ -249,7 +272,7 @@ def read_binary_file(filename):
                 break  # End of file
 
             length = struct.unpack('I', length_bytes)[0]
-            print(f"Found row with length of {length}")
+            # print(f"Found row with length of {length}")
             
             fmt_sz = struct.calcsize("=Id")
             # Read the flow size distribution (doubles)
@@ -354,6 +377,8 @@ def main():
     print("Non-Estimation Data:")
     combined_data = pd.concat(dataframes, ignore_index=True)
     combined_data = combined_data[combined_data['TupleType'] == "SrcTuple"]
+    combined_data['F1'] = combined_data['F1'].fillna(combined_data['F1 Member'])
+    combined_data.drop(columns=['F1 Member'], inplace=True)
     print(combined_data.head())
 
     print("\nEstimation Data:")
@@ -375,7 +400,7 @@ def main():
     print(combined_ns_data.head())
     # plotNS(combined_ns_data)
     # Group non-'em' data by TupleType, DataStructType, and DataStructName
-    grouped_data = combined_data.groupby(['TupleType', 'DataStructType', 'DataStructName'])['F1 Member'].mean().reset_index()
+    grouped_data = combined_data.groupby(['TupleType', 'DataStructType', 'DataStructName'])['F1'].mean().reset_index()
     print("Grouped Non-'em' Data:")
     print(grouped_data)
 
@@ -390,6 +415,7 @@ def main():
     plotter.plotCard()
     plotter.plotEstimationTime()
     plotter.plotTotalEstimationTime()
+    plotter.plotF1Membership()
     # plotter.plotNSdelta()
     plt.show()
 

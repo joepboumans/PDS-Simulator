@@ -23,7 +23,7 @@ class Plotter():
 
         # Create a line style mapping for TupleType.
         unique_tuple = sorted(data['TupleType'].unique())
-        styles = ['-', '--', '-.', ':']
+        styles = ['--', '-', '-.', ':']
         self.line_style_map = {tt: styles[i % len(styles)] for i, tt in enumerate(unique_tuple)}
 
     def plotSmoothedOverTime(self, data, param, frac):
@@ -70,7 +70,7 @@ class Plotter():
         plt.legend(title='Data Structures')
         plt.tight_layout()
 
-        plt.savefig('plots/WMRE_over_time.png', dpi=300, bbox_inches='tight')
+        plt.savefig('plots/WMRE_over_time.pdf', dpi=300, bbox_inches='tight')
 
     def plotEntropy(self):
         # Set the figure size
@@ -86,22 +86,7 @@ class Plotter():
             s=10
         )
 
-        # Loop over each combination of DataStructName and TupleType for LOWESS smoothing.
-        for (ds, tt), group in self.em_data.groupby(['DataStructName', 'TupleType']):
-            sorted_group = group.sort_values(by='Total Time')
-            if len(sorted_group) < 2:
-                continue  # Skip groups with insufficient data for smoothing.
-            smoothed = lowess(
-                sorted_group['Entropy'], 
-                sorted_group['Total Time'], 
-                frac=0.15
-            )
-            plt.plot(smoothed[:, 0], smoothed[:, 1], 
-                     label=f"{ds}, {tt}", 
-                     linewidth=2, 
-                     color=self.color_map[ds],
-                     linestyle=self.line_style_map[tt])
-
+        self.plotSmoothedOverTime(self.em_data, 'Entropy', 0.15)
         # Determine the maximum Total Time for the shortest dataset
         shortest_max = self.em_data.groupby('DataStructName')['Total Time'].max().min()
         plt.xlim(self.em_data['Total Time'].min(), shortest_max)
@@ -112,31 +97,10 @@ class Plotter():
         plt.title('Entropy')
         plt.legend(title='Data Structure Type')
         plt.tight_layout()
-        plt.savefig('plots/entropy.png', dpi=300, bbox_inches='tight')
+        plt.savefig('plots/entropy.pdf', dpi=300, bbox_inches='tight')
 
     def plotCard(self):
-        # Set the figure size
         plt.figure(figsize=(10, 6))
-
-        # Create a line plot for Epoch vs Weighted Mean Relative Error
-        sns.lineplot(
-            x='Total Time',                          # X-axis: Epoch
-            y='Cardinality',      # Y-axis: Weighted Mean Relative Error
-            hue='DataStructName',               # Group by DataStructType
-            style='TupleType',                  # Distinguish by TupleType
-            data=self.em_data               # Data to plot
-        )
-
-        # Add labels and title
-        plt.xlabel('Epoch')
-        plt.ylabel('Cardinality')
-        plt.title('Cardinality')
-        plt.legend(title='Data Structure Type')
-        plt.tight_layout()
-        plt.savefig('plots/cardinality.png', dpi=300, bbox_inches='tight')
-
-        plt.figure(figsize=(10,6))
-
         # Create a scatterplot plot for Epoch vs Weighted Mean Relative Error
         sns.scatterplot(
             x='Total Time',                          # X-axis: Epoch
@@ -148,23 +112,7 @@ class Plotter():
             s=10
         )
 
-        # Loop over each combination of DataStructName and TupleType for LOWESS smoothing.
-        for (ds, tt), group in self.em_data.groupby(['DataStructName', 'TupleType']):
-            sorted_group = group.sort_values(by='Total Time')
-            if len(sorted_group) < 2:
-                continue  # Skip groups with insufficient data for smoothing.
-            smoothed = lowess(
-                sorted_group['Cardinality'], 
-                sorted_group['Total Time'], 
-                frac=0.2,
-                delta=100
-            )
-            plt.plot(smoothed[:, 0], smoothed[:, 1], 
-                     label=f"{ds}, {tt}", 
-                     linewidth=2, 
-                     color=self.color_map[ds],
-                     linestyle=self.line_style_map[tt])
-
+        self.plotSmoothedOverTime(self.em_data, 'Cardinality', 0.2)
         # Add labels and title
         longest_max = self.em_data.groupby('DataStructName')['Total Time'].max().max()
         shortest_max = self.em_data.groupby('DataStructName')['Total Time'].max().min()
@@ -174,16 +122,16 @@ class Plotter():
         plt.title('Cardinality')
         plt.legend(title='Data Structure Type')
         plt.tight_layout()
-        plt.savefig('plots/cardinality.png', dpi=300, bbox_inches='tight')
+        plt.savefig('plots/cardinality.pdf', dpi=300, bbox_inches='tight')
 
     def plotEstimationTime(self):
         filtered_data = self.em_data[self.em_data['Epoch'] != 0]
         print("Filtered data:")
         print(filtered_data.head())
 
-# Set the figure size
+        # Set the figure size
         plt.figure(figsize=(10, 6))
-# Create a line plot for Epoch vs Estimation Time
+        # Create a line plot for Epoch vs Estimation Time
         sns.lineplot(
             x='Epoch',                          # X-axis: Epoch
             y='Estimation Time',                 # Y-axis: Estimation Time
@@ -192,13 +140,13 @@ class Plotter():
             data=filtered_data               # Data to plot
         )
 
-# Add labels and title
+        # Add labels and title
         plt.xlabel('Epoch')
         plt.ylabel('Estimation Time (ms)')
         plt.title('Epoch vs Estimation Time (Estimation Data)')
         plt.legend(title='PDS, Tuple type')
         plt.tight_layout()
-        plt.savefig('plots/epoch_vs_estimation_time.png', dpi=300, bbox_inches='tight')
+        plt.savefig('plots/epoch_vs_estimation_time.pdf', dpi=300, bbox_inches='tight')
 
     def plotTotalEstimationTime(self):
         # Set up the figure and subplots
@@ -218,7 +166,7 @@ class Plotter():
         axes[0].set_title('Distribution of Total Time')
         axes[0].legend(title='PDS, Tuple Type')
 
-# Right Subplot: Estimation Time
+        # Right Subplot: Estimation Time
         sns.boxplot(
             x='DataStructName',                 # X-axis: Data Structure Type
             y='Estimation Time',                 # Y-axis: Estimation Time
@@ -231,13 +179,13 @@ class Plotter():
         axes[1].set_title('Distribution of Estimation Time')
         axes[1].legend(title='PDS, Tuple Type')
 
-# Adjust layout and show the plot
+        # Adjust layout and show the plot
         plt.tight_layout()
 
-# Save the plots
-        plt.savefig('plots/time_distribution_boxplot.png', dpi=300, bbox_inches='tight')
+        # Save the plots
+        plt.savefig('plots/time_distribution_boxplot.pdf', dpi=300, bbox_inches='tight')
 
-    def plotNS(self, data):
+    def plotNS(self):
         # Set the figure size
         plt.figure(figsize=(10, 6))
 
@@ -248,22 +196,22 @@ class Plotter():
             hue="DataSetName",
             style="DataStructName",
             markers=True,
-            data=data
+            data=self.ns_data
         )
 
 
         # Add labels and title
         plt.legend(title='Data Structure Type')
         plt.xscale("log")
-        print(data["Flow Size"].max().max())
-        plt.xlim(0.9, data["Flow Size"].max().max())
-        plt.ylim(0.1, data["Frequency"].max().max() * 1.1)
+        print(self.ns_data["Flow Size"].max().max())
+        plt.xlim(0.9, self.ns_data["Flow Size"].max().max())
+        plt.ylim(0.1, self.ns_data["Frequency"].max().max() * 1.1)
         plt.xlabel("Value")
         plt.yscale("log")
         plt.ylabel("Frequency")
         plt.title("Frequency Plot")
         plt.tight_layout()
-        plt.savefig('plots/fsd.png', dpi=300, bbox_inches='tight')
+        plt.savefig('plots/fsd.pdf', dpi=300, bbox_inches='tight')
 
     def plotNSdelta(self):
         # Set the figure size
@@ -288,7 +236,7 @@ class Plotter():
         plt.ylabel("Delta")
         plt.title("Frequency Plot")
         plt.tight_layout()
-        plt.savefig('plots/delta_fsd.png', dpi=300, bbox_inches='tight')
+        plt.savefig('plots/delta_fsd.pdf', dpi=300, bbox_inches='tight')
 
 def read_binary_file(filename):
     flow_sizes = []
@@ -318,10 +266,10 @@ def read_binary_file(filename):
 
 def main():
     # set_test_rcs()
-# Root directory
+    # Root directory
     root_dir = "results"
 
-# Lists to hold all dataframes
+    # Lists to hold all dataframes
     dataframes = []  # For non-'em' CSV files
     em_dataframes = []  # For 'em' CSV files
     ns_dataframes = []
@@ -405,6 +353,7 @@ def main():
     # Display the combined data
     print("Non-Estimation Data:")
     combined_data = pd.concat(dataframes, ignore_index=True)
+    combined_data = combined_data[combined_data['TupleType'] == "SrcTuple"]
     print(combined_data.head())
 
     print("\nEstimation Data:")
@@ -441,7 +390,7 @@ def main():
     plotter.plotCard()
     plotter.plotEstimationTime()
     plotter.plotTotalEstimationTime()
-    plotter.plotNSdelta()
+    # plotter.plotNSdelta()
     plt.show()
 
 if __name__ == "__main__":

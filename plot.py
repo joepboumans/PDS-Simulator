@@ -56,7 +56,7 @@ class Plotter():
             style='TupleType',
             data=self.em_data,               # Data to plot
             palette=self.color_map,
-            s=10
+            s=1
         )
 
         self.plotSmoothedOverTime(self.em_data, 'Weighted Mean Relative Error', 0.1)
@@ -83,7 +83,7 @@ class Plotter():
             style='TupleType',
             data=self.em_data,               # Data to plot
             palette=self.color_map,
-            s=10
+            s=1
         )
 
         self.plotSmoothedOverTime(self.em_data, 'Entropy', 0.15)
@@ -109,7 +109,7 @@ class Plotter():
             style='TupleType',
             data=self.em_data,               # Data to plot
             palette=self.color_map,
-            s=10
+            s=1
         )
 
         self.plotSmoothedOverTime(self.em_data, 'Cardinality', 0.2)
@@ -259,6 +259,29 @@ class Plotter():
         plt.legend(title='Data Structures')
         plt.tight_layout()
 
+        plt.savefig('plots/F1Membership.pdf', dpi=300, bbox_inches='tight')
+
+    def plotBandwidth(self):
+        # Remove FC's for F1 Membership
+        amqData = self.data[self.data['DataStructName'] != "FCM-Sketches"]
+        df_melted = amqData.melt(id_vars='DataStructName', var_name='Metric', value_name='Value', value_vars=['Collisions', 'Insertions'])
+
+        # Create a scatterplot plot for Epoch vs Weighted Mean Relative Error
+        plt.figure(figsize=(10, 6))
+        sns.boxplot(
+            x='DataStructName',
+            y='Value',      
+            hue='Metric',
+            data=df_melted,               # Data to plot
+        )
+
+        # Add labels and title
+        plt.xlabel('Data Structurres')
+        plt.ylabel('Insertions and Collisions')
+        plt.title('Bandwidth Usage')
+        plt.legend(title='Data Structures')
+        plt.tight_layout()
+
         plt.savefig('plots/WMRE_over_time.pdf', dpi=300, bbox_inches='tight')
 
 def read_binary_file(filename):
@@ -371,18 +394,51 @@ def main():
                                 data_pd['DataStructName'] = "TrueData"
                                 ns_dataframes.append(data_pd)
 
-
-
     # Display the combined data
-    print("Non-Estimation Data:")
     combined_data = pd.concat(dataframes, ignore_index=True)
     combined_data = combined_data[combined_data['TupleType'] == "SrcTuple"]
+
     combined_data['F1'] = combined_data['F1'].fillna(combined_data['F1 Member'])
     combined_data.drop(columns=['F1 Member'], inplace=True)
+
+    print("Non-Estimation Data:")
     print(combined_data.head())
 
     print("\nEstimation Data:")
     combined_em_data = pd.concat(em_dataframes, ignore_index=True)
+    combined_em_data = combined_em_data[combined_em_data['TupleType'] == "SrcTuple"]
+    print(combined_em_data.head())
+
+    # Find the maximum Total Time
+    maxTotalTime = combined_em_data['Total Time'].max()
+    extendedRows = []
+    for dataStruct in combined_em_data['DataStructName'].unique():
+        dataStructSet = combined_em_data[combined_em_data['DataStructName'] == dataStruct]
+        for dataName in combined_em_data['DataSetName'].unique():
+            dataSet = dataStructSet[dataStructSet['DataSetName'] == dataName]
+            maxDataTotalTime = dataSet['Total Time'].max()
+            if maxDataTotalTime == maxTotalTime:
+                continue
+
+            maxEpoch = dataSet['Epoch'].max()
+            finalRow = dataSet[dataSet['Epoch'] == maxEpoch]
+            rowsDf = pd.DataFrame(finalRow)
+
+            # deltaTime = maxTotalTime - maxDataTotalTime
+            # for i in range(1, int(deltaTime/2500)):
+            #     finalRow['Total Time'] = maxDataTotalTime + 2500 * i
+            #     rowsDf = pd.concat([rowsDf, finalRow], ignore_index=True)
+
+            finalRow['Total Time'] = maxTotalTime
+            rowsDf = pd.concat([rowsDf, finalRow], ignore_index=True)
+
+            extendedRows.append(rowsDf)
+
+    print(*extendedRows)
+    print("\nExtended Rows:")
+    for row in extendedRows:
+        combined_em_data = pd.concat([combined_em_data, row], ignore_index=True)
+
     print(combined_em_data.head())
 
     print("\nFSD Data:")
@@ -416,6 +472,7 @@ def main():
     plotter.plotEstimationTime()
     plotter.plotTotalEstimationTime()
     plotter.plotF1Membership()
+    plotter.plotBandwidth()
     # plotter.plotNSdelta()
     plt.show()
 

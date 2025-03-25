@@ -1,4 +1,5 @@
 // #include "count-min.h"
+#include "bloomfilter.h"
 #include "common.h"
 #include "data-parser.h"
 #include "qwaterfall-fcm.hpp"
@@ -44,12 +45,16 @@ int main() {
 
     vector<PDS *> stages;
 
+    BloomFilter bfFilter(4, 65536, file, tuple_sz);
+    stages.push_back(&bfFilter);
+
     /*FCM_Sketches fcm_sketches(W3, NUM_STAGES, K, DEPTH, 10000, 15, file,*/
     /*                          tuple_sz);*/
     /*stages.push_back(&fcm_sketches);*/
 
-    WaterfallFCM wfcm(W3, NUM_STAGES, K, 10000, 15, 4, 65535, file, tuple_sz);
-    stages.push_back(&wfcm);
+    /*WaterfallFCM wfcm(W3, NUM_STAGES, K, 10000, 15, 4, 65535, file,
+     * tuple_sz);*/
+    /*stages.push_back(&wfcm);*/
 
     std::cout << "[PDS] Added " << stages.size() << " stages" << std::endl;
     Simulator sim(stages, stages.size(), sim_length);

@@ -25,46 +25,37 @@
 class BloomFilter : public PDS {
 public:
   BOBHash32 *hash;
-  uint32_t n_hash;
+  uint32_t n_tables;
   uint32_t length;
   uint32_t n;
   vector<bool> array;
-  unordered_set<FIVE_TUPLE, fiveTupleHash> tuples;
+  unordered_set<TUPLE, TupleHash> tuples;
   uint32_t insertions = 0;
+  string trace_name;
 
   double f1 = 0.0;
   double recall = 0.0;
   double precision = 0.0;
 
-  BloomFilter(uint32_t sz, uint32_t k, string trace, uint32_t n_stage,
-              uint32_t n_struct)
-      : PDS(trace, n_stage, n_struct, sz), array(sz, false) {
+  BloomFilter(uint32_t n_tables, uint32_t sz, string trace, uint8_t tuple_sz)
+      : PDS(trace, tuple_sz), n_tables(n_tables), length(sz), array(sz, false) {
 
     // Init hashing
-    this->hash = new BOBHash32[k];
-    for (size_t i = 0; i < k; i++) {
-      this->hash[i].initialize(n_struct * k + i);
+    this->hash = new BOBHash32[n_tables];
+    for (size_t i = 0; i < n_tables; i++) {
+      this->hash[i].initialize(750 + i);
     }
 
-    // Setup vars
-    this->length = sz;
-    this->n_hash = k;
-    this->n = n_struct;
-
     // Setup logging
-    this->csv_header = "Epoch,Insertions,Recall,Precision,F1";
+    this->csv_header = "Insertions,Collisions,Recall,Precision,F1";
+    this->name = "AMQ/BloomFilter";
+    this->rows = n_tables;
+    this->columns = length;
+    this->setupLogging();
   }
 
-  virtual void setName() { this->name = "BloomFilter"; }
-
-  ~BloomFilter() {
-    this->array.clear();
-    this->fdata.close();
-    this->fcsv.close();
-  }
-
-  uint32_t lookup(FIVE_TUPLE tuple) {
-    for (size_t i = 0; i < this->n_hash; i++) {
+  uint32_t lookup(TUPLE tuple) {
+    for (size_t i = 0; i < this->n_tables; i++) {
       int hash_idx = this->hashing(tuple, i);
       if (!array[hash_idx]) {
         return 0;
@@ -111,7 +102,7 @@ public:
 
     // Save data into csv
     char csv[300];
-    sprintf(csv, "%i,%i,%.3f,%.3f,%.3f", epoch, this->insertions, this->recall,
+    sprintf(csv, "%i,%.3f,%.3f,%.3f", this->insertions, this->recall,
             this->precision, this->f1);
     this->fcsv << csv << std::endl;
   }
@@ -127,13 +118,13 @@ public:
     std::cout << "Total filled indexes: " << count << std::endl;
   }
 
-  uint32_t insert(FIVE_TUPLE tuple) {
+  uint32_t insert(TUPLE tuple) {
     // Record true data
     this->true_data[tuple]++;
 
     // Perform hashing
     bool tuple_inserted = false;
-    for (size_t i = 0; i < this->n_hash; i++) {
+    for (size_t i = 0; i < this->n_tables; i++) {
       int hash_idx = this->hashing(tuple, i);
       if (!this->array[hash_idx]) {
         this->array[hash_idx] = true;
@@ -143,17 +134,15 @@ public:
 
     // Record unqiue tuples
     if (tuple_inserted) {
-      tuples.insert((string)tuple);
+      tuples.insert(tuple);
       this->insertions++;
       return 0;
     }
     return 1;
   }
 
-  uint32_t hashing(FIVE_TUPLE key, uint32_t k) {
-    char c_ftuple[sizeof(FIVE_TUPLE)];
-    memcpy(c_ftuple, &key, sizeof(FIVE_TUPLE));
-    return this->hash[k].run(c_ftuple, 4) % this->length;
+  uint32_t hashing(TUPLE key, uint32_t k) {
+    return hash[k].run((const char *)key.num_array, tuple_sz) % this->length;
   }
 };
 
@@ -161,18 +150,18 @@ class LazyBloomFilter : public BloomFilter {
 public:
   void setName() { this->name = "LazyBloomFilter"; }
 
-  LazyBloomFilter(uint32_t sz, uint32_t k, string trace, uint32_t n_stage,
-                  uint32_t n_struct)
-      : BloomFilter(sz, k, trace, n_stage, n_struct) {}
-  uint32_t insert(FIVE_TUPLE tuple) {
+  LazyBloomFilter(uint32_t n_tables, uint32_t sz, string trace,
+                  uint8_t tuple_sz)
+      : BloomFilter(n_tables, sz, trace, tuple_sz) {}
+  uint32_t insert(TUPLE tuple) {
     this->true_data[tuple]++;
 
-    for (size_t i = 0; i < this->n_hash; i++) {
+    for (size_t i = 0; i < this->n_tables; i++) {
       int hash_idx = this->hashing(tuple, i);
       // Only update this index and store new tuple
       if (!array[hash_idx]) {
         array[hash_idx] = true;
-        tuples.insert((string)tuple);
+        tuples.insert(tuple);
         return 0;
       }
     }

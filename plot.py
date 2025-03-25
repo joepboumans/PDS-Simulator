@@ -8,260 +8,287 @@ from matplotlib.lines import Line2D
 from utils import *
 from statsmodels.nonparametric.smoothers_lowess import lowess
 
-def plotWMRE(data):
-    # Set the figure size
-    plt.figure(figsize=(10, 6))
-    
-    # Create a consistent palette mapping for the unique DataStructName groups.
-    unique_names = data['DataSetName'].unique()
-    palette = sns.color_palette("deep", n_colors=len(unique_names))
-    color_map = dict(zip(unique_names, palette))
 
-    # Create a line style mapping for TupleType.
-    unique_tuple = sorted(data['TupleType'].unique())
-    styles = ['-', '--', '-.', ':']
-    line_style_map = {tt: styles[i % len(styles)] for i, tt in enumerate(unique_tuple)}
+class Plotter():
+    def __init__(self, data, em_data, ns_data):
+        self.data = data
+        self.em_data = em_data
+        self.ns_data = ns_data
+        
+        # Create a consistent palette mapping for the unique DataStructName groups.
+        unique_names = np.append(data['DataStructName'].unique(),em_data['DataStructName'].unique() )
+        palette = sns.color_palette("deep", n_colors=len(unique_names))
+        self.color_map = dict(zip(unique_names, palette))
+        print(f"Using color map : {self.color_map.keys()}")
 
-    # dashes = {tt: (5,2) if line_style_map[tt] == '-' else (2,2) for tt in unique_tuple}
-    # Create a line plot for Epoch vs Weighted Mean Relative Error
-    sns.lineplot(
-        x='Total Time',                          # X-axis: Epoch
-        y='Weighted Mean Relative Error',      # Y-axis: Weighted Mean Relative Error
-        hue='DataSetName',               # Group by DataStructType
-        style='DataStructName',
-        data=data,               # Data to plot
-        palette=color_map,
-    )
+        # Create a line style mapping for TupleType.
+        unique_tuple = sorted(data['TupleType'].unique())
+        styles = ['-', '--', '-.', ':']
+        self.line_style_map = {tt: styles[i % len(styles)] for i, tt in enumerate(unique_tuple)}
 
-    plt.xlabel('Estimation Time (ms)')
-    plt.ylabel('Weighted Mean Relative Error')
-    plt.title('Weighted Mean Relative Error over time')
-    plt.legend(title='Data Structures')
-    plt.tight_layout()
-    plt.savefig('plots/epoch_vs_weighted_error.png', dpi=300, bbox_inches='tight')
+    def plotSmoothedOverTime(self, data, param, frac):
+        # Loop over each combination of DataStructName and TupleType for LOWESS smoothing.
+        for (ds, tt), group in data.groupby(['DataStructName', 'TupleType']):
+            sorted_group = group.sort_values(by='Total Time')
+            if len(sorted_group) < 2:
+                continue  # Skip groups with insufficient data for smoothing.
+            smoothed = lowess(
+                sorted_group[param], 
+                sorted_group['Total Time'], 
+                frac=frac
+            )
+            plt.plot(smoothed[:, 0], smoothed[:, 1], 
+                     label=f"{ds}, {tt}", 
+                     linewidth=2, 
+                     color=self.color_map[ds],
+                     linestyle=self.line_style_map[tt])
 
-    plt.figure(figsize=(10, 6))
-    # # Create a consistent palette mapping for the unique DataStructName groups.
-    unique_names = data['DataStructName'].unique()
-    palette = sns.color_palette("deep", n_colors=len(unique_names))
-    color_map = dict(zip(unique_names, palette))
 
-    # Create a scatterplot plot for Epoch vs Weighted Mean Relative Error
-    sns.scatterplot(
-        x='Total Time',                          # X-axis: Epoch
-        y='Weighted Mean Relative Error',      # Y-axis: Weighted Mean Relative Error
-        hue='DataStructName',               # Group by DataStructType
-        style='TupleType',
-        data=data,               # Data to plot
-        palette=color_map,
-        s=10
-    )
+    def plotWMRE(self):
+        # Set the figure size
+        plt.figure(figsize=(10, 6))
 
-    # Loop over each combination of DataStructName and TupleType for LOWESS smoothing.
-    for (ds, tt), group in data.groupby(['DataStructName', 'TupleType']):
-        sorted_group = group.sort_values(by='Total Time')
-        if len(sorted_group) < 2:
-            continue  # Skip groups with insufficient data for smoothing.
-        smoothed = lowess(
-            sorted_group['Weighted Mean Relative Error'], 
-            sorted_group['Total Time'], 
-            frac=0.1
+        # Create a scatterplot plot for Epoch vs Weighted Mean Relative Error
+        sns.scatterplot(
+            x='Total Time',                          # X-axis: Epoch
+            y='Weighted Mean Relative Error',      # Y-axis: Weighted Mean Relative Error
+            hue='DataStructName',               # Group by DataStructType
+            style='TupleType',
+            data=self.em_data,               # Data to plot
+            palette=self.color_map,
+            s=10
         )
-        plt.plot(smoothed[:, 0], smoothed[:, 1], 
-                 label=f"{ds}, {tt} (smoothed)", 
-                 linewidth=2, 
-                 color=color_map[ds],
-                 linestyle=line_style_map[tt])
 
-    # Determine the maximum Total Time for the shortest dataset
-    shortest_max = data.groupby('DataStructName')['Total Time'].max().min()
-    # Set the x-axis limits: from the minimum Total Time to the shortest dataset's max
-    plt.xlim(data['Total Time'].min(), shortest_max)
-    # Add labels and title
-    plt.xlabel('Estimation Time (ms)')
-    plt.ylabel('Weighted Mean Relative Error')
-    plt.title('Weighted Mean Error over time')
-    plt.legend(title='Data Structures')
-    plt.tight_layout()
-    plt.savefig('plots/epoch_vs_weighted_error.png', dpi=300, bbox_inches='tight')
+        self.plotSmoothedOverTime(self.em_data, 'Weighted Mean Relative Error', 0.1)
+        # Determine the maximum Total Time for the shortest dataset
+        shortest_max = self.em_data.groupby('DataStructName')['Total Time'].max().min()
+        plt.xlim(self.em_data['Total Time'].min(), shortest_max)
+        # Add labels and title
+        plt.xlabel('Estimation Time (ms)')
+        plt.ylabel('Weighted Mean Relative Error')
+        plt.title('Weighted Mean Error over time')
+        plt.legend(title='Data Structures')
+        plt.tight_layout()
 
-def plotAvgWMRE(data):
-    # Set the figure size
-    plt.figure(figsize=(10, 6))
-    # Group 'em' data by TupleType, DataStructType, and DataStructName
-    grouped_data = data.groupby(['TupleType', 'DataStructType', 'DataStructName'])['Weighted Mean Relative Error'].mean().reset_index()
-    print("Grouped 'em' Data:")
-    print(grouped_data)
+        plt.savefig('plots/WMRE_over_time.png', dpi=300, bbox_inches='tight')
 
-    # Create a line plot for Epoch vs Weighted Mean Relative Error
-    sns.boxplot(
-        x='DataStructName',                          # X-axis: Epoch
-        y='Weighted Mean Relative Error',      # Y-axis: Weighted Mean Relative Error
-        hue='DataStructName',               # Group by DataStructType
-        # style='TupleType',                  # Distinguish by TupleType
-        data=grouped_data               # Data to plot
-    )
+    def plotEntropy(self):
+        # Set the figure size
+        plt.figure(figsize=(10, 6))
+        # Create a scatterplot plot for Epoch vs Weighted Mean Relative Error
+        sns.scatterplot(
+            x='Total Time',                          # X-axis: Epoch
+            y='Entropy',      # Y-axis: Weighted Mean Relative Error
+            hue='DataStructName',               # Group by DataStructType
+            style='TupleType',
+            data=self.em_data,               # Data to plot
+            palette=self.color_map,
+            s=10
+        )
 
-    # Add labels and title
-    plt.xlabel('Epoch')
-    plt.ylabel('Weighted Mean Relative Error')
-    plt.title('Average Weighted Mean Relative Error (Estimation Data)')
-    plt.legend(title='Data Structure Type')
-    plt.tight_layout()
-    plt.savefig('plots/avg_weighted_error.png', dpi=300, bbox_inches='tight')
+        # Loop over each combination of DataStructName and TupleType for LOWESS smoothing.
+        for (ds, tt), group in self.em_data.groupby(['DataStructName', 'TupleType']):
+            sorted_group = group.sort_values(by='Total Time')
+            if len(sorted_group) < 2:
+                continue  # Skip groups with insufficient data for smoothing.
+            smoothed = lowess(
+                sorted_group['Entropy'], 
+                sorted_group['Total Time'], 
+                frac=0.15
+            )
+            plt.plot(smoothed[:, 0], smoothed[:, 1], 
+                     label=f"{ds}, {tt}", 
+                     linewidth=2, 
+                     color=self.color_map[ds],
+                     linestyle=self.line_style_map[tt])
 
-def plotEntropy(data):
-    # Set the figure size
-    plt.figure(figsize=(10, 6))
+        # Determine the maximum Total Time for the shortest dataset
+        shortest_max = self.em_data.groupby('DataStructName')['Total Time'].max().min()
+        plt.xlim(self.em_data['Total Time'].min(), shortest_max)
 
-    # Create a line plot for Epoch vs Weighted Mean Relative Error
-    sns.lineplot(
-        x='Epoch',                          # X-axis: Epoch
-        y='Entropy',      # Y-axis: Weighted Mean Relative Error
-        hue='DataStructName',               # Group by DataStructType
-        style='TupleType',                  # Distinguish by TupleType
-        data=data               # Data to plot
-    )
+        # Add labels and title
+        plt.xlabel('Epoch')
+        plt.ylabel('Entropy')
+        plt.title('Entropy')
+        plt.legend(title='Data Structure Type')
+        plt.tight_layout()
+        plt.savefig('plots/entropy.png', dpi=300, bbox_inches='tight')
 
-    # Add labels and title
-    plt.xlabel('Epoch')
-    plt.ylabel('Entropy')
-    plt.title('Entropy')
-    plt.legend(title='Data Structure Type')
-    plt.tight_layout()
-    plt.savefig('plots/entropy.png', dpi=300, bbox_inches='tight')
+    def plotCard(self):
+        # Set the figure size
+        plt.figure(figsize=(10, 6))
 
-def plotCard(data):
-    # Set the figure size
-    plt.figure(figsize=(10, 6))
+        # Create a line plot for Epoch vs Weighted Mean Relative Error
+        sns.lineplot(
+            x='Total Time',                          # X-axis: Epoch
+            y='Cardinality',      # Y-axis: Weighted Mean Relative Error
+            hue='DataStructName',               # Group by DataStructType
+            style='TupleType',                  # Distinguish by TupleType
+            data=self.em_data               # Data to plot
+        )
 
-    # Create a line plot for Epoch vs Weighted Mean Relative Error
-    sns.lineplot(
-        x='Epoch',                          # X-axis: Epoch
-        y='Cardinality',      # Y-axis: Weighted Mean Relative Error
-        hue='DataStructName',               # Group by DataStructType
-        style='TupleType',                  # Distinguish by TupleType
-        data=data               # Data to plot
-    )
+        # Add labels and title
+        plt.xlabel('Epoch')
+        plt.ylabel('Cardinality')
+        plt.title('Cardinality')
+        plt.legend(title='Data Structure Type')
+        plt.tight_layout()
+        plt.savefig('plots/cardinality.png', dpi=300, bbox_inches='tight')
 
-    # Add labels and title
-    plt.xlabel('Epoch')
-    plt.ylabel('Cardinality')
-    plt.title('Cardinality')
-    plt.legend(title='Data Structure Type')
-    plt.tight_layout()
-    plt.savefig('plots/cardinality.png', dpi=300, bbox_inches='tight')
+        plt.figure(figsize=(10,6))
 
-def plotEstimationTime(data):
-    filtered_data = data[data['Epoch'] != 0]
-    print("Filtered data:")
-    print(filtered_data.head())
+        # Create a scatterplot plot for Epoch vs Weighted Mean Relative Error
+        sns.scatterplot(
+            x='Total Time',                          # X-axis: Epoch
+            y='Cardinality',      # Y-axis: Weighted Mean Relative Error
+            hue='DataStructName',               # Group by DataStructType
+            style='TupleType',
+            data=self.em_data,               # Data to plot
+            palette=self.color_map,
+            s=10
+        )
+
+        # Loop over each combination of DataStructName and TupleType for LOWESS smoothing.
+        for (ds, tt), group in self.em_data.groupby(['DataStructName', 'TupleType']):
+            sorted_group = group.sort_values(by='Total Time')
+            if len(sorted_group) < 2:
+                continue  # Skip groups with insufficient data for smoothing.
+            smoothed = lowess(
+                sorted_group['Cardinality'], 
+                sorted_group['Total Time'], 
+                frac=0.2,
+                delta=100
+            )
+            plt.plot(smoothed[:, 0], smoothed[:, 1], 
+                     label=f"{ds}, {tt}", 
+                     linewidth=2, 
+                     color=self.color_map[ds],
+                     linestyle=self.line_style_map[tt])
+
+        # Add labels and title
+        longest_max = self.em_data.groupby('DataStructName')['Total Time'].max().max()
+        shortest_max = self.em_data.groupby('DataStructName')['Total Time'].max().min()
+        plt.xlim(self.em_data['Total Time'].min(), shortest_max)
+        plt.xlabel('Epoch')
+        plt.ylabel('Cardinality')
+        plt.title('Cardinality')
+        plt.legend(title='Data Structure Type')
+        plt.tight_layout()
+        plt.savefig('plots/cardinality.png', dpi=300, bbox_inches='tight')
+
+    def plotEstimationTime(self):
+        filtered_data = self.em_data[self.em_data['Epoch'] != 0]
+        print("Filtered data:")
+        print(filtered_data.head())
 
 # Set the figure size
-    plt.figure(figsize=(10, 6))
+        plt.figure(figsize=(10, 6))
 # Create a line plot for Epoch vs Estimation Time
-    sns.lineplot(
-        x='Epoch',                          # X-axis: Epoch
-        y='Estimation Time',                 # Y-axis: Estimation Time
-        hue='DataStructName',               # Group by DataStructType
-        style='TupleType',                  # Distinguish by TupleType
-        data=filtered_data               # Data to plot
-    )
+        sns.lineplot(
+            x='Epoch',                          # X-axis: Epoch
+            y='Estimation Time',                 # Y-axis: Estimation Time
+            hue='DataStructName',               # Group by DataStructType
+            style='TupleType',                  # Distinguish by TupleType
+            data=filtered_data               # Data to plot
+        )
 
 # Add labels and title
-    plt.xlabel('Epoch')
-    plt.ylabel('Estimation Time (ms)')
-    plt.title('Epoch vs Estimation Time (Estimation Data)')
-    plt.legend(title='PDS, Tuple type')
-    plt.tight_layout()
-    plt.savefig('plots/epoch_vs_estimation_time.png', dpi=300, bbox_inches='tight')
+        plt.xlabel('Epoch')
+        plt.ylabel('Estimation Time (ms)')
+        plt.title('Epoch vs Estimation Time (Estimation Data)')
+        plt.legend(title='PDS, Tuple type')
+        plt.tight_layout()
+        plt.savefig('plots/epoch_vs_estimation_time.png', dpi=300, bbox_inches='tight')
 
-def plotTotalEstimationTime(data):
-# Set up the figure and subplots
-    fig, axes = plt.subplots(1, 2, figsize=(14, 6))  # 1 row, 2 columns
-    filtered_data = data[data['Epoch'] != 0]
+    def plotTotalEstimationTime(self):
+        # Set up the figure and subplots
+        fig, axes = plt.subplots(1, 2, figsize=(14, 6))  # 1 row, 2 columns
+        filtered_data = self.em_data[self.em_data['Epoch'] != 0]
 
-# Left Subplot: Total Time
-    sns.boxplot(
-        x='DataStructName',                 # X-axis: Data Structure Type
-        y='Total Time',                      # Y-axis: Total Time
-        hue='TupleType',                    # Group by TupleType
-        data=filtered_data,              # Data to plot
-        ax=axes[0]                          # Assign to the left subplot
-    )
-    axes[0].set_xlabel('Data Structure Type')
-    axes[0].set_ylabel('Total Time (ms)')
-    axes[0].set_title('Distribution of Total Time')
-    axes[0].legend(title='PDS, Tuple Type')
+        # Left Subplot: Total Time
+        sns.boxplot(
+            x='DataStructName',                 # X-axis: Data Structure Type
+            y='Total Time',                      # Y-axis: Total Time
+            hue='TupleType',                    # Group by TupleType
+            data=filtered_data,              # Data to plot
+            ax=axes[0]                          # Assign to the left subplot
+        )
+        axes[0].set_xlabel('Data Structure Type')
+        axes[0].set_ylabel('Total Time (ms)')
+        axes[0].set_title('Distribution of Total Time')
+        axes[0].legend(title='PDS, Tuple Type')
 
 # Right Subplot: Estimation Time
-    sns.boxplot(
-        x='DataStructName',                 # X-axis: Data Structure Type
-        y='Estimation Time',                 # Y-axis: Estimation Time
-        hue='TupleType',                    # Group by TupleType
-        data=filtered_data,              # Data to plot
-        ax=axes[1]                          # Assign to the right subplot
-    )
-    axes[1].set_xlabel('Data Structure Type')
-    axes[1].set_ylabel('Estimation Time (ms)')
-    axes[1].set_title('Distribution of Estimation Time')
-    axes[1].legend(title='PDS, Tuple Type')
+        sns.boxplot(
+            x='DataStructName',                 # X-axis: Data Structure Type
+            y='Estimation Time',                 # Y-axis: Estimation Time
+            hue='TupleType',                    # Group by TupleType
+            data=filtered_data,              # Data to plot
+            ax=axes[1]                          # Assign to the right subplot
+        )
+        axes[1].set_xlabel('Data Structure Type')
+        axes[1].set_ylabel('Estimation Time (ms)')
+        axes[1].set_title('Distribution of Estimation Time')
+        axes[1].legend(title='PDS, Tuple Type')
 
 # Adjust layout and show the plot
-    plt.tight_layout()
+        plt.tight_layout()
 
 # Save the plots
-    plt.savefig('plots/time_distribution_boxplot.png', dpi=300, bbox_inches='tight')
+        plt.savefig('plots/time_distribution_boxplot.png', dpi=300, bbox_inches='tight')
 
-def plotNS(data):
-    # Set the figure size
-    plt.figure(figsize=(10, 6))
+    def plotNS(self, data):
+        # Set the figure size
+        plt.figure(figsize=(10, 6))
 
-    # Create a line plot for Epoch vs Weighted Mean Relative Error
-    sns.lineplot(
-        x="Flow Size",
-        y="Frequency",
-        # hue="Epoch",
-        # style="DataStructName",
-        hue="DataStructName",
-        markers=True,
-        data=data
-    )
+        # Create a line plot for Epoch vs Weighted Mean Relative Error
+        sns.lineplot(
+            x="Flow Size",
+            y="Frequency",
+            hue="DataSetName",
+            style="DataStructName",
+            markers=True,
+            data=data
+        )
 
-    # Add labels and title
-    plt.legend(title='Data Structure Type')
-    plt.xscale("log")
-    plt.xlabel("Value")
-    plt.yscale("log")
-    plt.ylabel("Frequency")
-    plt.title("Frequency Plot")
-    plt.tight_layout()
-    plt.savefig('plots/fsd.png', dpi=300, bbox_inches='tight')
 
-def plotNSdelta(data):
-    # Set the figure size
-    plt.figure(figsize=(10, 6))
+        # Add labels and title
+        plt.legend(title='Data Structure Type')
+        plt.xscale("log")
+        print(data["Flow Size"].max().max())
+        plt.xlim(0.9, data["Flow Size"].max().max())
+        plt.ylim(0.1, data["Frequency"].max().max() * 1.1)
+        plt.xlabel("Value")
+        plt.yscale("log")
+        plt.ylabel("Frequency")
+        plt.title("Frequency Plot")
+        plt.tight_layout()
+        plt.savefig('plots/fsd.png', dpi=300, bbox_inches='tight')
 
-    # Create a line plot for Epoch vs Weighted Mean Relative Error
-    sns.lineplot(
-        x="Flow Size",
-        y="Delta",
-        # hue="Epoch",
-        # style="DataStructName",
-        hue="DataStructName",
-        markers=True,
-        data=data
-    )
+    def plotNSdelta(self):
+        # Set the figure size
+        plt.figure(figsize=(10, 6))
 
-    # Add labels and title
-    plt.legend(title='Data Structure Type')
-    plt.xscale("log")
-    plt.xlabel("Flow Size")
-    # plt.yscale("log")
-    plt.ylabel("Delta")
-    plt.title("Frequency Plot")
-    plt.tight_layout()
-    plt.savefig('plots/delta_fsd.png', dpi=300, bbox_inches='tight')
+        # Create a line plot for Epoch vs Weighted Mean Relative Error
+        sns.lineplot(
+            x="Flow Size",
+            y="Delta",
+            # hue="Epoch",
+            # style="DataStructName",
+            hue="DataStructName",
+            markers=True,
+            data=self.ns_data
+        )
+
+        # Add labels and title
+        plt.legend(title='Data Structure Type')
+        plt.xscale("log")
+        plt.xlabel("Flow Size")
+        # plt.yscale("log")
+        plt.ylabel("Delta")
+        plt.title("Frequency Plot")
+        plt.tight_layout()
+        plt.savefig('plots/delta_fsd.png', dpi=300, bbox_inches='tight')
 
 def read_binary_file(filename):
     flow_sizes = []
@@ -338,11 +365,15 @@ def main():
                                                         data[-1],
                                                         columns=["Flow Size", "Frequency"]
                                     )
-
                                     # data_pd = pd.DataFrame(
                                     #                     [(value, freq, i) for i, dataset in enumerate(data) for value, freq in dataset],
                                     #                     columns=["Flow Size", "Frequency", "Epoch"]
                                     # )
+
+                                    # Extract dataset name from the filename
+                                    dataset_name = file_name.split("_")[1] if file_name.startswith('ns_') else file_name.split("_")[0]
+                                    data_pd['DataSetName'] = dataset_name.replace(".dat", "")
+
                                     # Add metadata columns for TupleType, DataStructType, and DataStructName
                                     data_pd['TupleType'] = tuple_type
                                     data_pd['DataStructType'] = data_struct_type
@@ -359,10 +390,10 @@ def main():
                                                     columns=["Flow Size", "Frequency"]
                                 )
 
-                                # data_pd = pd.DataFrame(
-                                #                     [(value, freq, i) for i, dataset in enumerate(data) for value, freq in dataset],
-                                #                     columns=["Flow Size", "Frequency", "Epoch"]
-                                # )
+                                # Extract dataset name from the filename
+                                dataset_name = file_path.split("_")[1]
+                                data_pd['DataSetName'] = dataset_name.replace(".dat", "")
+
                                 # Add metadata columns for TupleType, DataStructType, and DataStructName
                                 data_pd['TupleType'] = tuple_type
                                 data_pd['DataStructType'] = data_struct_type
@@ -380,44 +411,38 @@ def main():
     combined_em_data = pd.concat(em_dataframes, ignore_index=True)
     print(combined_em_data.head())
 
-    # print("\nFSD Data:")
-    # combined_ns_data = pd.concat(ns_dataframes, ignore_index=True)
-    # true_df = combined_ns_data[combined_ns_data["DataStructName"] == "TrueData"][["Flow Size", "Frequency"]].rename(
-    #     columns={"Frequency": "TrueFrequency"}
-    # )
-    # print(true_df.head())
-    # combined_ns_data = combined_ns_data.merge(true_df, on="Flow Size", how="left")
-    # combined_ns_data["Delta"] = combined_ns_data["Frequency"] - combined_ns_data["TrueFrequency"]
-    # combined_ns_data.loc[combined_ns_data["DataStructName"] == "TrueData", "Delta"] = 0
-    # print(combined_ns_data.head())
+    print("\nFSD Data:")
+    combined_ns_data = pd.concat(ns_dataframes, ignore_index=True)
+    # combined_ns_data = combined_ns_data[combined_ns_data['DataSetName'] == "equinix-nyc.20190117-130000.UTC"]
+    combined_ns_data = combined_ns_data[combined_ns_data['TupleType'] == "SrcTuple"]
+
+    true_df = combined_ns_data[combined_ns_data["DataStructName"] == "TrueData"][["Flow Size", "Frequency"]].rename(
+        columns={"Frequency": "TrueFrequency"}
+    )
+    print(true_df.head())
+    combined_ns_data = combined_ns_data.merge(true_df, on="Flow Size", how="left")
+    combined_ns_data["Delta"] = combined_ns_data["Frequency"] - combined_ns_data["TrueFrequency"]
+    combined_ns_data.loc[combined_ns_data["DataStructName"] == "TrueData", "Delta"] = 0
+    print(combined_ns_data.head())
+    # plotNS(combined_ns_data)
     # Group non-'em' data by TupleType, DataStructType, and DataStructName
     grouped_data = combined_data.groupby(['TupleType', 'DataStructType', 'DataStructName'])['F1 Member'].mean().reset_index()
     print("Grouped Non-'em' Data:")
     print(grouped_data)
 
     print(combined_em_data['DataStructName'].unique())
-    filtered_data = combined_em_data[combined_em_data['TupleType'] == "FlowTuple"]
-    test_data = filtered_data[filtered_data['DataStructName'] == "FCM-Sketches"]
-    print(test_data.head())
+    # combined_em_data['DataSetName'] = combined_em_data['DataSetName'].str.split("-").str[:2].str.join("-")
+    combined_em_data = combined_em_data[combined_em_data['TupleType'] == "SrcTuple"]
+    # filtered_data = filtered_data[filtered_data['DataSetName'].apply(lambda x: not 'nyc' in x)]
 
-    for dsName in filtered_data['DataSetName'].unique():
-        print(test_data[test_data['DataSetName'] == dsName])
-        print(dsName)
-        filteredDsData = filtered_data[filtered_data['DataSetName'] == dsName]
-        print(filteredDsData['DataStructName'].unique())
-        exit(1)
-        print(filteredDsData['DataStructName'].unique())
-        plotWMRE(filteredDsData)
-        plt.show()
-    # plotAvgWMRE(combined_em_data)
-    # plotEntropy(combined_em_data)
-    # plotCard(combined_em_data)
-    # plotEstimationTime(combined_em_data)
-    # plotTotalEstimationTime(combined_em_data)
-    # plotNS(combined_ns_data)
-    # plotNSdelta(combined_ns_data)
-
-
+    plotter = Plotter(combined_data, combined_em_data, combined_ns_data)
+    plotter.plotWMRE()
+    plotter.plotEntropy()
+    plotter.plotCard()
+    plotter.plotEstimationTime()
+    plotter.plotTotalEstimationTime()
+    plotter.plotNSdelta()
+    plt.show()
 
 if __name__ == "__main__":
     main()

@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <unordered_map>
 
 class PDS {
@@ -105,6 +106,12 @@ public:
       std::cerr << "Tuple name : " << this->tuple_name << std::endl;
       std::cerr << "Name : " << this->name << std::endl;
       exit(1);
+    }
+
+    if (this->fcsv.is_open()) {
+      std::cout << "Close previous fstream " << this->filename_csv << std::endl;
+      this->fcsv.close();
+      std::remove(this->filename_csv);
     }
 
     string name_dir = "results/" + this->tuple_name + "/" + this->name;

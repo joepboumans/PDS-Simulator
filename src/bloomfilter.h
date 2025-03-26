@@ -24,11 +24,12 @@
 
 class BloomFilter : public PDS {
 public:
-  BOBHash32 *hash;
+  vector<vector<BOBHash32>> hash;
   uint32_t n_tables;
+  uint32_t n_hashes;
   uint32_t length;
   uint32_t n;
-  vector<bool> array;
+  vector<vector<bool>> filters;
   unordered_set<TUPLE, TupleHash> tuples;
   uint32_t insertions = 0;
   string trace_name;
@@ -37,17 +38,22 @@ public:
   double recall = 0.0;
   double precision = 0.0;
 
-  BloomFilter(uint32_t n_tables, uint32_t sz, string trace, uint8_t tuple_sz)
-      : PDS(trace, tuple_sz), n_tables(n_tables), length(sz), array(sz, false) {
+  BloomFilter(uint32_t n_tables, uint32_t sz, uint32_t n_hashes, string trace,
+              uint8_t tuple_sz)
+      : PDS(trace, tuple_sz), n_tables(n_tables), n_hashes(n_hashes),
+        length(sz), filters(n_hashes, vector<bool>(sz, false)) {
 
     // Init hashing
-    this->hash = new BOBHash32[n_tables];
+    this->hash =
+        vector<vector<BOBHash32>>(n_tables, vector<BOBHash32>(n_hashes));
     for (size_t i = 0; i < n_tables; i++) {
-      this->hash[i].initialize(750 + i);
+      for (size_t j = 0; j < n_hashes; j++) {
+        this->hash[i][j].initialize(750 + i + j);
+      }
     }
 
     // Setup logging
-    this->csv_header = "Insertions,Collisions,Recall,Precision,F1";
+    this->csv_header = "Insertions,Recall,Precision,F1";
     this->name = "AMQ/BloomFilter";
     this->rows = n_tables;
     this->columns = length;
@@ -56,16 +62,21 @@ public:
 
   uint32_t lookup(TUPLE tuple) {
     for (size_t i = 0; i < this->n_tables; i++) {
-      int hash_idx = this->hashing(tuple, i);
-      if (!array[hash_idx]) {
-        return 0;
+      for (size_t j = 0; j < n_hashes; j++) {
+        int hash_idx = this->hashing(tuple, i, j);
+        if (!filters[i][hash_idx]) {
+          continue;
+        }
+        return 1;
       }
     }
-    return 1;
+    return 0;
   }
 
   void reset() {
-    std::fill(this->array.begin(), this->array.end(), false);
+    for (auto &filter : this->filters) {
+      std::fill(filter.begin(), filter.end(), false);
+    }
     this->tuples.clear();
     this->insertions = 0;
     this->true_data.clear();
@@ -82,6 +93,15 @@ public:
         false_pos++;
       }
     }
+
+    for (const auto &tup : this->tuples) {
+      if (this->true_data.find(tup) != this->true_data.end()) {
+        continue;
+      } else {
+        false_neg++;
+      }
+    }
+
     // F1 Score
     if (true_pos == 0 && false_pos == 0) {
       this->recall = 1.0;
@@ -91,27 +111,29 @@ public:
     if (true_neg == 0 && false_neg == 0) {
       this->precision = 1.0;
     } else {
-      this->precision = (double)true_neg / (true_neg + false_neg);
+      this->precision = (double)true_pos / (true_pos + false_neg);
     }
     this->f1 = 2 * ((recall * precision) / (precision + recall));
 
     char msg[100];
-    sprintf(msg, "\tInsertions:%i\tRecall:%.3f\tPrecision:%.3f\tF1:%.3f",
+    sprintf(msg, "\tInsertions:%i\tRecall:%.5f\tPrecision:%.5f\tF1:%.5f\n",
             this->insertions, this->recall, this->precision, this->f1);
     std::cout << msg;
 
     // Save data into csv
     char csv[300];
-    sprintf(csv, "%i,%.3f,%.3f,%.3f", this->insertions, this->recall,
+    sprintf(csv, "%i,%.6f,%.6f,%.6f", this->insertions, this->recall,
             this->precision, this->f1);
     this->fcsv << csv << std::endl;
   }
 
   void print_sketch() {
     uint32_t count = 0;
-    for (auto i : this->array) {
-      if (i) {
-        count++;
+    for (const auto &filter : this->filters) {
+      for (const auto &i : filter) {
+        if (i) {
+          count++;
+        }
       }
     }
     std::cout << std::endl;
@@ -122,13 +144,15 @@ public:
     // Record true data
     this->true_data[tuple]++;
 
-    // Perform hashing
+    // Insert into each BloomFilter
     bool tuple_inserted = false;
     for (size_t i = 0; i < this->n_tables; i++) {
-      int hash_idx = this->hashing(tuple, i);
-      if (!this->array[hash_idx]) {
-        this->array[hash_idx] = true;
-        tuple_inserted = true;
+      for (size_t j = 0; j < this->n_hashes; j++) {
+        int hash_idx = this->hashing(tuple, i, j);
+        if (!this->filters[i][hash_idx]) {
+          this->filters[i][hash_idx] = true;
+          tuple_inserted = true;
+        }
       }
     }
 
@@ -141,29 +165,40 @@ public:
     return 1;
   }
 
-  uint32_t hashing(TUPLE key, uint32_t k) {
-    return hash[k].run((const char *)key.num_array, tuple_sz) % this->length;
+  uint32_t hashing(TUPLE key, uint32_t i, uint32_t j) {
+    return hash[i][j].run((const char *)key.num_array, tuple_sz) % this->length;
   }
 };
 
 class LazyBloomFilter : public BloomFilter {
 public:
-  void setName() { this->name = "LazyBloomFilter"; }
-
-  LazyBloomFilter(uint32_t n_tables, uint32_t sz, string trace,
-                  uint8_t tuple_sz)
-      : BloomFilter(n_tables, sz, trace, tuple_sz) {}
+  LazyBloomFilter(uint32_t n_tables, uint32_t sz, uint32_t n_hashes,
+                  string trace, uint8_t tuple_sz)
+      : BloomFilter(n_tables, sz, n_hashes, trace, tuple_sz) {
+    this->name = "AMQ/LazyBloomFilter";
+    this->setupLogging();
+  }
   uint32_t insert(TUPLE tuple) {
+    // Record true data
     this->true_data[tuple]++;
 
+    // Lazy insert into BloomFilter, update only single value
+    bool tuple_inserted = false;
     for (size_t i = 0; i < this->n_tables; i++) {
-      int hash_idx = this->hashing(tuple, i);
-      // Only update this index and store new tuple
-      if (!array[hash_idx]) {
-        array[hash_idx] = true;
-        tuples.insert(tuple);
-        return 0;
+      for (size_t j = 0; j < this->n_hashes; j++) {
+        int hash_idx = this->hashing(tuple, i, j);
+        if (!filters[i][hash_idx]) {
+          filters[i][hash_idx] = true;
+          tuple_inserted = true;
+          break;
+        }
       }
+    }
+
+    if (tuple_inserted) {
+      tuples.insert(tuple);
+      this->insertions++;
+      return 0;
     }
     return 1;
   }

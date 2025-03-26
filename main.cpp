@@ -45,7 +45,9 @@ int main() {
 
     vector<PDS *> stages;
 
-    BloomFilter bfFilter(4, 65536, file, tuple_sz);
+    // 4 tables with 2097152 entries of 1 bits. Equivilant to 4 Waterfall Tables
+    // at 65536 entries of 32 bits
+    BloomFilter bfFilter(4, 2097152, 4, file, tuple_sz);
     stages.push_back(&bfFilter);
 
     /*FCM_Sketches fcm_sketches(W3, NUM_STAGES, K, DEPTH, 10000, 15, file,*/

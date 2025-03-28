@@ -76,12 +76,6 @@ class Plotter():
 
         self.dfSmoothed = pd.concat(smoothedResults)
         numeric_cols = self.dfSmoothed.select_dtypes(include=[np.number]).columns
-        # self.dfSmoothedMean = self.dfSmoothed.groupby(numeric_cols).mean()
-        # for col in numeric_cols:
-
-        
-
-
 
     def plotSmoothedOverTime(self, data, param, frac):
         # Loop over each combination of DataStructName and TupleType for LOWESS smoothing.

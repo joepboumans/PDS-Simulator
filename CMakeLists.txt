@@ -30,6 +30,7 @@ include_directories(${CMAKE_SOURCE_DIR})
 
 # Added custom hash, not ideal setup like this TODO: Integrate with design
 # find_package(xxHash CONFIG REQUIRED)
+find_package(ZLIB REQUIRED)
 
 add_executable(main main.cpp)
 target_link_libraries(
@@ -45,6 +46,7 @@ target_link_libraries(
 )
 target_include_directories(main PUBLIC ${CMAKE_SOURCE_DIR}
                                        ${CMAKE_HOME_DIRECTORY})
+target_link_libraries(main PRIVATE ZLIB::ZLIB)
 
 # https://github.com/catchorg/Catch2/blob/devel/docs/cmake-integration.md#installing-catch2-from-git-repository
 # find_package(Catch2 3 REQUIRED)
@@ -62,6 +64,7 @@ foreach(name ${tests})
   message("Adding ${name} with as ${basename}")
   add_executable("${basename}" test/${name} ${deps})
   target_link_libraries(${basename} PRIVATE lib-catch2)
+  target_link_libraries(${basename} PRIVATE ZLIB::ZLIB)
   target_link_libraries(
     ${basename} PUBLIC  
         lib-count-min 

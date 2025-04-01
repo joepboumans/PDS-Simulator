@@ -72,13 +72,14 @@ void WaterfallFCM::write2csv() {
 }
 
 void WaterfallFCM::write2csv_em(uint32_t iter, size_t time, size_t total_time,
-                                double card, double entropy) {
+                                double card, double card_err, double true_sz,
+                                double entropy) {
   if (not this->store_results) {
     return;
   }
   char csv[300];
-  sprintf(csv, "%u,%ld,%ld,%.6f,%.1f,%.6f", iter, time, total_time, wmre, card,
-          entropy);
+  sprintf(csv, "%u,%ld,%ld,%.6f,%.1f,%.6f,%.1f,%.6f", iter, time, total_time,
+          wmre, card, card_err, true_sz, entropy);
   this->fcsv_em << csv << std::endl;
 }
 
@@ -113,7 +114,11 @@ void WaterfallFCM::analyze(int epoch) {
   this->true_data = this->waterfall.true_data;
   this->fcm_sketches.analyze(epoch);
   uint32_t waterfall_card = this->waterfall.tuples.size();
-  std::cout << "[CHT] Cardinality : " << waterfall_card << std::endl;
+  double err_cardinality =
+      std::abs((int)waterfall_card - (int)this->true_data.size()) /
+      (double)this->true_data.size();
+  std::cout << "[Waterfall] Cardinality : " << waterfall_card
+            << " Card Error : " << err_cardinality << std::endl;
 
   long em_time = 0;
   // Flow Size Distribution (Weighted Mean Relative Error)
@@ -144,6 +149,8 @@ void WaterfallFCM::analyze(int epoch) {
   } else {
     this->wmre = this->fcm_sketches.wmre;
   }
+
+  this->write2csv();
   return;
 }
 
@@ -437,7 +444,10 @@ double WaterfallFCM::get_distribution(set<TUPLE> &tuples,
 
   this->wmre = calculate_wmre(EM.ns, true_fsd);
   double entropy_err = calculate_entropy(EM.ns, true_fsd);
-  this->write2csv_em(0, 0, 0, EM.n_new, entropy_err);
+  double err_cardinality = std::abs(EM.n_new - (int)this->true_data.size()) /
+                           (double)this->true_data.size();
+  this->write2csv_em(0, 0, 0, EM.n_new, err_cardinality, this->true_data.size(),
+                     entropy_err);
 
   for (size_t iter = 1; iter < this->em_iters + 1; iter++) {
     auto start = std::chrono::high_resolution_clock::now();
@@ -451,17 +461,11 @@ double WaterfallFCM::get_distribution(set<TUPLE> &tuples,
 
     this->wmre = calculate_wmre(EM.ns, true_fsd);
     double entropy_err = calculate_entropy(EM.ns, true_fsd);
-    this->write2csv_em(iter, time.count(), total_time.count(), EM.n_new,
-                       entropy_err);
+    err_cardinality = std::abs(EM.n_new - (int)this->true_data.size()) /
+                      (double)this->true_data.size();
+    write2csv_em(iter, time.count(), total_time.count(), EM.n_new,
+                 err_cardinality, this->true_data.size(), entropy_err);
   }
-
-  /*std::cout << "True FSD: " << std::endl;*/
-  /*for (int i = 0; i < true_fsd.size(); ++i) {*/
-  /*  if (true_fsd[i] != 0) {*/
-  /*    std::cout << i << ":" << true_fsd[i] << " ";*/
-  /*  }*/
-  /*}*/
-  /*std::cout << std::endl;*/
 
   return wmre;
 }

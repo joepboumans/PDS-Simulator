@@ -39,7 +39,7 @@ public:
     // Setup logging
     this->csv_header_em =
         "Epoch,Estimation Time,Total Time,Weighted Mean Relative Error,"
-        "Cardinality,Entropy";
+        "Cardinality,Cardinality Error,True Cardinality,Entropy";
     this->csv_header = "Average Relative Error,Average Absolute "
                        "Error,Weighted Mean Relative "
                        "Error,F1 Heavy Hitter,Insertions,F1 Member";
@@ -69,7 +69,7 @@ public:
   void print_sketch();
   void write2csv();
   void write2csv_em(uint32_t iter, size_t time, size_t total_time, double card,
-                    double entropy);
+                    double card_err, double true_sz, double entropy);
   void write2csv_ns();
   vector<uint32_t> peel_sketches(set<TUPLE> &tuples);
   vector<vector<uint32_t>> get_initial_degrees(set<TUPLE> tuples);

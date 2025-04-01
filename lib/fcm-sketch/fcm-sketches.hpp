@@ -81,7 +81,7 @@ public:
                        "Error,Recall,Precision,F1";
     this->csv_header_em =
         "Epoch,Estimation Time,Total Time,Weighted Mean Relative Error,"
-        "Cardinality,Entropy";
+        "Cardinality,Cardinality Error,True Cardinality,Entropy";
     this->name = "FC/FCM-Sketches";
     this->trace_name = trace;
     this->rows = n_stages;
@@ -119,7 +119,7 @@ public:
   void print_sketch();
   void write2csv();
   void write2csv_em(uint32_t iter, size_t time, size_t total_time, double card,
-                    double etnropy);
+                    double card_err, double true_sz, double entropy);
   void write2csv_ns(vector<double> ns);
 };
 #endif // !_FCM_SKETCHES_HPP

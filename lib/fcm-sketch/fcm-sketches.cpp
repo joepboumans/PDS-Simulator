@@ -231,16 +231,16 @@ void FCM_Sketches::write2csv() {
 }
 
 void FCM_Sketches::write2csv_em(uint32_t iter, size_t time, size_t total_time,
-                                double card, double entropy) {
-  if (!this->store_results) {
+                                double card, double card_err, double true_sz,
+                                double entropy) {
+  if (not this->store_results) {
     return;
   }
   char csv[300];
-  sprintf(csv, "%u,%ld,%ld,%.6f,%.1f,%.6f", iter, time, total_time, this->wmre,
-          card, entropy);
+  sprintf(csv, "%u,%ld,%ld,%.6f,%.1f,%.6f,%.1f,%.6f", iter, time, total_time,
+          wmre, card, card_err, true_sz, entropy);
   this->fcsv_em << csv << std::endl;
 }
-
 void FCM_Sketches::write2csv_ns(vector<double> ns) {
 
   if (!this->store_results) {
@@ -613,7 +613,11 @@ double FCM_Sketches::get_distribution(vector<uint32_t> &true_fsd) {
   printf("[EM WFCM - Intitial Entropy Relative Error] (RE) = %f (true : %f, "
          "est : %f)\n",
          entropy_err, entropy_true, entropy_est);
-  this->write2csv_em(0, 0, 0, em_fsd_algo.n_new, entropy_err);
+  double err_cardinality =
+      std::abs(em_fsd_algo.n_new - (int)this->true_data.size()) /
+      (double)this->true_data.size();
+  this->write2csv_em(0, 0, 0, em_fsd_algo.n_new, err_cardinality,
+                     this->true_data.size(), entropy_err);
 
   for (size_t iter = 1; iter < this->em_iters + 1; iter++) {
     auto start = std::chrono::high_resolution_clock::now();
@@ -670,8 +674,12 @@ double FCM_Sketches::get_distribution(vector<uint32_t> &true_fsd) {
     entropy_err = std::abs(entropy_est - entropy_true) / entropy_true;
     printf("Entropy Relative Error (RE) = %f (true : %f, est : %f)\n",
            entropy_err, entropy_true, entropy_est);
+    double err_cardinality =
+        std::abs(em_fsd_algo.n_new - (int)this->true_data.size()) /
+        (double)this->true_data.size();
     this->write2csv_em(iter, time.count(), total_time.count(),
-                       em_fsd_algo.n_new, entropy_err);
+                       em_fsd_algo.n_new, err_cardinality,
+                       this->true_data.size(), entropy_err);
   }
 
   return wmre;
@@ -879,7 +887,10 @@ double FCM_Sketches::get_distribution_Waterfall(vector<uint32_t> &true_fsd) {
   entropy_err = std::abs(entropy_est - entropy_true) / entropy_true;
   printf("Intitial Entropy Relative Error (RE) = %f (true : %f, est : %f)\n",
          entropy_err, entropy_true, entropy_est);
-  this->write2csv_em(0, 0, 0, EM.n_new, entropy_err);
+  double err_cardinality = std::abs(EM.n_new - (int)this->true_data.size()) /
+                           (double)this->true_data.size();
+  this->write2csv_em(0, 0, 0, EM.n_new, err_cardinality, this->true_data.size(),
+                     entropy_err);
 
   for (size_t iter = 1; iter < this->em_iters; iter++) {
     auto start = std::chrono::high_resolution_clock::now();
@@ -934,8 +945,10 @@ double FCM_Sketches::get_distribution_Waterfall(vector<uint32_t> &true_fsd) {
     printf("Entropy Relative Error (RE) = %f (true : %f, est : %f)\n",
            entropy_err, entropy_true, entropy_est);
 
+    double err_cardinality = std::abs(EM.n_new - (int)this->true_data.size()) /
+                             (double)this->true_data.size();
     this->write2csv_em(iter, time.count(), total_time.count(), EM.n_new,
-                       entropy_err);
+                       err_cardinality, this->true_data.size(), entropy_err);
   }
   return wmre;
 }

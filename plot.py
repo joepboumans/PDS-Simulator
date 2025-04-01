@@ -29,8 +29,8 @@ class Plotter():
         styles = ['-', '--', '-.', ':']
         self.line_style_map = {tt: styles[i % len(styles)] for i, tt in enumerate(unique_tuple)}
 
-        # Find the maximum Total Time
-        self.maxMinTime = self.em_data.groupby('DataSetName')['Total Time'].max().min()
+        # Find the maximum minimum time per data set
+        self.maxMinTime = self.em_data.groupby(['DataSetName', 'DataStructName'])['Total Time'].max().min()
         maxTime = self.em_data['Total Time'].max()
         extendedData = []
         for dataStruct in self.em_data['DataStructName'].unique():
@@ -44,20 +44,15 @@ class Plotter():
                 dataSet = dataSet.set_index('Total Time')
                 dataSet = dataSet.infer_objects(copy=False)
 
-                commonTimeFrame = np.linspace(maxDataTotalTime, maxTime, num=2)
+                commonTimeFrame = np.linspace(maxDataTotalTime, maxTime, num=5)
                 df_interp = dataSet.reindex(dataSet.index.union(commonTimeFrame))
                 df_interp.ffill(inplace=True)
-
-                numeric_cols = df_interp.select_dtypes(include=[np.number]).columns
-                # for col in ['Weighted Mean Relative Error', 'Cardinality', 'Cardinality Error', 'True Cardinality','Entropy']:
-                #     df_interp[col] = pd.to_numeric(df_interp[col], errors='coerce')
-
                 extendedData.append(df_interp)
 
         self.em_data = pd.concat(extendedData).reset_index()
 
         # Interpolate EM data to create smoother time
-        commonTimeFrame = np.linspace(0, maxTime, num=200)
+        commonTimeFrame = np.linspace(0, maxTime, num=500)
         smoothedResults = []
         for dstruct in self.em_data['DataStructName'].unique():
             df_ds = self.em_data[self.em_data['DataStructName'] == dstruct].copy()
@@ -70,7 +65,7 @@ class Plotter():
                 numeric_cols = df_interp.select_dtypes(include=[np.number]).columns
                 # for col in ['Weighted Mean Relative Error', 'Cardinality', 'Cardinality Error', 'True Cardinality','Entropy']:
                 #     df_interp[col] = pd.to_numeric(df_interp[col], errors='coerce')
-                df_interp[numeric_cols] = df_interp[numeric_cols].interpolate(method='polynomial', order=2)
+                df_interp[numeric_cols] = df_interp[numeric_cols].interpolate(method='polynomial', order=5)
 
                 for col in ['TupleType', 'DataStructType', 'DataStructName']:
                     df_interp[col] = df_interp[col].ffill()
@@ -83,7 +78,6 @@ class Plotter():
 
         self.dfSmoothed = pd.concat(smoothedResults)
         self.em_data = self.dfSmoothed
-        print(self.dfSmoothed.head())
 
     def plotSmoothedOverTime(self, data, param, frac):
         # Loop over each combination of DataStructName and TupleType for LOWESS smoothing.
@@ -155,12 +149,11 @@ class Plotter():
         # Add labels and title
         plt.xlabel('Estimation Time (ms)')
         plt.ylabel('Weighted Mean Relative Error')
-        plt.title('Weighted Mean Error over time')
+        plt.title('WMRE during estimation')
         plt.legend(title='Data Structures')
         plt.tight_layout()
 
-        plt.savefig('plots/WMRE_over_time.pdf', dpi=300, bbox_inches='tight')
-        plt.show()
+        plt.savefig('plots/WMRE.pdf', bbox_inches='tight')
 
     def plotEntropy(self):
         plt.figure(figsize=(10, 6))
@@ -171,25 +164,19 @@ class Plotter():
             hue='DataStructName',
             # style='TupleType',
             data=self.dfSmoothed,
-            # palette=self.color_map,
+            palette=self.color_map,
         )
 
-        # self.plotSmoothedOverTime(self.em_data, 'Entropy', 0.1)
-        # Determine the maximum Total Time for the shortest dataset
-        # shortest_max = self.em_data.groupby('DataStructName')['Total Time'].max().min()
-        # plt.xlim(self.em_data['Total Time'].min(), shortest_max)
-
-        # Add labels and title
+        plt.xlim(0, self.maxMinTime)
         plt.xlabel('Epoch')
         plt.ylabel('Entropy')
         plt.title('Entropy')
         plt.legend(title='Data Structure Type')
         plt.tight_layout()
-        plt.savefig('plots/entropy.pdf', dpi=300, bbox_inches='tight')
+        plt.savefig('plots/entropy.pdf', bbox_inches='tight')
 
     def plotCard(self):
         plt.figure(figsize=(10, 6))
-        # Scatterplot to show each data point
         sns.lineplot(
             x='Total Time',
             y='Cardinality',
@@ -209,7 +196,7 @@ class Plotter():
         plt.title('Cardinality')
         plt.legend(title='Data Structure Type')
         plt.tight_layout()
-        plt.savefig('plots/cardinality.pdf', dpi=300, bbox_inches='tight')
+        plt.savefig('plots/cardinality.pdf', bbox_inches='tight')
 
     def plotCardErr(self):
         plt.figure(figsize=(10, 6))
@@ -252,10 +239,10 @@ class Plotter():
         # Add labels and title
         plt.xlabel('Epoch')
         plt.ylabel('Estimation Time (ms)')
-        plt.title('Epoch vs Estimation Time (Estimation Data)')
+        plt.title('Estimation time per iteration')
         plt.legend(title='PDS, Tuple type')
         plt.tight_layout()
-        plt.savefig('plots/epoch_vs_estimation_time.pdf', dpi=300, bbox_inches='tight')
+        plt.savefig('plots/EstimationPerEpoch.pdf', dpi=300, bbox_inches='tight')
 
     def plotTotalEstimationTime(self):
         # Set up the figure and subplots
@@ -292,7 +279,7 @@ class Plotter():
         plt.tight_layout()
 
         # Save the plots
-        plt.savefig('plots/time_distribution_boxplot.pdf', dpi=300, bbox_inches='tight')
+        plt.savefig('plots/time_distribution_boxplot.pdf', bbox_inches='tight')
 
     def plotNS(self):
         # Set the figure size
@@ -308,7 +295,6 @@ class Plotter():
             data=self.ns_data
         )
 
-
         # Add labels and title
         plt.legend(title='Data Structure Type')
         plt.xscale("log")
@@ -320,13 +306,11 @@ class Plotter():
         plt.ylabel("Frequency")
         plt.title("Frequency Plot")
         plt.tight_layout()
-        plt.savefig('plots/fsd.pdf', dpi=300, bbox_inches='tight')
+        plt.savefig('plots/fsd.pdf', bbox_inches='tight')
 
     def plotNSdelta(self):
-        # Set the figure size
         plt.figure(figsize=(10, 6))
 
-        # Create a line plot for Epoch vs Weighted Mean Relative Error
         sns.lineplot(
             x="Flow Size",
             y="Delta",
@@ -352,7 +336,6 @@ class Plotter():
         amqData = self.data[self.data['DataStructName'] != "FCM-Sketches"]
         df_melted = amqData.melt(id_vars='DataStructName', var_name='Metric', value_name='Value', value_vars=['F1', 'Precision', 'Recall'])
 
-        # Create a scatterplot plot for Epoch vs Weighted Mean Relative Error
         plt.figure(figsize=(10, 6))
         sns.boxplot(
             x='DataStructName',
@@ -368,7 +351,7 @@ class Plotter():
         plt.legend(title='Data Structures')
         plt.tight_layout()
 
-        plt.savefig('plots/F1Membership.pdf', dpi=300, bbox_inches='tight')
+        plt.savefig('plots/F1Membership.pdf', bbox_inches='tight')
 
     def plotBandwidth(self):
         # Remove FC's for F1 Membership
@@ -391,7 +374,7 @@ class Plotter():
         plt.legend(title='Data Structures')
         plt.tight_layout()
 
-        plt.savefig('plots/WMRE_over_time.pdf', dpi=300, bbox_inches='tight')
+        plt.savefig('plots/Bandwidth.pdf', bbox_inches='tight')
 
 def read_binary_file(filename):
     flow_sizes = []
@@ -420,7 +403,7 @@ def read_binary_file(filename):
     return flow_sizes
 
 def main():
-    # set_test_rcs()
+    set_test_rcs()
     # Root directory
     root_dir = "results"
 
@@ -541,10 +524,11 @@ def main():
     plotter.plotWMRE()
     plotter.plotEntropy()
     plotter.plotCardErr()
-    # plotter.plotEstimationTime()
-    # plotter.plotTotalEstimationTime()
     plotter.plotF1Membership()
     plotter.plotBandwidth()
+
+    # plotter.plotEstimationTime()
+    # plotter.plotTotalEstimationTime()
     # plotter.plotNSdelta()
     plt.show()
 

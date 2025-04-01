@@ -46,7 +46,7 @@ def set_test_rcs():
     rc('axes.formatter', useoffset=False, use_mathtext=True, limits=[-8,8])
     rc('axes', grid=True, linewidth=0.5)
     rc('grid', linestyle='--', color='grey', linewidth=0.5)
-    rc('lines', linewidth=0.5, marker='h')
+    # rc('lines', linewidth=0.5, marker='h')
     rc('legend', fontsize=12)
     rc('figure', figsize=(7,5), autolayout=True)
     rc('figure.constrained_layout', use=True)

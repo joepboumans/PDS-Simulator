@@ -3,6 +3,7 @@ import os
 from unicodedata import numeric
 import pandas as pd
 from pandas.core.generic import common
+from pandas.core.internals.managers import extend_blocks
 from pandas.core.series import fmt
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -29,8 +30,9 @@ class Plotter():
         self.line_style_map = {tt: styles[i % len(styles)] for i, tt in enumerate(unique_tuple)}
 
         # Find the maximum Total Time
+        self.maxMinTime = self.em_data.groupby('DataSetName')['Total Time'].max().min()
         maxTime = self.em_data['Total Time'].max()
-        extendedRows = []
+        extendedData = []
         for dataStruct in self.em_data['DataStructName'].unique():
             dataStructSet = self.em_data[self.em_data['DataStructName'] == dataStruct]
             for dataName in self.em_data['DataSetName'].unique():
@@ -38,18 +40,24 @@ class Plotter():
                 maxDataTotalTime = dataSet['Total Time'].max()
                 if maxDataTotalTime == maxTime:
                     continue
-    
-                maxEpoch = dataSet['Epoch'].max()
-                finalRow = dataSet[dataSet['Epoch'] == maxEpoch]
-                finalRow['Total Time'] = maxTime
-    
-                extendedRows.append(finalRow)
 
-        for row in extendedRows:
-            self.em_data = pd.concat([self.em_data, row], ignore_index=True)
+                dataSet = dataSet.set_index('Total Time')
+                dataSet = dataSet.infer_objects(copy=False)
+
+                commonTimeFrame = np.linspace(maxDataTotalTime, maxTime, num=2)
+                df_interp = dataSet.reindex(dataSet.index.union(commonTimeFrame))
+                df_interp.ffill(inplace=True)
+
+                numeric_cols = df_interp.select_dtypes(include=[np.number]).columns
+                # for col in ['Weighted Mean Relative Error', 'Cardinality', 'Cardinality Error', 'True Cardinality','Entropy']:
+                #     df_interp[col] = pd.to_numeric(df_interp[col], errors='coerce')
+
+                extendedData.append(df_interp)
+
+        self.em_data = pd.concat(extendedData).reset_index()
 
         # Interpolate EM data to create smoother time
-        commonTimeFrame = np.linspace(0, maxTime, num=500)
+        commonTimeFrame = np.linspace(0, maxTime, num=200)
         smoothedResults = []
         for dstruct in self.em_data['DataStructName'].unique():
             df_ds = self.em_data[self.em_data['DataStructName'] == dstruct].copy()
@@ -60,9 +68,9 @@ class Plotter():
 
                 df_interp = df_dsDs.reindex(df_dsDs.index.union(commonTimeFrame))
                 numeric_cols = df_interp.select_dtypes(include=[np.number]).columns
-                for col in ['Weighted Mean Relative Error', 'Cardinality', 'Entropy']:
-                    df_interp[col] = pd.to_numeric(df_interp[col], errors='coerce')
-                df_interp[numeric_cols] = df_interp[numeric_cols].interpolate(method='polynomial', order=5)
+                # for col in ['Weighted Mean Relative Error', 'Cardinality', 'Cardinality Error', 'True Cardinality','Entropy']:
+                #     df_interp[col] = pd.to_numeric(df_interp[col], errors='coerce')
+                df_interp[numeric_cols] = df_interp[numeric_cols].interpolate(method='polynomial', order=2)
 
                 for col in ['TupleType', 'DataStructType', 'DataStructName']:
                     df_interp[col] = df_interp[col].ffill()
@@ -71,11 +79,11 @@ class Plotter():
 
                 droppingIndex = df_dsDs.index.difference([df_dsDs.index[0], df_dsDs.index[-1]])
                 df_interp = df_interp.drop(index=droppingIndex)
-                print(df_interp)
                 smoothedResults.append(df_interp)
 
         self.dfSmoothed = pd.concat(smoothedResults)
-        numeric_cols = self.dfSmoothed.select_dtypes(include=[np.number]).columns
+        self.em_data = self.dfSmoothed
+        print(self.dfSmoothed.head())
 
     def plotSmoothedOverTime(self, data, param, frac):
         # Loop over each combination of DataStructName and TupleType for LOWESS smoothing.
@@ -95,9 +103,33 @@ class Plotter():
 
 
     def plotWMRE(self):
-        # Set the figure size
-        plt.figure(figsize=(10, 6))
+        plt.figure(figsize=( 10,6 ))
+        # Calculate maximum gain compared of WMRE
+        avg_df = self.dfSmoothed.reset_index().groupby(["DataStructName", 'Total Time'], as_index=False)['Weighted Mean Relative Error'].mean()
+        pivoted = avg_df.pivot(index='Total Time', columns='DataStructName', values='Weighted Mean Relative Error')
+        pivoted['Delta'] = -(pivoted['WaterfallFCM'] - pivoted['FCM-Sketches']) / pivoted['FCM-Sketches']
 
+        # maxDelta = pivoted['Delta'].max()
+        # timeMax = pivoted.loc[pivoted['Delta'] == maxDelta].index
+        #
+        # pivoted['Sign'] = np.sign(pivoted['Delta']).diff()
+        # intersectPoints = pivoted[pivoted['Sign'] != 0].dropna()
+        # print(intersectPoints)
+        #
+        # minWFCM = pivoted['WaterfallFCM'].min()
+        # timeMin = pivoted.loc[pivoted['WaterfallFCM'] == minWFCM].index
+        # print(minWFCM, timeMin)
+        #
+        # plt.axhline(y=maxDelta, label="Max Delta")
+        # plt.axvline(x=timeMax, label="Optimial Time")
+        # plt.axvline(x=intersectPoints.head(1).index, label="Intersection")
+        # plt.axvline(x=timeMin, label="Minimal point WFCM")
+
+        sns.lineplot(
+            x='Total Time',
+            y='Delta',
+            data=pivoted
+        )
         # Scatterplot to show each data point
         # sns.scatterplot(
         #     x='Total Time',
@@ -118,8 +150,8 @@ class Plotter():
 
         # self.plotSmoothedOverTime(self.dfSmoothed, 'Weighted Mean Relative Error', 0.15)
         # Determine the maximum Total Time for the shortest dataset
-        shortest_max = self.em_data.groupby('DataStructName')['Total Time'].max().min()
-        plt.xlim(self.em_data['Total Time'].min(), shortest_max)
+        # shortest_max = self.em_data.groupby('DataStructName')['Total Time'].max().min()
+        # plt.xlim(self.em_data['Total Time'].min(), shortest_max)
         # Add labels and title
         plt.xlabel('Estimation Time (ms)')
         plt.ylabel('Weighted Mean Relative Error')
@@ -128,24 +160,24 @@ class Plotter():
         plt.tight_layout()
 
         plt.savefig('plots/WMRE_over_time.pdf', dpi=300, bbox_inches='tight')
+        plt.show()
 
     def plotEntropy(self):
         plt.figure(figsize=(10, 6))
-        # Scatterplot to show each data point
-        # sns.scatterplot(
-        #     x='Total Time',
-        #     y='Entropy',
-        #     hue='DataStructName',
-        #     style='TupleType',
-        #     data=self.em_data,
-        #     palette=self.color_map,
-        #     s=1
-        # )
+        print(self.dfSmoothed.head())
+        sns.lineplot(
+            x='Total Time',
+            y='Entropy',
+            hue='DataStructName',
+            # style='TupleType',
+            data=self.dfSmoothed,
+            # palette=self.color_map,
+        )
 
-        self.plotSmoothedOverTime(self.em_data, 'Entropy', 0.1)
+        # self.plotSmoothedOverTime(self.em_data, 'Entropy', 0.1)
         # Determine the maximum Total Time for the shortest dataset
-        shortest_max = self.em_data.groupby('DataStructName')['Total Time'].max().min()
-        plt.xlim(self.em_data['Total Time'].min(), shortest_max)
+        # shortest_max = self.em_data.groupby('DataStructName')['Total Time'].max().min()
+        # plt.xlim(self.em_data['Total Time'].min(), shortest_max)
 
         # Add labels and title
         plt.xlabel('Epoch')
@@ -158,27 +190,48 @@ class Plotter():
     def plotCard(self):
         plt.figure(figsize=(10, 6))
         # Scatterplot to show each data point
-        # sns.scatterplot(
-        #     x='Total Time',
-        #     y='Cardinality',
-        #     hue='DataStructName',
-        #     style='TupleType',
-        #     data=self.em_data,
-        #     palette=self.color_map,
-        #     s=1
-        # )
+        sns.lineplot(
+            x='Total Time',
+            y='Cardinality',
+            hue='DataStructName',
+            # style='TupleType',
+            data=self.dfSmoothed,
+            palette=self.color_map,
+        )
 
-        self.plotSmoothedOverTime(self.em_data, 'Cardinality', 0.15)
+        # self.plotSmoothedOverTime(self.em_data, 'Cardinality', 0.15)
         # Add labels and title
-        longest_max = self.em_data.groupby('DataStructName')['Total Time'].max().max()
-        shortest_max = self.em_data.groupby('DataStructName')['Total Time'].max().min()
-        plt.xlim(self.em_data['Total Time'].min(), shortest_max)
+        # longest_max = self.em_data.groupby('DataStructName')['Total Time'].max().max()
+        # shortest_max = self.em_data.groupby('DataStructName')['Total Time'].max().min()
+        # plt.xlim(self.em_data['Total Time'].min(), shortest_max)
         plt.xlabel('Epoch')
         plt.ylabel('Cardinality')
         plt.title('Cardinality')
         plt.legend(title='Data Structure Type')
         plt.tight_layout()
         plt.savefig('plots/cardinality.pdf', dpi=300, bbox_inches='tight')
+
+    def plotCardErr(self):
+        plt.figure(figsize=(10, 6))
+        # Scatterplot to show each data point
+        sns.lineplot(
+            x='Total Time',
+            y='Cardinality Error',
+            hue='DataStructName',
+            # style='TupleType',
+            data=self.dfSmoothed,
+            palette=self.color_map,
+        )
+
+        # longest_max = self.em_data.groupby('DataStructName')['Total Time'].max().max()
+        # shortest_max = self.em_data.groupby('DataStructName')['Total Time'].max().min()
+        plt.xlim(0, self.maxMinTime)
+        plt.xlabel('Total Time')
+        plt.ylabel('Error')
+        plt.title('Cardinality Error')
+        plt.legend(title='Data Structure Type')
+        plt.tight_layout()
+        plt.savefig('plots/cardinality_error.pdf', dpi=300, bbox_inches='tight')
 
     def plotEstimationTime(self):
         filtered_data = self.em_data[self.em_data['Epoch'] != 0]
@@ -411,6 +464,10 @@ def main():
                                     file_path = os.path.join(data_struct_name_dir, file_name)
                                     data = read_binary_file(file_path)
 
+                                    if len(data) == 0:
+                                        print(f"Data of file is empty! {file_path}")
+                                        exit(1)
+
                                     data_pd = pd.DataFrame(
                                                         data[-1],
                                                         columns=["Flow Size", "Frequency"]
@@ -450,53 +507,44 @@ def main():
                                 data_pd['DataStructName'] = "TrueData"
                                 ns_dataframes.append(data_pd)
 
-    # Display the combined data
-    combined_data = pd.concat(dataframes, ignore_index=True)
-    combined_data = combined_data[combined_data['TupleType'] == "SrcTuple"]
+    # Concat all data frame into single structures
+    df = pd.concat(dataframes, ignore_index=True)
+    df = df[df['TupleType'] == "SrcTuple"]
 
-    combined_data['F1'] = combined_data['F1'].fillna(combined_data['F1 Member'])
-    combined_data.drop(columns=['F1 Member'], inplace=True)
+    # Equalize F1 Member and F1 for comparing AMQ and FC_AMQ
+    df['F1'] = df['F1'].fillna(df['F1 Member'])
+    df.drop(columns=['F1 Member'], inplace=True)
 
-    print("Non-Estimation Data:")
-    print(combined_data.head())
+    df_em = pd.concat(em_dataframes, ignore_index=True)
+    df_em = df_em[df_em['TupleType'] == "SrcTuple"]
 
-    print("\nEstimation Data:")
-    combined_em_data = pd.concat(em_dataframes, ignore_index=True)
-    combined_em_data = combined_em_data[combined_em_data['TupleType'] == "SrcTuple"]
-    print(combined_em_data.head())
+    df_ns = pd.concat(ns_dataframes, ignore_index=True)
+    df_ns = df_ns[df_ns['TupleType'] == "SrcTuple"]
 
-    print("\nFSD Data:")
-    combined_ns_data = pd.concat(ns_dataframes, ignore_index=True)
-    # combined_ns_data = combined_ns_data[combined_ns_data['DataSetName'] == "equinix-nyc.20190117-130000.UTC"]
-    combined_ns_data = combined_ns_data[combined_ns_data['TupleType'] == "SrcTuple"]
-
-    true_df = combined_ns_data[combined_ns_data["DataStructName"] == "TrueData"][["Flow Size", "Frequency"]].rename(
+    # Calculate delta FSD 
+    true_df = df_ns[df_ns["DataStructName"] == "TrueData"][["Flow Size", "Frequency"]].rename(
         columns={"Frequency": "TrueFrequency"}
     )
-    print(true_df.head())
-    combined_ns_data = combined_ns_data.merge(true_df, on="Flow Size", how="left")
-    combined_ns_data["Delta"] = combined_ns_data["Frequency"] - combined_ns_data["TrueFrequency"]
-    combined_ns_data.loc[combined_ns_data["DataStructName"] == "TrueData", "Delta"] = 0
-    print(combined_ns_data.head())
-    # plotNS(combined_ns_data)
-    # Group non-'em' data by TupleType, DataStructType, and DataStructName
-    grouped_data = combined_data.groupby(['TupleType', 'DataStructType', 'DataStructName'])['F1'].mean().reset_index()
-    print("Grouped Non-'em' Data:")
-    print(grouped_data)
+    df_ns = df_ns.merge(true_df, on="Flow Size", how="left")
+    df_ns["Delta"] = df_ns["Frequency"] - df_ns["TrueFrequency"]
+    df_ns.loc[df_ns["DataStructName"] == "TrueData", "Delta"] = 0
 
-    print(combined_em_data['DataStructName'].unique())
-    # combined_em_data['DataSetName'] = combined_em_data['DataSetName'].str.split("-").str[:2].str.join("-")
-    combined_em_data = combined_em_data[combined_em_data['TupleType'] == "SrcTuple"]
-    # filtered_data = filtered_data[filtered_data['DataSetName'].apply(lambda x: not 'nyc' in x)]
+    print("Non-Estimation Data:")
+    print(df.head())
+    print("\nEstimation Data:")
+    print(df_em.head())
+    print("\nFSD Data:")
+    print(df_ns.head())
 
-    plotter = Plotter(combined_data, combined_em_data, combined_ns_data)
+
+    plotter = Plotter(df, df_em, df_ns)
     plotter.plotWMRE()
-    # plotter.plotEntropy()
-    # plotter.plotCard()
+    plotter.plotEntropy()
+    plotter.plotCardErr()
     # plotter.plotEstimationTime()
     # plotter.plotTotalEstimationTime()
-    # plotter.plotF1Membership()
-    # plotter.plotBandwidth()
+    plotter.plotF1Membership()
+    plotter.plotBandwidth()
     # plotter.plotNSdelta()
     plt.show()
 

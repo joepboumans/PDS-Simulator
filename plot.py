@@ -1,6 +1,7 @@
 import struct
 import os
 from unicodedata import numeric
+from numpy import cross
 import pandas as pd
 from pandas.core.generic import common
 from pandas.core.internals.managers import extend_blocks
@@ -22,7 +23,7 @@ class Plotter():
         unique_names = np.append(data['DataStructName'].unique(),em_data['DataStructName'].unique() )
         palette = sns.color_palette("deep", n_colors=len(unique_names))
         self.color_map = dict(zip(unique_names, palette))
-        print(f"Using color map : {self.color_map.keys()}")
+        print(f"Using color map : {[*self.color_map.items()]}")
 
         # Create a line style mapping for TupleType.
         unique_tuple = sorted(data['TupleType'].unique())
@@ -106,21 +107,27 @@ class Plotter():
         diffs = pivoted['WaterfallFCM'].diff().abs()
         settlingThreshold = 0.001
         settlepointWFCM = diffs[diffs <= settlingThreshold]
-        settlepoint = settlepointWFCM.index[0]
-        plt.axvline(x=settlepoint, label="Settle Point WFCM")
+        settlePointWFCM = settlepointWFCM.index[0]
+        # plt.axvline(x=settlepoint, label="Settle Point WFCM")
+        settleValueWFCM = pivoted.loc[settlePointWFCM, 'WaterfallFCM']
 
         # Get where FCM Sketchs gets within 1% of this value
-        crosspointsFCM = pivoted[pivoted['FCM-Sketches'] <= 1.01 * pivoted.loc[settlepoint, 'WaterfallFCM']]
-        plt.axvline(x=crosspointsFCM.index[0], label="Settle Point FCM")
+        crosspointsFCM = pivoted[pivoted['FCM-Sketches'] <= 1.01 * settleValueWFCM]
+        settlePointFCM = crosspointsFCM.index[0]
+        settleValueFCM = crosspointsFCM['FCM-Sketches'].values[0]
+        # plt.axvline(x=crosspointsFCM.index[0], label="Settle Point FCM")
 
-        deltaSettling = crosspointsFCM.index[0] - settlepoint
-        deltaFrac = deltaSettling / settlepoint
+        deltaSettling = settlePointFCM - settlePointWFCM
+        deltaFrac = deltaSettling / settlePointWFCM
 
         print("Speedup in reaching final value: ")
-        print(f"abs:\t{deltaSettling:.1f} ms")
+        print(f"abs:\t{deltaSettling:.1f} ms\tWFCM: {settlePointWFCM}\tFCM: {settlePointFCM}")
         print(f"frac:\t{deltaFrac:.2f}x")
         print("")
 
+        plt.plot(settlePointWFCM, settleValueWFCM, 'o', color=self.color_map['WaterfallFCM'])
+        plt.plot(settlePointFCM, settleValueFCM, 'o', color=self.color_map['FCM-Sketches'])
+        plt.plot([0, self.maxMinTime], [settleValueWFCM, settleValueWFCM], 'k--')
 
         sns.lineplot(
             x='Total Time',
@@ -131,7 +138,9 @@ class Plotter():
             palette=self.color_map,
         )
 
-        # plt.xlim(0, self.maxMinTime)
+        plt.xlim(0, self.maxMinTime)
+        maxWMRE = pivoted.values.max()
+        plt.ylim(0, maxWMRE * 1.1)
         self._prettifyFigure("WMRE during estimation", 'Estimation Time (ms)', 'Weighted Mean Relative Errror', 'Data Structures', 'WMRE')
 
     def plotEntropy(self):

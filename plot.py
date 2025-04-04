@@ -79,21 +79,13 @@ class Plotter():
         self.dfSmoothed = pd.concat(smoothedResults)
         self.em_data = self.dfSmoothed
 
-    def plotSmoothedOverTime(self, data, param, frac):
-        # Loop over each combination of DataStructName and TupleType for LOWESS smoothing.
-        for (ds, tt), group in data.groupby(['DataStructName', 'TupleType']):
-            smoothed = lowess(
-                group[param], 
-                group.index, 
-                frac=frac,
-                it=6,
-                # delta=1
-            )
-            plt.plot(smoothed[:, 0], smoothed[:, 1], 
-                     label=f"{ds}, {tt}", 
-                     linewidth=2, 
-                     color=self.color_map[ds],
-                     linestyle=self.line_style_map[tt])
+    def _prettifyFigure(self, title, xlabel, ylabel, legendTitle, saveFile):
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+        plt.title(title)
+        plt.legend(title=legendTitle, bbox_to_anchor=(0., 1.02, 1., .102), loc="lower left", ncol = len(self.dfSmoothed['DataStructName'].unique()))
+        plt.tight_layout()
+        plt.savefig(f'plots/{saveFile}.pdf', bbox_inches='tight')
 
 
     def plotWMRE(self):
@@ -101,59 +93,46 @@ class Plotter():
         # Calculate maximum gain compared of WMRE
         avg_df = self.dfSmoothed.reset_index().groupby(["DataStructName", 'Total Time'], as_index=False)['Weighted Mean Relative Error'].mean()
         pivoted = avg_df.pivot(index='Total Time', columns='DataStructName', values='Weighted Mean Relative Error')
-        pivoted['Delta'] = -(pivoted['WaterfallFCM'] - pivoted['FCM-Sketches']) / pivoted['FCM-Sketches']
 
-        # maxDelta = pivoted['Delta'].max()
-        # timeMax = pivoted.loc[pivoted['Delta'] == maxDelta].index
-        #
-        # pivoted['Sign'] = np.sign(pivoted['Delta']).diff()
-        # intersectPoints = pivoted[pivoted['Sign'] != 0].dropna()
-        # print(intersectPoints)
-        #
-        # minWFCM = pivoted['WaterfallFCM'].min()
-        # timeMin = pivoted.loc[pivoted['WaterfallFCM'] == minWFCM].index
-        # print(minWFCM, timeMin)
-        #
-        # plt.axhline(y=maxDelta, label="Max Delta")
-        # plt.axvline(x=timeMax, label="Optimial Time")
-        # plt.axvline(x=intersectPoints.head(1).index, label="Intersection")
-        # plt.axvline(x=timeMin, label="Minimal point WFCM")
-
-        sns.lineplot(
-            x='Total Time',
-            y='Delta',
-            data=pivoted
-        )
-        # Scatterplot to show each data point
-        # sns.scatterplot(
+        # Shows the delta for each data point between WaterfallFCM and FCM-Sketches. Not the best metric for measuring performance
+        # pivoted['Delta'] = -(pivoted['WaterfallFCM'] - pivoted['FCM-Sketches']) / pivoted['FCM-Sketches']
+        # sns.lineplot(
         #     x='Total Time',
-        #     y='Weighted Mean Relative Error',
-        #     hue='DataStructName',
-        #     style='TupleType',
-        #     data=self.em_data,
-        #     palette=self.color_map,
-        #     s=1
+        #     y='Delta',
+        #     data=pivoted
         # )
+
+        # Get first value where change is lesss than threshold
+        diffs = pivoted['WaterfallFCM'].diff().abs()
+        settlingThreshold = 0.001
+        settlepointWFCM = diffs[diffs <= settlingThreshold]
+        settlepoint = settlepointWFCM.index[0]
+        plt.axvline(x=settlepoint, label="Settle Point WFCM")
+
+        # Get where FCM Sketchs gets within 1% of this value
+        crosspointsFCM = pivoted[pivoted['FCM-Sketches'] <= 1.01 * pivoted.loc[settlepoint, 'WaterfallFCM']]
+        plt.axvline(x=crosspointsFCM.index[0], label="Settle Point FCM")
+
+        deltaSettling = crosspointsFCM.index[0] - settlepoint
+        deltaFrac = deltaSettling / settlepoint
+
+        print("Speedup in reaching final value: ")
+        print(f"abs:\t{deltaSettling:.1f} ms")
+        print(f"frac:\t{deltaFrac:.2f}x")
+        print("")
+
+
         sns.lineplot(
             x='Total Time',
             y='Weighted Mean Relative Error',
             hue='DataStructName',
             # style='DataSetName',
             data=self.dfSmoothed,
+            palette=self.color_map,
         )
 
-        # self.plotSmoothedOverTime(self.dfSmoothed, 'Weighted Mean Relative Error', 0.15)
-        # Determine the maximum Total Time for the shortest dataset
-        # shortest_max = self.em_data.groupby('DataStructName')['Total Time'].max().min()
-        # plt.xlim(self.em_data['Total Time'].min(), shortest_max)
-        # Add labels and title
-        plt.xlabel('Estimation Time (ms)')
-        plt.ylabel('Weighted Mean Relative Error')
-        plt.title('WMRE during estimation')
-        plt.legend(title='Data Structures')
-        plt.tight_layout()
-
-        plt.savefig('plots/WMRE.pdf', bbox_inches='tight')
+        # plt.xlim(0, self.maxMinTime)
+        self._prettifyFigure("WMRE during estimation", 'Estimation Time (ms)', 'Weighted Mean Relative Errror', 'Data Structures', 'WMRE')
 
     def plotEntropy(self):
         plt.figure(figsize=(10, 6))
@@ -168,12 +147,7 @@ class Plotter():
         )
 
         plt.xlim(0, self.maxMinTime)
-        plt.xlabel('Epoch')
-        plt.ylabel('Entropy')
-        plt.title('Entropy')
-        plt.legend(title='Data Structure Type')
-        plt.tight_layout()
-        plt.savefig('plots/entropy.pdf', bbox_inches='tight')
+        self._prettifyFigure("Entropy Error", 'Estimation Time (ms)', 'Entropy', 'Data Structures', 'entropy')
 
     def plotCard(self):
         plt.figure(figsize=(10, 6))
@@ -186,21 +160,11 @@ class Plotter():
             palette=self.color_map,
         )
 
-        # self.plotSmoothedOverTime(self.em_data, 'Cardinality', 0.15)
-        # Add labels and title
-        # longest_max = self.em_data.groupby('DataStructName')['Total Time'].max().max()
-        # shortest_max = self.em_data.groupby('DataStructName')['Total Time'].max().min()
         # plt.xlim(self.em_data['Total Time'].min(), shortest_max)
-        plt.xlabel('Epoch')
-        plt.ylabel('Cardinality')
-        plt.title('Cardinality')
-        plt.legend(title='Data Structure Type')
-        plt.tight_layout()
-        plt.savefig('plots/cardinality.pdf', bbox_inches='tight')
+        self._prettifyFigure("Cardinality", 'Estimation Time (ms)', 'Cardinality', 'Data Structures', 'cardinality')
 
     def plotCardErr(self):
         plt.figure(figsize=(10, 6))
-        # Scatterplot to show each data point
         sns.lineplot(
             x='Total Time',
             y='Cardinality Error',
@@ -210,15 +174,8 @@ class Plotter():
             palette=self.color_map,
         )
 
-        # longest_max = self.em_data.groupby('DataStructName')['Total Time'].max().max()
-        # shortest_max = self.em_data.groupby('DataStructName')['Total Time'].max().min()
         plt.xlim(0, self.maxMinTime)
-        plt.xlabel('Total Time')
-        plt.ylabel('Error')
-        plt.title('Cardinality Error')
-        plt.legend(title='Data Structure Type')
-        plt.tight_layout()
-        plt.savefig('plots/cardinality_error.pdf', dpi=300, bbox_inches='tight')
+        self._prettifyFigure("Cardinality Error", 'Estimation Time (ms)', 'Error', 'Data Structures', 'card_error')
 
     def plotEstimationTime(self):
         filtered_data = self.em_data[self.em_data['Epoch'] != 0]
@@ -296,17 +253,12 @@ class Plotter():
         )
 
         # Add labels and title
-        plt.legend(title='Data Structure Type')
         plt.xscale("log")
-        print(self.ns_data["Flow Size"].max().max())
+        plt.yscale("log")
         plt.xlim(0.9, self.ns_data["Flow Size"].max().max())
         plt.ylim(0.1, self.ns_data["Frequency"].max().max() * 1.1)
-        plt.xlabel("Value")
-        plt.yscale("log")
-        plt.ylabel("Frequency")
-        plt.title("Frequency Plot")
-        plt.tight_layout()
-        plt.savefig('plots/fsd.pdf', bbox_inches='tight')
+
+        self._prettifyFigure("Frequency", 'Count', 'Frequency', 'Data Structures', 'fsd')
 
     def plotNSdelta(self):
         plt.figure(figsize=(10, 6))
@@ -322,14 +274,9 @@ class Plotter():
         )
 
         # Add labels and title
-        plt.legend(title='Data Structure Type')
         plt.xscale("log")
-        plt.xlabel("Flow Size")
         # plt.yscale("log")
-        plt.ylabel("Delta")
-        plt.title("Frequency Plot")
-        plt.tight_layout()
-        plt.savefig('plots/delta_fsd.pdf', dpi=300, bbox_inches='tight')
+        self._prettifyFigure("Frequency", 'Flow Size', 'Delta', 'Data Structures', 'delta_fsd')
 
     def plotF1Membership(self):
         # Remove FC's for F1 Membership
@@ -341,17 +288,12 @@ class Plotter():
             x='DataStructName',
             y='Value',      
             hue='Metric',
-            data=df_melted,               # Data to plot
+            data=df_melted,
+            # palette=self.color_map,
         )
 
         # Add labels and title
-        plt.xlabel('Data Structurres')
-        plt.ylabel('F1 Score')
-        plt.title('Membership Scores')
-        plt.legend(title='Data Structures')
-        plt.tight_layout()
-
-        plt.savefig('plots/F1Membership.pdf', bbox_inches='tight')
+        self._prettifyFigure("Membership Scores", 'Scores', 'Data Structures', 'Data Structures', 'F1 Membership')
 
     def plotBandwidth(self):
         # Remove FC's for F1 Membership
@@ -371,7 +313,7 @@ class Plotter():
         plt.xlabel('Data Structurres')
         plt.ylabel('Insertions and Collisions')
         plt.title('Bandwidth Usage')
-        plt.legend(title='Data Structures')
+        plt.legend(title='Data Structures', bbox_to_anchor=(0., 1.02, 1., .102), loc="lower left", ncol = len(self.dfSmoothed['DataStructName'].unique()))
         plt.tight_layout()
 
         plt.savefig('plots/Bandwidth.pdf', bbox_inches='tight')
@@ -522,10 +464,10 @@ def main():
 
     plotter = Plotter(df, df_em, df_ns)
     plotter.plotWMRE()
-    plotter.plotEntropy()
-    plotter.plotCardErr()
-    plotter.plotF1Membership()
-    plotter.plotBandwidth()
+    # plotter.plotEntropy()
+    # plotter.plotCardErr()
+    # plotter.plotF1Membership()
+    # plotter.plotBandwidth()
 
     # plotter.plotEstimationTime()
     # plotter.plotTotalEstimationTime()

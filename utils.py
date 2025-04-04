@@ -46,12 +46,13 @@ def set_test_rcs():
     rc('axes.formatter', useoffset=False, use_mathtext=True, limits=[-8,8])
     rc('axes', grid=True, linewidth=0.5)
     rc('grid', linestyle='--', color='grey', linewidth=0.5)
-    # rc('lines', linewidth=0.5, marker='h')
     rc('legend', fontsize=12)
     rc('figure', figsize=(7,5), autolayout=True)
     rc('figure.constrained_layout', use=True)
     rc('figure.subplot', left=0.10, top=0.90, bottom=0.12, right=0.95)
+    rc('legend', frameon=False)
     # rc('text', usetex=True)
+    # rc('lines', linewidth=0.5, marker='h')
 
 def set_leg_fontsize(size):
   rc('legend', fontsize=size)
